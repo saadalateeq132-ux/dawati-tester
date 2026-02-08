@@ -1,0 +1,112 @@
+{
+  "name": "Dawati Complete Test Plan",
+  "version": "1.0.0",
+  "description": "Comprehensive testing plan for Dawati event planning app",
+
+  "authentication": {
+    "enabled": true,
+    "methods": ["phone", "email"],
+    "testLogout": true,
+    "testSessionPersistence": true
+  },
+
+  "navigation": {
+    "enabled": true,
+    "homepageTabs": [
+      { "name": "Birthdays", "arabic": "أعياد الميلاد" },
+      { "name": "Weddings", "arabic": "حفلات الزفاف" },
+      { "name": "Corporate", "arabic": "فعاليات الشركات" },
+      { "name": "Gatherings", "arabic": "التجمعات" }
+    ],
+    "marketplaceCategories": [
+      { "name": "Photography", "arabic": "التصوير" },
+      { "name": "Videography", "arabic": "الفيديو" },
+      { "name": "Catering", "arabic": "الضيافة" },
+      { "name": "Venues", "arabic": "القاعات" },
+      { "name": "Florists", "arabic": "الورود" },
+      { "name": "Cakes", "arabic": "الكيك" },
+      { "name": "Entertainment", "arabic": "الترفيه" },
+      { "name": "Decoration", "arabic": "الديكور" },
+      { "name": "Invitations", "arabic": "الدعوات" },
+      { "name": "Music", "arabic": "الموسيقى" },
+      { "name": "Makeup", "arabic": "المكياج" },
+      { "name": "Dresses", "arabic": "الفساتين" },
+      { "name": "Jewelry", "arabic": "المجوهرات" },
+      { "name": "Transportation", "arabic": "النقل" },
+      { "name": "Planning", "arabic": "التخطيط" }
+    ],
+    "testVendorProfiles": true,
+    "testBackNavigation": true,
+    "testBottomNav": true
+  },
+
+  "scrolling": {
+    "enabled": true,
+    "testVertical": true,
+    "testHorizontal": true,
+    "testInfiniteScroll": true,
+    "testPerformance": true,
+    "scrollIncrement": 500,
+    "maxScrollIterations": 10
+  },
+
+  "rtl": {
+    "enabled": true,
+    "checkDirection": true,
+    "checkAlignment": true,
+    "checkHardcodedStrings": true,
+    "checkNumbersAndDates": true,
+    "checkIconAlignment": true,
+    "expectedLanguage": "ar",
+    "hardcodedPatterns": [
+      "Submit", "Cancel", "Save", "Delete", "Edit",
+      "Add", "Remove", "Search", "Filter", "Sort",
+      "View", "Back", "Next", "Previous", "Loading",
+      "Error", "Success", "Welcome", "Hello",
+      "Sign In", "Sign Up", "Log In", "Log Out",
+      "Profile", "Settings", "Home", "Continue"
+    ]
+  },
+
+  "screenshots": {
+    "captureOnEveryAction": true,
+    "fullPageScreenshots": true,
+    "quality": 80,
+    "format": "png",
+    "organizeByTimestamp": true
+  },
+
+  "aiAnalysis": {
+    "enabled": true,
+    "model": "gemini-2.0-flash-exp",
+    "analyzeUI": true,
+    "analyzeFunctionality": true,
+    "analyzePerformance": true,
+    "analyzeRTL": true,
+    "analyzeAccessibility": true,
+    "rateLimitDelayMs": 1000
+  },
+
+  "reporting": {
+    "generateHTML": true,
+    "generateJSON": true,
+    "generateCSV": true,
+    "includeScreenshots": true,
+    "calculateHealthScore": true,
+    "groupIssuesByCategory": true,
+    "prioritizeIssues": true
+  },
+
+  "execution": {
+    "headless": true,
+    "slowMo": 0,
+    "timeout": 30000,
+    "navigationTimeout": 60000,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "locale": "ar-SA",
+    "timezone": "Asia/Riyadh"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "dawati-tester",
+  "version": "1.0.0",
+  "description": "Autonomous AI-powered testing system for Dawati app",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/index.js",
+    "test:auth": "npm run build && node dist/index.js --only=auth",
+    "test:nav": "npm run build && node dist/index.js --only=navigation",
+    "test:scroll": "npm run build && node dist/index.js --only=scrolling",
+    "test:rtl": "npm run build && node dist/index.js --only=rtl",
+    "report": "start test-results/latest/report.html",
+    "clean": "rimraf dist test-results"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "playwright": "^1.50.0",
+    "dotenv": "^16.4.7",
+    "pino": "^9.6.0",
+    "handlebars": "^4.7.8",
+    "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.0",
+    "rimraf": "^6.0.1",
+    "pino-pretty": "^13.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
