@@ -50,7 +50,12 @@
       "Bash(npm run test:quick:*)",
       "Bash(npm run test:auth:*)",
       "Bash(if exist test-results rmdir /s /q test-results)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(gh repo create:*)",
+      "Bash(cmd //c \"where gh\")",
+      "Bash(cmd //c \"winget install --id GitHub.cli --accept-package-agreements --accept-source-agreements\")",
+      "Bash(cmd //c \"powershell -Command \"\"irm https://github.com/cli/cli/releases/download/v2.65.0/gh_2.65.0_windows_amd64.zip -OutFile C:\\\\Users\\\\pc\\\\Downloads\\\\gh.zip; Expand-Archive C:\\\\Users\\\\pc\\\\Downloads\\\\gh.zip -DestinationPath C:\\\\Users\\\\pc\\\\gh-cli -Force\"\"\")",
+      "Bash(/c/Users/pc/gh-cli/bin/gh.exe:*)"
     ]
   }
 }
