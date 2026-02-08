@@ -1,12 +1,15 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { config } from './config';
 import { createChildLogger } from './logger';
+import { DeviceConfig } from './types';
+import { createDeviceContext, DeviceContext } from './device-manager';
 
 const log = createChildLogger('browser');
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
 let page: Page | null = null;
+let deviceContexts: DeviceContext[] = [];
 
 export async function initBrowser(): Promise<Page> {
   log.info('Launching browser...');
@@ -35,6 +38,59 @@ export async function initBrowser(): Promise<Page> {
   return page;
 }
 
+export async function launchBrowser(): Promise<Browser> {
+  if (browser) {
+    return browser;
+  }
+
+  log.info('Launching browser...');
+
+  browser = await chromium.launch({
+    headless: config.headless,
+    slowMo: config.slowMo,
+  });
+
+  log.info('Browser launched successfully');
+  return browser;
+}
+
+export function getBrowser(): Browser | null {
+  return browser;
+}
+
+export async function createDeviceContexts(
+  devices: DeviceConfig[],
+  options: { locale?: string; timezoneId?: string } = {}
+): Promise<DeviceContext[]> {
+  const browserInstance = await launchBrowser();
+  deviceContexts = [];
+
+  for (const deviceConfig of devices) {
+    const deviceContext = await createDeviceContext(browserInstance, deviceConfig, options);
+    deviceContexts.push(deviceContext);
+  }
+
+  log.info({ deviceCount: deviceContexts.length }, 'Device contexts created');
+  return deviceContexts;
+}
+
+export function getDeviceContexts(): DeviceContext[] {
+  return deviceContexts;
+}
+
+export async function closeAllDeviceContexts(): Promise<void> {
+  for (const deviceContext of deviceContexts) {
+    try {
+      await deviceContext.page.close();
+      await deviceContext.context.close();
+    } catch (error) {
+      log.warn({ device: deviceContext.name, error }, 'Error closing device context');
+    }
+  }
+  deviceContexts = [];
+  log.info('All device contexts closed');
+}
+
 export async function getPage(): Promise<Page> {
   if (!page) {
     return initBrowser();
@@ -44,6 +100,9 @@ export async function getPage(): Promise<Page> {
 
 export async function closeBrowser(): Promise<void> {
   log.info('Closing browser...');
+
+  // Close device contexts first
+  await closeAllDeviceContexts();
 
   if (page) {
     await page.close();

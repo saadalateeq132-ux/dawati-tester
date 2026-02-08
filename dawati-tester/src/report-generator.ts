@@ -8,6 +8,7 @@ import { AuthTestResult } from './auth-tester';
 import { NavigationTestResult } from './navigation-tester';
 import { ScrollTestResult } from './scroll-tester';
 import { RTLCheckResult } from './rtl-checker';
+import { VisualDiff, AccessibilityResult, PerformanceMetric } from './types';
 import { createChildLogger } from './logger';
 
 const log = createChildLogger('report-generator');
@@ -26,6 +27,26 @@ export interface TestReport {
   scrollResults: ScrollTestResult[];
   rtlResults: RTLCheckResult[];
   screenshots: Screenshot[];
+  // New fields for enhancements
+  visualDiffs: VisualDiff[];
+  accessibilityResults: AccessibilityResult[];
+  performanceMetrics: PerformanceMetric[];
+  devicesTested: string[];
+  performanceSummary: {
+    avgLoadTimeMs: number;
+    maxLoadTimeMs: number;
+    minLoadTimeMs: number;
+    totalPages: number;
+    slowPages: string[];
+  };
+  accessibilitySummary: {
+    critical: number;
+    serious: number;
+    moderate: number;
+    minor: number;
+    total: number;
+  };
+  visualChangesCount: number;
 }
 
 const HTML_TEMPLATE = `
@@ -52,6 +73,7 @@ const HTML_TEMPLATE = `
         }
         header h1 { font-size: 2.5rem; margin-bottom: 10px; }
         .meta { opacity: 0.9; font-size: 0.9rem; }
+        .devices-tested { margin-top: 10px; font-size: 0.85rem; opacity: 0.8; }
 
         .score-card {
             background: white;
@@ -71,8 +93,8 @@ const HTML_TEMPLATE = `
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
             margin-bottom: 30px;
         }
         .stat-card {
@@ -83,6 +105,9 @@ const HTML_TEMPLATE = `
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         .stat-value { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .stat-value.warning { color: #fd7e14; }
+        .stat-value.danger { color: #dc3545; }
+        .stat-value.success { color: #28a745; }
         .stat-label { color: #666; font-size: 0.9rem; }
 
         .section {
@@ -98,6 +123,8 @@ const HTML_TEMPLATE = `
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
+        .section h2.warning { border-bottom-color: #fd7e14; }
+        .section h2.danger { border-bottom-color: #dc3545; }
 
         .issue {
             border: 1px solid #eee;
@@ -129,6 +156,9 @@ const HTML_TEMPLATE = `
         .badge.high { background: #fd7e14; color: white; }
         .badge.medium { background: #ffc107; color: #333; }
         .badge.low { background: #28a745; color: white; }
+        .badge.serious { background: #fd7e14; color: white; }
+        .badge.moderate { background: #ffc107; color: #333; }
+        .badge.minor { background: #17a2b8; color: white; }
 
         .issue-description { color: #666; margin-bottom: 10px; }
         .issue-suggestion {
@@ -149,6 +179,7 @@ const HTML_TEMPLATE = `
             border-radius: 8px;
             overflow: hidden;
         }
+        .screenshot-card.has-diff { border: 2px solid #fd7e14; }
         .screenshot-card img {
             width: 100%;
             height: 200px;
@@ -159,6 +190,8 @@ const HTML_TEMPLATE = `
         }
         .screenshot-action { font-weight: bold; color: #333; }
         .screenshot-desc { font-size: 0.85rem; color: #666; }
+        .screenshot-device { font-size: 0.75rem; color: #999; margin-top: 4px; }
+        .screenshot-diff { font-size: 0.75rem; color: #fd7e14; margin-top: 4px; }
 
         .test-result {
             display: flex;
@@ -182,6 +215,62 @@ const HTML_TEMPLATE = `
         .test-status.fail { background: #dc3545; }
         .test-name { flex: 1; }
 
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .perf-table th, .perf-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+        .perf-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .perf-table tr.slow td { background: #fff5f5; color: #dc3545; }
+
+        .a11y-violation {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .a11y-violation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .a11y-violation-id { font-weight: bold; font-family: monospace; }
+        .a11y-violation-help { color: #666; margin-bottom: 8px; }
+        .a11y-violation-nodes {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+
+        .visual-diff-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .visual-diff-card {
+            background: #fff8f0;
+            border: 2px solid #fd7e14;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .visual-diff-filename { font-weight: bold; margin-bottom: 8px; }
+        .visual-diff-percentage {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fd7e14;
+        }
+
         footer {
             text-align: center;
             padding: 30px;
@@ -195,6 +284,9 @@ const HTML_TEMPLATE = `
     <header>
         <h1>Dawati Test Report</h1>
         <p class="meta">Generated: {{formatDate generatedAt}} | Duration: {{formatDuration duration}} | URL: {{appUrl}}</p>
+        {{#if devicesTested.length}}
+        <p class="devices-tested">Devices Tested: {{join devicesTested ", "}}</p>
+        {{/if}}
     </header>
 
     <div class="container">
@@ -206,25 +298,117 @@ const HTML_TEMPLATE = `
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value">{{screenshotCount}}</div>
-                <div class="stat-label">Screenshots Captured</div>
+                <div class="stat-label">Screenshots</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{issuesSummary.total}}</div>
-                <div class="stat-label">Total Issues Found</div>
+                <div class="stat-value {{#if (gt issuesSummary.total 0)}}warning{{else}}success{{/if}}">{{issuesSummary.total}}</div>
+                <div class="stat-label">Total Issues</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{issuesSummary.critical}}</div>
+                <div class="stat-value {{#if (gt issuesSummary.critical 0)}}danger{{else}}success{{/if}}">{{issuesSummary.critical}}</div>
                 <div class="stat-label">Critical Issues</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{{issuesSummary.high}}</div>
-                <div class="stat-label">High Priority Issues</div>
+                <div class="stat-value {{#if (gt visualChangesCount 0)}}warning{{/if}}">{{visualChangesCount}}</div>
+                <div class="stat-label">Visual Changes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value {{#if (gt accessibilitySummary.total 0)}}warning{{/if}}">{{accessibilitySummary.total}}</div>
+                <div class="stat-label">A11y Violations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{formatMs performanceSummary.avgLoadTimeMs}}</div>
+                <div class="stat-label">Avg Load Time</div>
             </div>
         </div>
 
+        {{#if (gt visualChangesCount 0)}}
+        <div class="section">
+            <h2 class="warning">Visual Changes ({{visualChangesCount}})</h2>
+            <p style="margin-bottom: 15px; color: #666;">Screenshots that differ from baseline by more than the threshold.</p>
+            <div class="visual-diff-grid">
+                {{#each visualDiffs}}
+                {{#if hasSignificantChange}}
+                <div class="visual-diff-card">
+                    <div class="visual-diff-filename">{{filename}}</div>
+                    <div class="visual-diff-percentage">{{formatPercentage diffPercentage}}% changed</div>
+                    {{#if diffImagePath}}
+                    <a href="diffs/diff_{{filename}}" style="font-size: 0.85rem; color: #667eea;">View Diff</a>
+                    {{/if}}
+                </div>
+                {{/if}}
+                {{/each}}
+            </div>
+        </div>
+        {{/if}}
+
+        {{#if (gt accessibilitySummary.total 0)}}
+        <div class="section">
+            <h2 class="warning">Accessibility Issues ({{accessibilitySummary.total}})</h2>
+            <div style="margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap;">
+                <span><strong>Critical:</strong> {{accessibilitySummary.critical}}</span>
+                <span><strong>Serious:</strong> {{accessibilitySummary.serious}}</span>
+                <span><strong>Moderate:</strong> {{accessibilitySummary.moderate}}</span>
+                <span><strong>Minor:</strong> {{accessibilitySummary.minor}}</span>
+            </div>
+            {{#each accessibilityResults}}
+            {{#if violations.length}}
+            <h3 style="margin: 20px 0 10px; font-size: 1rem; color: #666;">{{page}} ({{device}})</h3>
+            {{#each violations}}
+            <div class="a11y-violation">
+                <div class="a11y-violation-header">
+                    <span class="a11y-violation-id">{{id}}</span>
+                    <span class="badge {{impact}}">{{impact}}</span>
+                </div>
+                <p class="a11y-violation-help">{{help}}</p>
+                <div class="a11y-violation-nodes">
+                    {{#each nodes}}
+                    <div>{{target}}</div>
+                    {{/each}}
+                </div>
+            </div>
+            {{/each}}
+            {{/if}}
+            {{/each}}
+        </div>
+        {{/if}}
+
+        {{#if performanceMetrics.length}}
+        <div class="section">
+            <h2>Performance Summary</h2>
+            <div style="margin-bottom: 15px; display: flex; gap: 20px; flex-wrap: wrap;">
+                <span><strong>Avg:</strong> {{formatMs performanceSummary.avgLoadTimeMs}}</span>
+                <span><strong>Min:</strong> {{formatMs performanceSummary.minLoadTimeMs}}</span>
+                <span><strong>Max:</strong> {{formatMs performanceSummary.maxLoadTimeMs}}</span>
+                <span><strong>Pages:</strong> {{performanceSummary.totalPages}}</span>
+            </div>
+            {{#if performanceSummary.slowPages.length}}
+            <p style="color: #dc3545; margin-bottom: 15px;"><strong>Slow pages (>5s):</strong> {{join performanceSummary.slowPages ", "}}</p>
+            {{/if}}
+            <table class="perf-table">
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Device</th>
+                        <th>Load Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each performanceMetrics}}
+                    <tr {{#if (gt pageLoadTimeMs 5000)}}class="slow"{{/if}}>
+                        <td>{{name}}</td>
+                        <td>{{device}}</td>
+                        <td>{{formatMs pageLoadTimeMs}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        {{/if}}
+
         {{#if allIssues.length}}
         <div class="section">
-            <h2>Issues Found ({{allIssues.length}})</h2>
+            <h2>AI Analysis Issues ({{allIssues.length}})</h2>
             {{#each allIssues}}
             <div class="issue {{severity}}">
                 <div class="issue-header">
@@ -292,11 +476,15 @@ const HTML_TEMPLATE = `
             <h2>Screenshots ({{screenshots.length}})</h2>
             <div class="screenshots">
                 {{#each screenshots}}
-                <div class="screenshot-card">
+                <div class="screenshot-card {{#if visualDiff.hasSignificantChange}}has-diff{{/if}}">
                     <img src="screenshots/{{filename}}" alt="{{action}}" loading="lazy">
                     <div class="screenshot-info">
                         <div class="screenshot-action">{{action}}</div>
                         <div class="screenshot-desc">{{description}}</div>
+                        <div class="screenshot-device">{{device}}</div>
+                        {{#if visualDiff.hasSignificantChange}}
+                        <div class="screenshot-diff">{{formatPercentage visualDiff.diffPercentage}}% changed from baseline</div>
+                        {{/if}}
                     </div>
                 </div>
                 {{/each}}
@@ -306,7 +494,7 @@ const HTML_TEMPLATE = `
 
     <footer>
         <p>Generated by <strong>Dawati Autonomous Tester</strong></p>
-        <p>Powered by Playwright + Gemini AI</p>
+        <p>Powered by Playwright + Gemini AI + axe-core</p>
     </footer>
 </body>
 </html>
@@ -323,6 +511,15 @@ Handlebars.registerHelper('formatDuration', (seconds: number) => {
   return `${mins}m ${secs}s`;
 });
 
+Handlebars.registerHelper('formatMs', (ms: number) => {
+  if (!ms || ms <= 0) return '0s';
+  return `${(ms / 1000).toFixed(2)}s`;
+});
+
+Handlebars.registerHelper('formatPercentage', (value: number) => {
+  return value.toFixed(2);
+});
+
 Handlebars.registerHelper('scoreColor', (score: number) => {
   if (score >= 8) return '#28a745';
   if (score >= 6) return '#ffc107';
@@ -331,6 +528,8 @@ Handlebars.registerHelper('scoreColor', (score: number) => {
 });
 
 Handlebars.registerHelper('gte', (a: number, b: number) => a >= b);
+Handlebars.registerHelper('gt', (a: number, b: number) => a > b);
+Handlebars.registerHelper('join', (arr: string[], separator: string) => arr.join(separator));
 
 export function generateReport(
   appUrl: string,
@@ -339,7 +538,11 @@ export function generateReport(
   authResults: AuthTestResult[],
   navigationResults: NavigationTestResult[],
   scrollResults: ScrollTestResult[],
-  rtlResults: RTLCheckResult[]
+  rtlResults: RTLCheckResult[],
+  visualDiffs: VisualDiff[] = [],
+  accessibilityResults: AccessibilityResult[] = [],
+  performanceMetrics: PerformanceMetric[] = [],
+  devicesTested: string[] = []
 ): TestReport {
   const endTime = new Date();
   const duration = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -348,6 +551,44 @@ export function generateReport(
   const overallScore = calculateOverallScore(analysisResults);
   const issuesSummary = getIssueSummary(allIssues);
   const screenshots = getScreenshots();
+
+  // Calculate visual changes count
+  const visualChangesCount = visualDiffs.filter((d) => d.hasSignificantChange).length;
+
+  // Calculate accessibility summary
+  const accessibilitySummary = {
+    critical: 0,
+    serious: 0,
+    moderate: 0,
+    minor: 0,
+    total: 0,
+  };
+  for (const result of accessibilityResults) {
+    for (const violation of result.violations) {
+      accessibilitySummary[violation.impact]++;
+      accessibilitySummary.total++;
+    }
+  }
+
+  // Calculate performance summary
+  const loadMetrics = performanceMetrics.filter((m) => m.pageLoadTimeMs > 0);
+  const performanceSummary = {
+    avgLoadTimeMs: 0,
+    maxLoadTimeMs: 0,
+    minLoadTimeMs: 0,
+    totalPages: loadMetrics.length,
+    slowPages: [] as string[],
+  };
+
+  if (loadMetrics.length > 0) {
+    const loadTimes = loadMetrics.map((m) => m.pageLoadTimeMs);
+    performanceSummary.avgLoadTimeMs = loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length;
+    performanceSummary.maxLoadTimeMs = Math.max(...loadTimes);
+    performanceSummary.minLoadTimeMs = Math.min(...loadTimes);
+    performanceSummary.slowPages = loadMetrics
+      .filter((m) => m.pageLoadTimeMs > 5000)
+      .map((m) => `${m.name} (${(m.pageLoadTimeMs / 1000).toFixed(2)}s)`);
+  }
 
   const report: TestReport = {
     generatedAt: endTime,
@@ -363,6 +604,13 @@ export function generateReport(
     scrollResults,
     rtlResults,
     screenshots,
+    visualDiffs,
+    accessibilityResults,
+    performanceMetrics,
+    devicesTested,
+    performanceSummary,
+    accessibilitySummary,
+    visualChangesCount,
   };
 
   return report;
@@ -394,6 +642,23 @@ export function saveReport(report: TestReport): string {
   fs.writeFileSync(csvPath, csvHeader + csvRows);
   log.info({ path: csvPath }, 'Issues CSV saved');
 
+  // Save accessibility issues as separate CSV
+  if (report.accessibilityResults.length > 0) {
+    const a11yCsvPath = path.join(runDir, 'accessibility-issues.csv');
+    const a11yHeader = 'Page,Device,Impact,ID,Description,Help,Nodes\n';
+    const a11yRows: string[] = [];
+    for (const result of report.accessibilityResults) {
+      for (const violation of result.violations) {
+        const nodes = violation.nodes.map((n) => n.target.join(' > ')).join('; ');
+        a11yRows.push(
+          `"${result.page}","${result.device}","${violation.impact}","${violation.id}","${violation.description}","${violation.help}","${nodes}"`
+        );
+      }
+    }
+    fs.writeFileSync(a11yCsvPath, a11yHeader + a11yRows.join('\n'));
+    log.info({ path: a11yCsvPath }, 'Accessibility issues CSV saved');
+  }
+
   return htmlPath;
 }
 
@@ -405,16 +670,46 @@ export function printReportSummary(report: TestReport): void {
   console.log(`\n📊 Overall Score: ${report.overallScore}/10`);
   console.log(`📸 Screenshots: ${report.screenshotCount}`);
   console.log(`⏱️  Duration: ${Math.floor(report.duration / 60)}m ${Math.floor(report.duration % 60)}s`);
+
+  if (report.devicesTested.length > 0) {
+    console.log(`📱 Devices: ${report.devicesTested.join(', ')}`);
+  }
+
   console.log('\n📋 Issues Summary:');
   console.log(`   🔴 Critical: ${report.issuesSummary.critical}`);
   console.log(`   🟠 High: ${report.issuesSummary.high}`);
   console.log(`   🟡 Medium: ${report.issuesSummary.medium}`);
   console.log(`   🟢 Low: ${report.issuesSummary.low}`);
   console.log(`   📝 Total: ${report.issuesSummary.total}`);
+
+  if (report.visualChangesCount > 0) {
+    console.log(`\n🖼️  Visual Changes: ${report.visualChangesCount} screenshots differ from baseline`);
+  }
+
+  if (report.accessibilitySummary.total > 0) {
+    console.log('\n♿ Accessibility Violations:');
+    console.log(`   Critical: ${report.accessibilitySummary.critical}`);
+    console.log(`   Serious: ${report.accessibilitySummary.serious}`);
+    console.log(`   Moderate: ${report.accessibilitySummary.moderate}`);
+    console.log(`   Total: ${report.accessibilitySummary.total}`);
+  }
+
+  if (report.performanceSummary.totalPages > 0) {
+    console.log('\n⚡ Performance:');
+    console.log(`   Avg Load: ${(report.performanceSummary.avgLoadTimeMs / 1000).toFixed(2)}s`);
+    console.log(`   Max Load: ${(report.performanceSummary.maxLoadTimeMs / 1000).toFixed(2)}s`);
+    if (report.performanceSummary.slowPages.length > 0) {
+      console.log(`   Slow Pages: ${report.performanceSummary.slowPages.length}`);
+    }
+  }
+
   console.log('\n📁 Report saved to:', getCurrentRunDir());
   console.log('   └── report.html');
   console.log('   └── report.json');
   console.log('   └── issues.csv');
+  if (report.accessibilitySummary.total > 0) {
+    console.log('   └── accessibility-issues.csv');
+  }
   console.log('   └── screenshots/');
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }

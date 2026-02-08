@@ -1,31 +1,39 @@
 {
   "name": "dawati-tester",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Autonomous AI-powered testing system for Dawati app",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "test": "npm run build && node dist/index.js",
+    "test:quick": "npm run build && node dist/index.js --quick",
     "test:auth": "npm run build && node dist/index.js --only=auth",
     "test:nav": "npm run build && node dist/index.js --only=navigation",
     "test:scroll": "npm run build && node dist/index.js --only=scrolling",
     "test:rtl": "npm run build && node dist/index.js --only=rtl",
+    "test:devices": "npm run build && node dist/index.js --all-devices",
     "report": "start test-results/latest/report.html",
+    "baseline:save": "npm run build && node dist/index.js --save-baseline",
     "clean": "rimraf dist test-results"
   },
   "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@google/generative-ai": "^0.21.0",
-    "playwright": "^1.50.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
-    "pino": "^9.6.0",
     "handlebars": "^4.7.8",
-    "date-fns": "^4.1.0"
+    "pino": "^9.6.0",
+    "pixelmatch": "^6.0.0",
+    "playwright": "^1.50.0",
+    "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
     "@types/node": "^22.10.0",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "pino-pretty": "^13.0.0",
     "rimraf": "^6.0.1",
-    "pino-pretty": "^13.0.0"
+    "typescript": "^5.7.3"
   },
   "engines": {
     "node": ">=20.0.0"

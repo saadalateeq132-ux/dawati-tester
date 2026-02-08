@@ -1,0 +1,1792 @@
+{
+  "generatedAt": "2026-02-08T22:02:28.758Z",
+  "appUrl": "https://dist-ashen-phi-44.vercel.app",
+  "duration": 368.161,
+  "overallScore": 8.9,
+  "screenshotCount": 18,
+  "issuesSummary": {
+    "critical": 0,
+    "high": 1,
+    "medium": 12,
+    "low": 21,
+    "total": 34
+  },
+  "allIssues": [
+    {
+      "severity": "high",
+      "category": "rtl",
+      "title": "Missing RTL layout for icons",
+      "description": "The icons in the bottom buttons are not mirrored for RTL layout. They should be on the left side of the text.",
+      "suggestion": "Mirror the icons for RTL languages. For example the suitcase icon should be on the left side of the text \"تسجيل الدخول كمزود خدمة\".",
+      "location": "Bottom buttons",
+      "id": "ISS-032",
+      "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "Incorrect text direction",
+      "description": "The phrases 'تسجيل الدخول / إنشاء حساب' and 'تسجيل الدخول كمزود خدمة' should be right-aligned and the slash should be visually reversed or replaced.",
+      "suggestion": "Adjust text alignment to RTL and replace slash with appropriate symbol for RTL languages.",
+      "location": "Buttons at the bottom",
+      "id": "ISS-002",
+      "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English text",
+      "description": "The word 'English' at the top right corner is in English. This should be in Arabic.",
+      "suggestion": "Translate to Arabic.",
+      "location": "Top right corner",
+      "id": "ISS-003",
+      "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English text not RTL aligned",
+      "description": "The word \"English\" should be right-aligned and its globe icon should be on the right side",
+      "suggestion": "Make the language selector follow the right to left flow.",
+      "location": "Top right corner",
+      "id": "ISS-007",
+      "screenshot": "004_phone_auth_04_phone_entered_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English text in top corner.",
+      "description": "The 'English' text in the corner should be dynamically loaded based on language and in Arabic",
+      "suggestion": "Translate the button into Arabic. Use localization files to dynamically load text",
+      "location": "Top Right Corner",
+      "id": "ISS-012",
+      "screenshot": "010_email_auth_05_code_sent_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "ui",
+      "title": "Inconsistent text direction in subtitle",
+      "description": "The subtitle mixes RTL (Arabic) with LTR (English) which might confuse the user. The phrase \"أسهل طريقة لإدارة دعواتك وتنظيم مناسباتك الخاصة\" is displayed correctly in RTL but the numbers within it might be formatted incorrectly.",
+      "suggestion": "Ensure all text and numbers follow RTL formatting conventions.",
+      "location": "Below the app name",
+      "id": "ISS-013",
+      "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "ui",
+      "title": "Button text contrast",
+      "description": "The contrast ratio between the button text color and the background color is low. Consider improving it for accessibility to ensure that the text is easily readable, especially for those with vision impairments.",
+      "suggestion": "Slightly darken or brighten the background color of the button, or the font color to increase contrast.",
+      "location": "Middle section of the page",
+      "id": "ISS-016",
+      "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English language setting inconsistent with Arabic UI",
+      "description": "While the main content is in Arabic, the language selector is in English. This creates visual inconsistency.",
+      "suggestion": "Change the language selector to Arabic or use a flag icon to make its purpose clearer.",
+      "location": "Top right corner",
+      "id": "ISS-018",
+      "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English language toggle text",
+      "description": "The text 'English' in the language toggle is in English and has a left to right direction. It should be in Arabic and RTL.",
+      "suggestion": "Replace the text with Arabic for 'English' (الإنجليزية) and ensure RTL layout.",
+      "location": "Top right corner",
+      "id": "ISS-021",
+      "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "Icon alignment in button",
+      "description": "The icon next to 'تسجيل الدخول كمزود خدمة' is on the wrong side for RTL layout. Should be on the right.",
+      "suggestion": "Flip the icon to the right side of the text.",
+      "location": "Below the main button",
+      "id": "ISS-023",
+      "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English text in RTL context",
+      "description": "The word 'English' is written in English instead of Arabic, but the button should switch the application's language.",
+      "suggestion": "The button should display the Arabic translation 'العربية'.",
+      "location": "Top right corner.",
+      "id": "ISS-027",
+      "screenshot": "015_scroll_infinite_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "Animation label is in English",
+      "description": "The 'Animation' label should be translated into Arabic.",
+      "suggestion": "Translate 'Animation' to Arabic.",
+      "location": "Below the Dawati logo",
+      "id": "ISS-028",
+      "screenshot": "015_scroll_infinite_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "medium",
+      "category": "rtl",
+      "title": "English language button on the right.",
+      "description": "The language selection button should either have an Arabic abbreviation of language or not be on the right side.",
+      "suggestion": "Move the English language button to the left.",
+      "location": "Top right corner",
+      "id": "ISS-030",
+      "screenshot": "017_rtl_direction_check_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Inconsistent spacing near 'دعوتي'",
+      "description": "The spacing between the app logo and the app name 'دعوتي' seems slightly larger than the spacing between 'دعوتي' and the app description text.  This can be visually distracting.",
+      "suggestion": "Adjust the spacing to be consistent, aiming for visual balance.",
+      "location": "Center of the screen, above buttons",
+      "id": "ISS-001",
+      "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "title": "Small touch target",
+      "description": "The language selection icon (globe) appears small, which could be difficult to tap, especially for users with motor impairments.",
+      "suggestion": "Increase the size of the touch target for the language selection.",
+      "location": "Top right corner",
+      "id": "ISS-004",
+      "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Missing shadow for buttons",
+      "description": "The buttons have no shadow, making them look flat. Adding shadow would increase contrast and make them more clearly defined from the background.",
+      "suggestion": "Add a subtle shadow to the buttons.",
+      "location": "Bottom of the screen",
+      "id": "ISS-005",
+      "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Animation text misplaced",
+      "description": "The \"Animation\" text is too close to the loading indicator, making it look cramped.",
+      "suggestion": "Increase the spacing between the text and the loading indicator.",
+      "location": "Top of the screen, below the app icon",
+      "id": "ISS-006",
+      "screenshot": "004_phone_auth_04_phone_entered_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Inconsistent text styling",
+      "description": "The \"Animation\" text above the logo has different styling compared to other text on the page.",
+      "suggestion": "Use the same font and size as the other descriptive text.",
+      "location": "Top of screen, below progress bar.",
+      "id": "ISS-008",
+      "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "rtl",
+      "title": "English language toggle position",
+      "description": "The English language toggle should be on the left in an RTL layout.",
+      "suggestion": "Move the English language toggle to the left side of the screen.",
+      "location": "Top right",
+      "id": "ISS-009",
+      "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "rtl",
+      "title": "Logo animation label is LTR",
+      "description": "The 'Animation' text is displayed LTR and should be translated into Arabic.",
+      "suggestion": "Translate into Arabic and display as RTL.",
+      "location": "Top of screen, above the logo",
+      "id": "ISS-010",
+      "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Inconsistent Spacing",
+      "description": "Spacing between elements (e.g., app name, description, and buttons) seems slightly inconsistent.",
+      "suggestion": "Standardize spacing using a consistent spacing scale across the app.",
+      "location": "Between the logo, app name, description, and buttons",
+      "id": "ISS-011",
+      "screenshot": "010_email_auth_05_code_sent_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "title": "Small touch targets for buttons",
+      "description": "The buttons \"تسجيل الدخول / إنشاء حساب\" and \"تسجيل الدخول كمزود خدمة\" could benefit from increased padding for better touch target sizes, improving accessibility.",
+      "suggestion": "Increase button size and padding around the text.",
+      "location": "Middle section of the page",
+      "id": "ISS-014",
+      "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Missing icon for \"عن التطبيق\" button",
+      "description": "The \"عن التطبيق\" button does not have an associated icon, reducing its visual appeal and clarity. This icon should relate to information or app details.",
+      "suggestion": "Add an appropriate icon to the \"عن التطبيق\" button for visual consistency and clarity.",
+      "location": "Bottom of the page",
+      "id": "ISS-015",
+      "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Animation text misplaced",
+      "description": "The word 'Animation' is not centered properly under the progress indicator.",
+      "suggestion": "Center the text correctly.",
+      "location": "Top of screen, below the logo",
+      "id": "ISS-017",
+      "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Slightly off-centered logo",
+      "description": "The 'D' logo inside the colored circle seems slightly off-center.",
+      "suggestion": "Adjust the logo to ensure it is perfectly centered within the circle.",
+      "location": "Top center",
+      "id": "ISS-019",
+      "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Alignment of text labels",
+      "description": "The text labels under the app icon do not appear to be perfectly center-aligned with each other.",
+      "suggestion": "Adjust the alignment of the text labels to ensure they are visually centered.",
+      "location": "Below the app icon",
+      "id": "ISS-020",
+      "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Version number alignment",
+      "description": "The version number 'v1.0.0' in the top left corner is visually close to the edge.",
+      "suggestion": "Add some padding to the left of the text to improve visual balance.",
+      "location": "Top left corner",
+      "id": "ISS-022",
+      "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Missing spacing for terms and conditions",
+      "description": "The 'عن التطبيق' text is too close to the bottom of the view. It should have additional padding.",
+      "suggestion": "Add spacing to the text.",
+      "location": "Bottom of the screen.",
+      "id": "ISS-024",
+      "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Animation element size is too small.",
+      "description": "The 'Animation' element is small and hard to see. Its size should be adjusted",
+      "suggestion": "Increase the size of the animation label",
+      "location": "Below the app logo",
+      "id": "ISS-025",
+      "screenshot": "014_scroll_vertical_back_to_top_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Rounded edges should be more pronounced",
+      "description": "The rounded edges on the buttons are too subtle, especially given the overall aesthetic",
+      "suggestion": "Increase the border-radius of the buttons",
+      "location": "Buttons at the bottom",
+      "id": "ISS-026",
+      "screenshot": "014_scroll_vertical_back_to_top_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Button text color contrast",
+      "description": "The text color of the button labels is too similar to the background color.",
+      "suggestion": "Slightly darken the button labels to ensure better contrast and readability.",
+      "location": "All buttons",
+      "id": "ISS-029",
+      "screenshot": "017_rtl_direction_check_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Spacing inconsistency",
+      "description": "The spacing between the app logo and the title is slightly different from the spacing between the title and the subtitle.",
+      "suggestion": "Standardize the spacing to create visual consistency.",
+      "location": "Between the app logo, title, and subtitle",
+      "id": "ISS-031",
+      "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "title": "Small touch targets",
+      "description": "The language selection button in the top right corner may be too small to be easily tapped, especially on smaller devices.",
+      "suggestion": "Increase the size of the touch target, including padding around the icon.",
+      "location": "Top right corner (English button)",
+      "id": "ISS-033",
+      "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+    },
+    {
+      "severity": "low",
+      "category": "ui",
+      "title": "Text color contrast",
+      "description": "The contrast between the text and the background color in the bottom buttons is a little low. It might be hard to read for some users.",
+      "suggestion": "Adjust the text or background color to improve contrast.",
+      "location": "Bottom buttons",
+      "id": "ISS-034",
+      "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+    }
+  ],
+  "analysisResults": [
+    {
+      "screenshot": {
+        "filename": "001_phone_auth_01_home_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\001_phone_auth_01_home_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:23.740Z",
+        "description": "Home page before login",
+        "action": "phone_auth_01_home",
+        "url": "https://dist-ashen-phi-44.vercel.app/",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "001_phone_auth_01_home_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screenshot appears to be well-designed and does not present any visible issues in terms of UI/UX, functionality, performance, RTL support, or accessibility. The design is simple and clean, and the elements are aligned and spaced appropriately. However, without interacting with the application, I cannot verify the functionality of specific elements or interactions.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:15.456Z"
+    },
+    {
+      "screenshot": {
+        "filename": "002_phone_auth_02_login_page_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\002_phone_auth_02_login_page_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:27.952Z",
+        "description": "Login page",
+        "action": "phone_auth_02_login_page",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "002_phone_auth_02_login_page_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screen appears to be well-designed and follows right-to-left (RTL) layout principles. No apparent issues were detected in the screenshot.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:18.175Z"
+    },
+    {
+      "screenshot": {
+        "filename": "003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:30.577Z",
+        "description": "Phone auth tab selected",
+        "action": "phone_auth_03_phone_tab",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Inconsistent spacing near 'دعوتي'",
+          "description": "The spacing between the app logo and the app name 'دعوتي' seems slightly larger than the spacing between 'دعوتي' and the app description text.  This can be visually distracting.",
+          "suggestion": "Adjust the spacing to be consistent, aiming for visual balance.",
+          "location": "Center of the screen, above buttons",
+          "id": "ISS-001",
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "Incorrect text direction",
+          "description": "The phrases 'تسجيل الدخول / إنشاء حساب' and 'تسجيل الدخول كمزود خدمة' should be right-aligned and the slash should be visually reversed or replaced.",
+          "suggestion": "Adjust text alignment to RTL and replace slash with appropriate symbol for RTL languages.",
+          "location": "Buttons at the bottom",
+          "id": "ISS-002",
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English text",
+          "description": "The word 'English' at the top right corner is in English. This should be in Arabic.",
+          "suggestion": "Translate to Arabic.",
+          "location": "Top right corner",
+          "id": "ISS-003",
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "accessibility",
+          "title": "Small touch target",
+          "description": "The language selection icon (globe) appears small, which could be difficult to tap, especially for users with motor impairments.",
+          "suggestion": "Increase the size of the touch target for the language selection.",
+          "location": "Top right corner",
+          "id": "ISS-004",
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Missing shadow for buttons",
+          "description": "The buttons have no shadow, making them look flat. Adding shadow would increase contrast and make them more clearly defined from the background.",
+          "suggestion": "Add a subtle shadow to the buttons.",
+          "location": "Bottom of the screen",
+          "id": "ISS-005",
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen has some layout and RTL issues, but generally looks functional. Some UI polish and RTL fixes are needed for better user experience.",
+      "score": 7,
+      "rtlIssues": [
+        "Text flowing left-to-right when it should be RTL",
+        "Hardcoded English text that should be Arabic"
+      ],
+      "hardcodedText": [
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:24.390Z"
+    },
+    {
+      "screenshot": {
+        "filename": "004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:30.661Z",
+        "description": "Phone number entered",
+        "action": "phone_auth_04_phone_entered",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Animation text misplaced",
+          "description": "The \"Animation\" text is too close to the loading indicator, making it look cramped.",
+          "suggestion": "Increase the spacing between the text and the loading indicator.",
+          "location": "Top of the screen, below the app icon",
+          "id": "ISS-006",
+          "screenshot": "004_phone_auth_04_phone_entered_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English text not RTL aligned",
+          "description": "The word \"English\" should be right-aligned and its globe icon should be on the right side",
+          "suggestion": "Make the language selector follow the right to left flow.",
+          "location": "Top right corner",
+          "id": "ISS-007",
+          "screenshot": "004_phone_auth_04_phone_entered_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen has a clean design but needs some tweaks for RTL and minor UI adjustments.",
+      "score": 9,
+      "rtlIssues": [
+        "English text not RTL aligned.",
+        "The word \"English\" should be right-aligned and its globe icon should be on the right side"
+      ],
+      "hardcodedText": [
+        "English",
+        "Animation"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:28.471Z"
+    },
+    {
+      "screenshot": {
+        "filename": "005_phone_auth_05_code_sent_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\005_phone_auth_05_code_sent_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:40.810Z",
+        "description": "Code sent (or error)",
+        "action": "phone_auth_05_code_sent",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "005_phone_auth_05_code_sent_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screenshot looks good with no issues.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:31.297Z"
+    },
+    {
+      "screenshot": {
+        "filename": "006_email_auth_01_home_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\006_email_auth_01_home_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:41.816Z",
+        "description": "Home page before login",
+        "action": "email_auth_01_home",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "006_email_auth_01_home_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screenshot looks good. There are no visible issues regarding UI/UX, functionality, performance, RTL, or accessibility. The text is in Arabic and correctly aligned for an RTL layout. The English button is a false positive.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:34.415Z"
+    },
+    {
+      "screenshot": {
+        "filename": "007_email_auth_02_login_page_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\007_email_auth_02_login_page_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:45.982Z",
+        "description": "Login page",
+        "action": "email_auth_02_login_page",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "007_email_auth_02_login_page_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screenshot appears to be well-designed and functional. The layout is clean, the text is readable, and the color scheme is pleasant. The elements are correctly aligned and spaced, creating a good user experience.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:37.457Z"
+    },
+    {
+      "screenshot": {
+        "filename": "008_email_auth_03_email_tab_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\008_email_auth_03_email_tab_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:48.643Z",
+        "description": "Email auth tab selected",
+        "action": "email_auth_03_email_tab",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "008_email_auth_03_email_tab_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Inconsistent text styling",
+          "description": "The \"Animation\" text above the logo has different styling compared to other text on the page.",
+          "suggestion": "Use the same font and size as the other descriptive text.",
+          "location": "Top of screen, below progress bar.",
+          "id": "ISS-008",
+          "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "rtl",
+          "title": "English language toggle position",
+          "description": "The English language toggle should be on the left in an RTL layout.",
+          "suggestion": "Move the English language toggle to the left side of the screen.",
+          "location": "Top right",
+          "id": "ISS-009",
+          "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "rtl",
+          "title": "Logo animation label is LTR",
+          "description": "The 'Animation' text is displayed LTR and should be translated into Arabic.",
+          "suggestion": "Translate into Arabic and display as RTL.",
+          "location": "Top of screen, above the logo",
+          "id": "ISS-010",
+          "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen is generally well-designed but has some minor UI inconsistencies and RTL layout issues. The hardcoded \"Animation\" text is problematic for localization.",
+      "score": 8,
+      "rtlIssues": [
+        "English language toggle position should be on the left in RTL.",
+        "Animation label should be in Arabic."
+      ],
+      "hardcodedText": [
+        "Animation",
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:42.433Z"
+    },
+    {
+      "screenshot": {
+        "filename": "009_email_auth_04_email_entered_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\009_email_auth_04_email_entered_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:56:48.726Z",
+        "description": "Email entered",
+        "action": "email_auth_04_email_entered",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "009_email_auth_04_email_entered_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The screenshot of the Dawati app's login screen appears to be well-designed and functional. The UI is clean, with good use of color and spacing. The Arabic text is displayed correctly, and there are no immediately apparent issues with RTL layout. The buttons are clear and appropriately sized. No hardcoded English text is visible.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:45.393Z"
+    },
+    {
+      "screenshot": {
+        "filename": "010_email_auth_05_code_sent_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\010_email_auth_05_code_sent_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:57:02.880Z",
+        "description": "Code sent (or error)",
+        "action": "email_auth_05_code_sent",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "010_email_auth_05_code_sent_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Inconsistent Spacing",
+          "description": "Spacing between elements (e.g., app name, description, and buttons) seems slightly inconsistent.",
+          "suggestion": "Standardize spacing using a consistent spacing scale across the app.",
+          "location": "Between the logo, app name, description, and buttons",
+          "id": "ISS-011",
+          "screenshot": "010_email_auth_05_code_sent_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English text in top corner.",
+          "description": "The 'English' text in the corner should be dynamically loaded based on language and in Arabic",
+          "suggestion": "Translate the button into Arabic. Use localization files to dynamically load text",
+          "location": "Top Right Corner",
+          "id": "ISS-012",
+          "screenshot": "010_email_auth_05_code_sent_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screenshot presents a generally well-designed screen. However, there are some areas where improvements can be made to enhance the user experience, particularly regarding spacing consistency and translating the language toggle in the top right.",
+      "score": 9,
+      "rtlIssues": [],
+      "hardcodedText": [
+        "English",
+        "Animation",
+        "v1.0.0"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:49.897Z"
+    },
+    {
+      "screenshot": {
+        "filename": "011_nav_homepage_initial_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\011_nav_homepage_initial_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:57:03.812Z",
+        "description": "Homepage initial state",
+        "action": "nav_homepage_initial",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "011_nav_homepage_initial_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "medium",
+          "category": "ui",
+          "title": "Inconsistent text direction in subtitle",
+          "description": "The subtitle mixes RTL (Arabic) with LTR (English) which might confuse the user. The phrase \"أسهل طريقة لإدارة دعواتك وتنظيم مناسباتك الخاصة\" is displayed correctly in RTL but the numbers within it might be formatted incorrectly.",
+          "suggestion": "Ensure all text and numbers follow RTL formatting conventions.",
+          "location": "Below the app name",
+          "id": "ISS-013",
+          "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "accessibility",
+          "title": "Small touch targets for buttons",
+          "description": "The buttons \"تسجيل الدخول / إنشاء حساب\" and \"تسجيل الدخول كمزود خدمة\" could benefit from increased padding for better touch target sizes, improving accessibility.",
+          "suggestion": "Increase button size and padding around the text.",
+          "location": "Middle section of the page",
+          "id": "ISS-014",
+          "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Missing icon for \"عن التطبيق\" button",
+          "description": "The \"عن التطبيق\" button does not have an associated icon, reducing its visual appeal and clarity. This icon should relate to information or app details.",
+          "suggestion": "Add an appropriate icon to the \"عن التطبيق\" button for visual consistency and clarity.",
+          "location": "Bottom of the page",
+          "id": "ISS-015",
+          "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "ui",
+          "title": "Button text contrast",
+          "description": "The contrast ratio between the button text color and the background color is low. Consider improving it for accessibility to ensure that the text is easily readable, especially for those with vision impairments.",
+          "suggestion": "Slightly darken or brighten the background color of the button, or the font color to increase contrast.",
+          "location": "Middle section of the page",
+          "id": "ISS-016",
+          "screenshot": "011_nav_homepage_initial_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The app screen has a good initial presentation with clear Arabic text, but some UI issues need fixing. Touch target sizes, contrasts, missing icons and LTR content in RTL languages are the main issues.",
+      "score": 7,
+      "rtlIssues": [
+        "The subtitle mixes RTL (Arabic) with LTR (English).",
+        "Check number formatting in subtitle follows RTL."
+      ],
+      "hardcodedText": [
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:01:56.682Z"
+    },
+    {
+      "screenshot": {
+        "filename": "012_nav_marketplace_main_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\012_nav_marketplace_main_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T21:58:03.683Z",
+        "description": "Marketplace main page",
+        "action": "nav_marketplace_main",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "012_nav_marketplace_main_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Animation text misplaced",
+          "description": "The word 'Animation' is not centered properly under the progress indicator.",
+          "suggestion": "Center the text correctly.",
+          "location": "Top of screen, below the logo",
+          "id": "ISS-017",
+          "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English language setting inconsistent with Arabic UI",
+          "description": "While the main content is in Arabic, the language selector is in English. This creates visual inconsistency.",
+          "suggestion": "Change the language selector to Arabic or use a flag icon to make its purpose clearer.",
+          "location": "Top right corner",
+          "id": "ISS-018",
+          "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Slightly off-centered logo",
+          "description": "The 'D' logo inside the colored circle seems slightly off-center.",
+          "suggestion": "Adjust the logo to ensure it is perfectly centered within the circle.",
+          "location": "Top center",
+          "id": "ISS-019",
+          "screenshot": "012_nav_marketplace_main_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen has some minor UI and RTL issues. The 'Animation' text needs to be centered, the language selector should match the current language, and the logo could be slightly off-center.",
+      "score": 8.5,
+      "rtlIssues": [
+        "English language selector in an Arabic app"
+      ],
+      "hardcodedText": [
+        "Animation",
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:02.162Z"
+    },
+    {
+      "screenshot": {
+        "filename": "013_scroll_vertical_start_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\013_scroll_vertical_start_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:00:29.917Z",
+        "description": "Start position (top)",
+        "action": "scroll_vertical_start",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "013_scroll_vertical_start_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Alignment of text labels",
+          "description": "The text labels under the app icon do not appear to be perfectly center-aligned with each other.",
+          "suggestion": "Adjust the alignment of the text labels to ensure they are visually centered.",
+          "location": "Below the app icon",
+          "id": "ISS-020",
+          "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English language toggle text",
+          "description": "The text 'English' in the language toggle is in English and has a left to right direction. It should be in Arabic and RTL.",
+          "suggestion": "Replace the text with Arabic for 'English' (الإنجليزية) and ensure RTL layout.",
+          "location": "Top right corner",
+          "id": "ISS-021",
+          "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Version number alignment",
+          "description": "The version number 'v1.0.0' in the top left corner is visually close to the edge.",
+          "suggestion": "Add some padding to the left of the text to improve visual balance.",
+          "location": "Top left corner",
+          "id": "ISS-022",
+          "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "Icon alignment in button",
+          "description": "The icon next to 'تسجيل الدخول كمزود خدمة' is on the wrong side for RTL layout. Should be on the right.",
+          "suggestion": "Flip the icon to the right side of the text.",
+          "location": "Below the main button",
+          "id": "ISS-023",
+          "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Missing spacing for terms and conditions",
+          "description": "The 'عن التطبيق' text is too close to the bottom of the view. It should have additional padding.",
+          "suggestion": "Add spacing to the text.",
+          "location": "Bottom of the screen.",
+          "id": "ISS-024",
+          "screenshot": "013_scroll_vertical_start_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screenshot depicts the initial screen of a mobile application in Arabic. The design is clean with a focus on RTL layout. However, there are minor issues with alignment, text direction, and potentially hardcoded English text. Overall, the screen is well-designed but requires some adjustments for optimal localization and user experience.",
+      "score": 7,
+      "rtlIssues": [
+        "English language toggle text.",
+        "The icon next to 'تسجيل الدخول كمزود خدمة' is on the wrong side for RTL layout."
+      ],
+      "hardcodedText": [
+        "Animation",
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:08.743Z"
+    },
+    {
+      "screenshot": {
+        "filename": "014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:00:31.001Z",
+        "description": "Back at top",
+        "action": "scroll_vertical_back_to_top",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Animation element size is too small.",
+          "description": "The 'Animation' element is small and hard to see. Its size should be adjusted",
+          "suggestion": "Increase the size of the animation label",
+          "location": "Below the app logo",
+          "id": "ISS-025",
+          "screenshot": "014_scroll_vertical_back_to_top_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Rounded edges should be more pronounced",
+          "description": "The rounded edges on the buttons are too subtle, especially given the overall aesthetic",
+          "suggestion": "Increase the border-radius of the buttons",
+          "location": "Buttons at the bottom",
+          "id": "ISS-026",
+          "screenshot": "014_scroll_vertical_back_to_top_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen is well-designed and visually appealing, but there are a few minor UI issues that could be improved. RTL issues need to be checked after integration.",
+      "score": 9,
+      "rtlIssues": [],
+      "hardcodedText": [
+        "Animation",
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:12.382Z"
+    },
+    {
+      "screenshot": {
+        "filename": "015_scroll_infinite_start_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\015_scroll_infinite_start_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:00:31.611Z",
+        "description": "Initial items: 0",
+        "action": "scroll_infinite_start",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "015_scroll_infinite_start_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English text in RTL context",
+          "description": "The word 'English' is written in English instead of Arabic, but the button should switch the application's language.",
+          "suggestion": "The button should display the Arabic translation 'العربية'.",
+          "location": "Top right corner.",
+          "id": "ISS-027",
+          "screenshot": "015_scroll_infinite_start_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "Animation label is in English",
+          "description": "The 'Animation' label should be translated into Arabic.",
+          "suggestion": "Translate 'Animation' to Arabic.",
+          "location": "Below the Dawati logo",
+          "id": "ISS-028",
+          "screenshot": "015_scroll_infinite_start_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screenshot shows a good general design, but it contains some hardcoded English text, and that text should be displayed in Arabic.",
+      "score": 8,
+      "rtlIssues": [
+        "English text 'English' in language toggle button.",
+        "English text 'Animation' below logo."
+      ],
+      "hardcodedText": [
+        "English",
+        "Animation"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:16.520Z"
+    },
+    {
+      "screenshot": {
+        "filename": "016_scroll_performance_test_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\016_scroll_performance_test_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:01:12.680Z",
+        "description": "Avg scroll time: 514ms",
+        "action": "scroll_performance_test",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "016_scroll_performance_test_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [],
+      "summary": "The app looks good with no issues.",
+      "score": 10,
+      "rtlIssues": [],
+      "hardcodedText": [],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:19.040Z"
+    },
+    {
+      "screenshot": {
+        "filename": "017_rtl_direction_check_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\017_rtl_direction_check_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:01:12.749Z",
+        "description": "RTL direction check",
+        "action": "rtl_direction_check",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "017_rtl_direction_check_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Button text color contrast",
+          "description": "The text color of the button labels is too similar to the background color.",
+          "suggestion": "Slightly darken the button labels to ensure better contrast and readability.",
+          "location": "All buttons",
+          "id": "ISS-029",
+          "screenshot": "017_rtl_direction_check_Desktop_1280x720.png"
+        },
+        {
+          "severity": "medium",
+          "category": "rtl",
+          "title": "English language button on the right.",
+          "description": "The language selection button should either have an Arabic abbreviation of language or not be on the right side.",
+          "suggestion": "Move the English language button to the left.",
+          "location": "Top right corner",
+          "id": "ISS-030",
+          "screenshot": "017_rtl_direction_check_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen has some minor UI and RTL issues that should be addressed to improve the user experience, especially for Arabic speakers.",
+      "score": 9,
+      "rtlIssues": [
+        "English language button on right side."
+      ],
+      "hardcodedText": [
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:22.911Z"
+    },
+    {
+      "screenshot": {
+        "filename": "018_rtl_hardcoded_check_Desktop_1280x720.png",
+        "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\018_rtl_hardcoded_check_Desktop_1280x720.png",
+        "timestamp": "2026-02-08T22:01:12.834Z",
+        "description": "Hardcoded strings check",
+        "action": "rtl_hardcoded_check",
+        "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+        "device": "Desktop 1280x720",
+        "visualDiff": {
+          "filename": "018_rtl_hardcoded_check_Desktop_1280x720.png",
+          "baselineExists": false,
+          "diffPercentage": 0,
+          "hasSignificantChange": false
+        }
+      },
+      "issues": [
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Spacing inconsistency",
+          "description": "The spacing between the app logo and the title is slightly different from the spacing between the title and the subtitle.",
+          "suggestion": "Standardize the spacing to create visual consistency.",
+          "location": "Between the app logo, title, and subtitle",
+          "id": "ISS-031",
+          "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+        },
+        {
+          "severity": "high",
+          "category": "rtl",
+          "title": "Missing RTL layout for icons",
+          "description": "The icons in the bottom buttons are not mirrored for RTL layout. They should be on the left side of the text.",
+          "suggestion": "Mirror the icons for RTL languages. For example the suitcase icon should be on the left side of the text \"تسجيل الدخول كمزود خدمة\".",
+          "location": "Bottom buttons",
+          "id": "ISS-032",
+          "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "accessibility",
+          "title": "Small touch targets",
+          "description": "The language selection button in the top right corner may be too small to be easily tapped, especially on smaller devices.",
+          "suggestion": "Increase the size of the touch target, including padding around the icon.",
+          "location": "Top right corner (English button)",
+          "id": "ISS-033",
+          "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+        },
+        {
+          "severity": "low",
+          "category": "ui",
+          "title": "Text color contrast",
+          "description": "The contrast between the text and the background color in the bottom buttons is a little low. It might be hard to read for some users.",
+          "suggestion": "Adjust the text or background color to improve contrast.",
+          "location": "Bottom buttons",
+          "id": "ISS-034",
+          "screenshot": "018_rtl_hardcoded_check_Desktop_1280x720.png"
+        }
+      ],
+      "summary": "The screen generally looks good, but there are some minor UI inconsistencies and RTL issues that need to be addressed to provide a better user experience.",
+      "score": 8,
+      "rtlIssues": [
+        "Icons are not mirrored in RTL layout"
+      ],
+      "hardcodedText": [
+        "English"
+      ],
+      "missingStates": [],
+      "timestamp": "2026-02-08T22:02:27.741Z"
+    }
+  ],
+  "authResults": [
+    {
+      "method": "phone",
+      "success": true,
+      "steps": [
+        {
+          "name": "Navigate to login",
+          "success": true,
+          "screenshot": "002_phone_auth_02_login_page_Desktop_1280x720.png"
+        },
+        {
+          "name": "Select phone auth",
+          "success": true,
+          "screenshot": "003_phone_auth_03_phone_tab_Desktop_1280x720.png"
+        },
+        {
+          "name": "Enter phone number",
+          "success": true,
+          "screenshot": "004_phone_auth_04_phone_entered_Desktop_1280x720.png"
+        },
+        {
+          "name": "Request OTP code",
+          "success": true,
+          "screenshot": "005_phone_auth_05_code_sent_Desktop_1280x720.png"
+        }
+      ]
+    },
+    {
+      "method": "email",
+      "success": true,
+      "steps": [
+        {
+          "name": "Navigate to login",
+          "success": true,
+          "screenshot": "007_email_auth_02_login_page_Desktop_1280x720.png"
+        },
+        {
+          "name": "Select email auth",
+          "success": true,
+          "screenshot": "008_email_auth_03_email_tab_Desktop_1280x720.png"
+        },
+        {
+          "name": "Enter email",
+          "success": true,
+          "screenshot": "009_email_auth_04_email_entered_Desktop_1280x720.png"
+        },
+        {
+          "name": "Request verification code",
+          "success": true,
+          "screenshot": "010_email_auth_05_code_sent_Desktop_1280x720.png"
+        }
+      ]
+    }
+  ],
+  "navigationResults": [
+    {
+      "category": "Homepage Tabs",
+      "tested": true,
+      "success": false,
+      "screenshotsCount": 1,
+      "pagesVisited": [],
+      "errors": [
+        "Tab not found: Birthdays",
+        "Tab not found: Weddings",
+        "Tab not found: Corporate",
+        "Tab not found: Gatherings"
+      ]
+    },
+    {
+      "category": "Marketplace Categories",
+      "tested": true,
+      "success": false,
+      "screenshotsCount": 1,
+      "pagesVisited": [],
+      "errors": []
+    },
+    {
+      "category": "Vendor Profiles",
+      "tested": true,
+      "success": false,
+      "screenshotsCount": 0,
+      "pagesVisited": [],
+      "errors": [
+        "No vendor cards found to test"
+      ]
+    },
+    {
+      "category": "Bottom Navigation",
+      "tested": true,
+      "success": false,
+      "screenshotsCount": 0,
+      "pagesVisited": [],
+      "errors": []
+    }
+  ],
+  "scrollResults": [
+    {
+      "testName": "Vertical Scroll",
+      "success": false,
+      "screenshotsCount": 2,
+      "scrollPositions": [
+        0
+      ],
+      "infiniteScrollTriggered": false,
+      "errors": []
+    },
+    {
+      "testName": "Horizontal Scroll",
+      "success": false,
+      "screenshotsCount": 0,
+      "scrollPositions": [],
+      "infiniteScrollTriggered": false,
+      "errors": [
+        "No horizontal scroll containers found"
+      ]
+    },
+    {
+      "testName": "Infinite Scroll",
+      "success": true,
+      "screenshotsCount": 1,
+      "scrollPositions": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "infiniteScrollTriggered": false,
+      "errors": []
+    },
+    {
+      "testName": "Scroll Performance",
+      "success": true,
+      "screenshotsCount": 1,
+      "scrollPositions": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "infiniteScrollTriggered": false,
+      "errors": [
+        "Slow scroll detected: avg 514ms per 500px"
+      ]
+    }
+  ],
+  "rtlResults": [
+    {
+      "category": "Text Direction",
+      "issues": [],
+      "hardcodedStrings": [],
+      "score": 10
+    },
+    {
+      "category": "Text Alignment",
+      "issues": [],
+      "hardcodedStrings": [],
+      "score": 10
+    },
+    {
+      "category": "Hardcoded Strings",
+      "issues": [],
+      "hardcodedStrings": [],
+      "score": 10
+    },
+    {
+      "category": "Numbers & Dates",
+      "issues": [],
+      "hardcodedStrings": [],
+      "score": 10
+    },
+    {
+      "category": "Icon Alignment",
+      "issues": [],
+      "hardcodedStrings": [],
+      "score": 10
+    }
+  ],
+  "screenshots": [
+    {
+      "filename": "001_phone_auth_01_home_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\001_phone_auth_01_home_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:23.740Z",
+      "description": "Home page before login",
+      "action": "phone_auth_01_home",
+      "url": "https://dist-ashen-phi-44.vercel.app/",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "001_phone_auth_01_home_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "002_phone_auth_02_login_page_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\002_phone_auth_02_login_page_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:27.952Z",
+      "description": "Login page",
+      "action": "phone_auth_02_login_page",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "002_phone_auth_02_login_page_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:30.577Z",
+      "description": "Phone auth tab selected",
+      "action": "phone_auth_03_phone_tab",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:30.661Z",
+      "description": "Phone number entered",
+      "action": "phone_auth_04_phone_entered",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "005_phone_auth_05_code_sent_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\005_phone_auth_05_code_sent_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:40.810Z",
+      "description": "Code sent (or error)",
+      "action": "phone_auth_05_code_sent",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "005_phone_auth_05_code_sent_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "006_email_auth_01_home_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\006_email_auth_01_home_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:41.816Z",
+      "description": "Home page before login",
+      "action": "email_auth_01_home",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "006_email_auth_01_home_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "007_email_auth_02_login_page_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\007_email_auth_02_login_page_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:45.982Z",
+      "description": "Login page",
+      "action": "email_auth_02_login_page",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "007_email_auth_02_login_page_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "008_email_auth_03_email_tab_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\008_email_auth_03_email_tab_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:48.643Z",
+      "description": "Email auth tab selected",
+      "action": "email_auth_03_email_tab",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "008_email_auth_03_email_tab_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "009_email_auth_04_email_entered_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\009_email_auth_04_email_entered_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:56:48.726Z",
+      "description": "Email entered",
+      "action": "email_auth_04_email_entered",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "009_email_auth_04_email_entered_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "010_email_auth_05_code_sent_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\010_email_auth_05_code_sent_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:57:02.880Z",
+      "description": "Code sent (or error)",
+      "action": "email_auth_05_code_sent",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "010_email_auth_05_code_sent_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "011_nav_homepage_initial_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\011_nav_homepage_initial_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:57:03.812Z",
+      "description": "Homepage initial state",
+      "action": "nav_homepage_initial",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "011_nav_homepage_initial_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "012_nav_marketplace_main_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\012_nav_marketplace_main_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T21:58:03.683Z",
+      "description": "Marketplace main page",
+      "action": "nav_marketplace_main",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "012_nav_marketplace_main_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "013_scroll_vertical_start_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\013_scroll_vertical_start_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:00:29.917Z",
+      "description": "Start position (top)",
+      "action": "scroll_vertical_start",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "013_scroll_vertical_start_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:00:31.001Z",
+      "description": "Back at top",
+      "action": "scroll_vertical_back_to_top",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "015_scroll_infinite_start_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\015_scroll_infinite_start_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:00:31.611Z",
+      "description": "Initial items: 0",
+      "action": "scroll_infinite_start",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "015_scroll_infinite_start_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "016_scroll_performance_test_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\016_scroll_performance_test_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:01:12.680Z",
+      "description": "Avg scroll time: 514ms",
+      "action": "scroll_performance_test",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "016_scroll_performance_test_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "017_rtl_direction_check_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\017_rtl_direction_check_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:01:12.749Z",
+      "description": "RTL direction check",
+      "action": "rtl_direction_check",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "017_rtl_direction_check_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    },
+    {
+      "filename": "018_rtl_hardcoded_check_Desktop_1280x720.png",
+      "filepath": "c:\\Users\\pc\\Desktop\\new\\dawati-tester\\test-results\\2026-02-09_00-56-20\\screenshots\\018_rtl_hardcoded_check_Desktop_1280x720.png",
+      "timestamp": "2026-02-08T22:01:12.834Z",
+      "description": "Hardcoded strings check",
+      "action": "rtl_hardcoded_check",
+      "url": "https://dist-ashen-phi-44.vercel.app/welcome",
+      "device": "Desktop 1280x720",
+      "visualDiff": {
+        "filename": "018_rtl_hardcoded_check_Desktop_1280x720.png",
+        "baselineExists": false,
+        "diffPercentage": 0,
+        "hasSignificantChange": false
+      }
+    }
+  ],
+  "visualDiffs": [
+    {
+      "filename": "001_phone_auth_01_home_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "002_phone_auth_02_login_page_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "003_phone_auth_03_phone_tab_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "004_phone_auth_04_phone_entered_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "005_phone_auth_05_code_sent_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "006_email_auth_01_home_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "007_email_auth_02_login_page_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "008_email_auth_03_email_tab_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "009_email_auth_04_email_entered_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "010_email_auth_05_code_sent_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "011_nav_homepage_initial_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "012_nav_marketplace_main_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "013_scroll_vertical_start_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "014_scroll_vertical_back_to_top_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "015_scroll_infinite_start_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "016_scroll_performance_test_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "017_rtl_direction_check_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    },
+    {
+      "filename": "018_rtl_hardcoded_check_Desktop_1280x720.png",
+      "baselineExists": false,
+      "diffPercentage": 0,
+      "hasSignificantChange": false
+    }
+  ],
+  "accessibilityResults": [
+    {
+      "page": "homepage",
+      "device": "Desktop 1280x720",
+      "violations": [],
+      "passes": 7,
+      "incomplete": 0,
+      "timestamp": "2026-02-08T21:56:22.446Z"
+    }
+  ],
+  "performanceMetrics": [
+    {
+      "name": "homepage",
+      "device": "Desktop 1280x720",
+      "pageLoadTimeMs": 2,
+      "timestamp": "2026-02-08T21:56:21.835Z"
+    }
+  ],
+  "devicesTested": [
+    "Desktop 1280x720"
+  ],
+  "performanceSummary": {
+    "avgLoadTimeMs": 2,
+    "maxLoadTimeMs": 2,
+    "minLoadTimeMs": 2,
+    "totalPages": 1,
+    "slowPages": []
+  },
+  "accessibilitySummary": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0,
+    "total": 0
+  },
+  "visualChangesCount": 0
+}
