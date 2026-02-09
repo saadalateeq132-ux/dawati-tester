@@ -95,6 +95,14 @@ export interface PhaseAction {
   width?: number;
   height?: number;
   description: string;
+  // Click validation: verify expected result after click
+  expectAfterClick?: {
+    type: 'element' | 'url' | 'text' | 'not-visible';
+    selector?: string;
+    expected?: string | RegExp;
+    timeout?: number;
+    errorMessage?: string;
+  };
 }
 
 export interface PhaseValidation {

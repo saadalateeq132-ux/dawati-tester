@@ -98,6 +98,11 @@ export class BrowserManager {
 
         case 'click':
           await this.page.click(action.selector!, { timeout: action.timeout });
+
+          // Click validation: verify expected result after click
+          if (action.expectAfterClick) {
+            await this.validateClickResult(action);
+          }
           break;
 
         case 'fill':
@@ -277,6 +282,95 @@ export class BrowserManager {
       consoleLogs: [],
       errors: [],
     };
+  }
+
+  /**
+   * Validate that a click action produced the expected result
+   */
+  private async validateClickResult(action: PhaseAction): Promise<void> {
+    if (!this.page || !action.expectAfterClick) return;
+
+    const expect = action.expectAfterClick;
+    const timeout = expect.timeout || 5000;
+    const errorMessage = expect.errorMessage || `Click validation failed: expected ${expect.type}`;
+
+    console.log(`[Playwright] Validating click result: ${expect.type}`);
+
+    try {
+      switch (expect.type) {
+        case 'element':
+          // Wait for element to appear
+          if (!expect.selector) {
+            throw new Error('expectAfterClick.selector is required for type "element"');
+          }
+          await this.page.waitForSelector(expect.selector, { timeout, state: 'visible' });
+          console.log(`[Playwright] ✅ Click validation passed: element "${expect.selector}" appeared`);
+          break;
+
+        case 'not-visible':
+          // Wait for element to disappear
+          if (!expect.selector) {
+            throw new Error('expectAfterClick.selector is required for type "not-visible"');
+          }
+          await this.page.waitForSelector(expect.selector, { timeout, state: 'hidden' });
+          console.log(`[Playwright] ✅ Click validation passed: element "${expect.selector}" disappeared`);
+          break;
+
+        case 'url':
+          // Wait for URL to change
+          const currentUrl = this.page.url();
+          await this.page.waitForFunction(
+            (args) => {
+              const url = window.location.href;
+              if (args.expected instanceof RegExp) {
+                return args.expected.test(url);
+              } else {
+                return url.includes(args.expected) && url !== args.currentUrl;
+              }
+            },
+            { expected: expect.expected, currentUrl },
+            { timeout }
+          );
+          console.log(`[Playwright] ✅ Click validation passed: URL changed to match "${expect.expected}"`);
+          break;
+
+        case 'text':
+          // Wait for specific text to appear
+          if (!expect.expected) {
+            throw new Error('expectAfterClick.expected is required for type "text"');
+          }
+          if (typeof expect.expected === 'string') {
+            await this.page.waitForSelector(`text=${expect.expected}`, { timeout });
+          } else {
+            // RegExp: check page content
+            await this.page.waitForFunction(
+              (pattern) => {
+                const text = document.body.innerText;
+                return new RegExp(pattern).test(text);
+              },
+              expect.expected.source,
+              { timeout }
+            );
+          }
+          console.log(`[Playwright] ✅ Click validation passed: text "${expect.expected}" appeared`);
+          break;
+
+        default:
+          throw new Error(`Unknown expectAfterClick type: ${expect.type}`);
+      }
+    } catch (error: any) {
+      console.error(`[Playwright] ❌ Click validation failed: ${errorMessage}`);
+      console.error(`[Playwright] Error: ${error.message}`);
+
+      // Add error to artifacts for reporting
+      this.artifacts.errors.push({
+        timestamp: new Date(),
+        message: `${errorMessage}: ${error.message}`,
+        stack: error.stack || '',
+      });
+
+      throw new Error(errorMessage);
+    }
   }
 
   async close(): Promise<void> {
