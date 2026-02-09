@@ -252,7 +252,13 @@ For EACH screenshot, analyze:
    - Layout expansion: Elements too small for Arabic text (30% longer than English)
    - Icon alignment: Directional icons should flip in RTL
 4. **Image Text (OCR)**: Read ALL text visible in images/graphics and report if not localized
-5. **Accessibility**: Missing labels, poor contrast, small touch targets
+5. **Mobile UI Issues** (App for iOS/Android):
+   - Tap targets too small (minimum 44x44px for iOS, 48x48dp for Android)
+   - Tap targets too large (buttons > 300px width on mobile)
+   - Text too small to read on mobile (< 14px)
+   - Elements cut off on small screens
+   - Horizontal scrolling (should be vertical only on mobile)
+6. **Accessibility**: Missing labels, poor contrast, small touch targets
 
 Phase context: ${request.phase}
 Expected elements: ${request.expectedElements.join(', ')}
@@ -308,7 +314,11 @@ Analyze this screenshot for:
    - Numbers: Consistency
    - Layout: 30% expansion for Arabic
 4. **Image Text (OCR)**: Read text in images/graphics
-5. **Accessibility**: Labels, contrast, touch targets
+5. **Mobile UI** (iOS/Android app):
+   - Tap targets: min 44x44px (iOS) or 48x48dp (Android)
+   - Text size: minimum 14px for readability
+   - Elements cut off on mobile
+6. **Accessibility**: Labels, contrast, touch targets
 
 Phase: ${phase}
 
