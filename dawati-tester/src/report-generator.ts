@@ -9,6 +9,7 @@ import { NavigationTestResult } from './navigation-tester';
 import { ScrollTestResult } from './scroll-tester';
 import { RTLCheckResult } from './rtl-checker';
 import { VisualDiff, AccessibilityResult, PerformanceMetric } from './types';
+import { ChecklistScore } from './checklist-validator';
 import { createChildLogger } from './logger';
 
 const log = createChildLogger('report-generator');
@@ -47,6 +48,7 @@ export interface TestReport {
     total: number;
   };
   visualChangesCount: number;
+  checklistScore?: ChecklistScore;
 }
 
 const HTML_TEMPLATE = `
@@ -542,7 +544,8 @@ export function generateReport(
   visualDiffs: VisualDiff[] = [],
   accessibilityResults: AccessibilityResult[] = [],
   performanceMetrics: PerformanceMetric[] = [],
-  devicesTested: string[] = []
+  devicesTested: string[] = [],
+  checklistScore?: ChecklistScore
 ): TestReport {
   const endTime = new Date();
   const duration = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -611,6 +614,7 @@ export function generateReport(
     performanceSummary,
     accessibilitySummary,
     visualChangesCount,
+    checklistScore,
   };
 
   return report;
@@ -667,7 +671,47 @@ export function printReportSummary(report: TestReport): void {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(' DAWATI AUTONOMOUS TESTER - REPORT SUMMARY');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`\n📊 Overall Score: ${report.overallScore}/10`);
+
+  // Calculate RTL Score (average of all RTL check scores)
+  const rtlScore = report.rtlResults.length > 0
+    ? (report.rtlResults.reduce((sum, r) => sum + r.score, 0) / report.rtlResults.length).toFixed(1)
+    : 'N/A';
+
+  // AI Score (overall score from Gemini analysis)
+  const aiScore = report.overallScore;
+
+  // Checklist Score
+  const checklistScore = report.checklistScore ? report.checklistScore.overallScore : null;
+  const checklistRequired = report.checklistScore ? report.checklistScore.requiredScore : null;
+
+  // Display the 3 SCORES prominently
+  console.log('\n═══════════════════════════════════════════════════════');
+  console.log('                    🎯 TEST SCORES                    ');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('');
+
+  // Score 1: RTL Score
+  const rtlEmoji = rtlScore !== 'N/A' && parseFloat(rtlScore) >= 7 ? '✅' : rtlScore !== 'N/A' && parseFloat(rtlScore) >= 5 ? '⚠️' : '❌';
+  console.log(`  ${rtlEmoji} Score 1: RTL Score              ${rtlScore}/10`);
+
+  // Score 2: AI Score
+  const aiEmoji = aiScore >= 7 ? '✅' : aiScore >= 5 ? '⚠️' : '❌';
+  console.log(`  ${aiEmoji} Score 2: AI Score (Gemini)      ${aiScore}/10`);
+
+  // Score 3: Checklist Score
+  if (checklistScore !== null && checklistRequired !== null) {
+    const checklistEmoji = checklistRequired === 100 ? '✅' : '❌';
+    console.log(`  ${checklistEmoji} Score 3: Checklist Coverage     ${checklistScore}%`);
+    console.log(`           - Required (P0):         ${checklistRequired}% ${checklistRequired === 100 ? '✅' : '❌ MUST BE 100%'}`);
+    console.log(`           - Passing:               ${report.checklistScore!.passingItems}/${report.checklistScore!.totalItems} tests`);
+  } else {
+    console.log(`  ⚠️  Score 3: Checklist Coverage     N/A (checklist not found)`);
+  }
+
+  console.log('');
+  console.log('═══════════════════════════════════════════════════════');
+  console.log('');
+
   console.log(`📸 Screenshots: ${report.screenshotCount}`);
   console.log(`⏱️  Duration: ${Math.floor(report.duration / 60)}m ${Math.floor(report.duration % 60)}s`);
 

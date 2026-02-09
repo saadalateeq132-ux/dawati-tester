@@ -32,6 +32,7 @@ import {
   getPerformanceMetrics,
   getPerformanceSummary,
 } from './performance-metrics';
+import { ChecklistValidator, ChecklistScore } from './checklist-validator';
 
 const log = createChildLogger('runner');
 
@@ -75,6 +76,7 @@ export interface TestResults {
   accessibilityResults: AccessibilityResult[];
   performanceMetrics: PerformanceMetric[];
   devicesTested: string[];
+  checklistScore?: ChecklistScore;
 }
 
 function loadTestPlan(testPlanPath?: string): TestPlan {
@@ -405,6 +407,19 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
       printProgress('AI Analysis', 'done', `${totalIssues} issues found`);
     }
 
+    // Checklist Validation
+    printProgress('Checklist validation', 'start');
+    try {
+      const validator = new ChecklistValidator();
+      await validator.loadChecklist();
+      results.checklistScore = validator.calculateScore();
+      printProgress('Checklist validation', 'done', `${results.checklistScore.overallScore}% coverage`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      log.warn({ error: errorMsg }, 'Checklist validation failed - continuing without checklist score');
+      console.log(`⚠️  Checklist validation skipped: ${errorMsg}`);
+    }
+
     // Generate report
     printProgress('Generating report', 'start');
     const report = generateReport(
@@ -418,7 +433,8 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
       results.visualDiffs,
       results.accessibilityResults,
       results.performanceMetrics,
-      results.devicesTested
+      results.devicesTested,
+      results.checklistScore
     );
     saveReport(report);
     printProgress('Generating report', 'done');
