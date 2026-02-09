@@ -115,6 +115,24 @@ export class BrowserManager {
           await this.captureScreenshot(action.description);
           break;
 
+        case 'resize':
+          if (action.width && action.height) {
+            await this.page.setViewportSize({ width: action.width, height: action.height });
+            console.log(`[Playwright] Viewport resized to ${action.width}x${action.height}`);
+            await this.page.waitForTimeout(1000);
+          }
+          break;
+
+        case 'back':
+          await this.page.goBack({ waitUntil: 'networkidle' });
+          await this.page.waitForTimeout(2000);
+          break;
+
+        case 'scroll-to-bottom':
+          await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+          await this.page.waitForTimeout(1000);
+          break;
+
         default:
           throw new Error(`Unknown action type: ${action.type}`);
       }

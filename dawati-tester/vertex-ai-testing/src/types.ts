@@ -87,11 +87,13 @@ export interface TestPhase {
 }
 
 export interface PhaseAction {
-  type: 'navigate' | 'click' | 'fill' | 'scroll' | 'wait' | 'screenshot';
+  type: 'navigate' | 'click' | 'fill' | 'scroll' | 'wait' | 'screenshot' | 'resize' | 'back' | 'scroll-to-bottom';
   selector?: string;
   value?: string;
   url?: string;
   timeout?: number;
+  width?: number;
+  height?: number;
   description: string;
 }
 
