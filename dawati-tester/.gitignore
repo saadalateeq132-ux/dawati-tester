@@ -1,0 +1,39 @@
+# Environment variables (contains API keys!)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test results
+test-results/
+playwright-report/
+screenshots/
+*.png
+*.jpg
+
+# Logs
+*.log
+logs/
+pino-pretty.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+.cache/
