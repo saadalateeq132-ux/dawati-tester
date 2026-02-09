@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "setup": "npm run build && node dist/setup-test-users.js",
+    "setup": "npm run build && node dist/setup-all-users-sql.js",
+    "setup:verify": "npm run build && node dist/verify-setup.js",
     "test": "npm run build && node dist/index.js",
     "test:quick": "npm run build && node dist/index.js --quick",
     "test:auth": "npm run build && node dist/index.js --only=auth",
