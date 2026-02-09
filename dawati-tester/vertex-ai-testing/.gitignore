@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+feedback/
+training-data/
+artifacts/
+reports/
+baselines/

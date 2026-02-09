@@ -163,6 +163,9 @@ export class BrowserManager {
       }
     }
 
+    // Wait for SPA/JS frameworks (React, Expo) to fully render
+    await this.page.waitForTimeout(3000);
+
     console.log(`[Playwright] Navigation successful: HTTP ${response?.status()}`);
   }
 
@@ -214,7 +217,7 @@ export class BrowserManager {
     if (!this.page) throw new Error('Page not initialized');
     const element = await this.page.$(selector);
     if (!element) throw new Error(`Element not found: ${selector}`);
-    return element.textContent() || '';
+    return (await element.textContent()) || '';
   }
 
   async isElementVisible(selector: string): Promise<boolean> {

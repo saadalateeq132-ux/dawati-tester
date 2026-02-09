@@ -9,7 +9,16 @@
     "test:update-baselines": "UPDATE_BASELINES=true ts-node tests/auth-flow.test.ts",
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "feedback:review": "ts-node scripts/review-feedback.ts",
+    "feedback:stats": "ts-node scripts/review-feedback.ts --stats",
+    "feedback:auto": "ts-node scripts/review-feedback.ts --auto",
+    "dataset:build": "ts-node scripts/build-dataset.ts",
+    "dataset:build:dry": "ts-node scripts/build-dataset.ts --dry-run",
+    "tuning:submit": "ts-node scripts/submit-tuning-job.ts",
+    "tuning:submit:wait": "ts-node scripts/submit-tuning-job.ts --wait",
+    "tuning:status": "ts-node scripts/check-tuning-status.ts",
+    "tuning:list": "ts-node scripts/check-tuning-status.ts --list"
   },
   "keywords": [
     "testing",
@@ -23,20 +32,22 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@google-cloud/vertexai": "^1.7.0",
-    "playwright": "^1.48.0",
     "dotenv": "^16.4.7",
-    "pngjs": "^7.0.0",
-    "pixelmatch": "^6.0.0"
+    "google-auth-library": "^9.15.1",
+    "pixelmatch": "^6.0.0",
+    "playwright": "^1.48.0",
+    "pngjs": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "@types/pngjs": "^6.0.5",
     "@types/pixelmatch": "^5.2.6",
-    "typescript": "^5.7.2",
-    "ts-node": "^10.9.2",
+    "@types/pngjs": "^6.0.5",
     "eslint": "^9.17.0",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=18.0.0"

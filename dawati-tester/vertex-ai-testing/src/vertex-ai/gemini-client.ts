@@ -6,6 +6,8 @@ export class GeminiClient {
   private vertexAI: VertexAI;
   private config: TestConfig;
   private model: any;
+  private tunedModel: any | null = null;
+  private lastPromptText: string = '';
 
   constructor(config: TestConfig) {
     this.config = config;
@@ -16,17 +18,79 @@ export class GeminiClient {
       location: config.location,
     });
 
+    const generationConfig = {
+      temperature: config.vertexAI.temperature,
+      topP: config.vertexAI.topP,
+      topK: config.vertexAI.topK,
+      maxOutputTokens: config.vertexAI.maxOutputTokens,
+    };
+
     this.model = this.vertexAI.getGenerativeModel({
       model: config.model,
-      generationConfig: {
-        temperature: config.vertexAI.temperature,
-        topP: config.vertexAI.topP,
-        topK: config.vertexAI.topK,
-        maxOutputTokens: config.vertexAI.maxOutputTokens,
-      },
+      generationConfig,
     });
 
+    // Initialize tuned model if configured
+    if (config.fineTuning?.tunedModelEndpoint) {
+      this.tunedModel = this.vertexAI.getGenerativeModel({
+        model: config.fineTuning.tunedModelEndpoint,
+        generationConfig,
+      });
+      console.log(`[Vertex AI] Tuned model loaded: ${config.fineTuning.tunedModelEndpoint}`);
+    }
+
     console.log(`[Vertex AI] Initialized: ${config.model} in ${config.location}`);
+  }
+
+  /**
+   * Get the prompt text that would be used for a given phase (for feedback collection)
+   */
+  getPromptForPhase(phase: string): string {
+    return this.buildSinglePrompt(phase);
+  }
+
+  /**
+   * Get the last prompt text that was sent to the model
+   */
+  getLastPromptText(): string {
+    return this.lastPromptText;
+  }
+
+  /**
+   * Check if a tuned model is available
+   */
+  hasTunedModel(): boolean {
+    return this.tunedModel !== null;
+  }
+
+  /**
+   * Analyze with a specific model (base or tuned). Used by ModelSwitcher for A/B testing.
+   */
+  async analyzeWithModel(
+    screenshotPath: string,
+    phase: string,
+    useTuned: boolean
+  ): Promise<{ response: VertexAIResponse; tokensUsed: number; latencyMs: number }> {
+    const targetModel = useTuned && this.tunedModel ? this.tunedModel : this.model;
+    const startTime = Date.now();
+
+    const imageBase64 = this.imageToBase64(screenshotPath);
+    const prompt = this.buildSinglePrompt(phase);
+    this.lastPromptText = prompt;
+
+    const result = await targetModel.generateContent({
+      contents: [{ role: 'user', parts: [
+        { text: prompt },
+        { inlineData: { mimeType: 'image/png', data: imageBase64 } },
+      ]}],
+    });
+
+    const apiResponse = await result.response;
+    const text = apiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const tokensUsed = apiResponse.usageMetadata?.totalTokenCount || 0;
+    const latencyMs = Date.now() - startTime;
+
+    return { response: this.parseResponse(text), tokensUsed, latencyMs };
   }
 
   /**
@@ -48,14 +112,13 @@ export class GeminiClient {
       // Build comprehensive prompt
       const prompt = this.buildBatchPrompt(request);
 
-      // Call Vertex AI with function calling for guaranteed JSON
-      const result = await this.model.generateContent([
-        { text: prompt },
-        ...imageParts,
-      ]);
+      // Call Vertex AI with proper contents format
+      const result = await this.model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...imageParts] }],
+      });
 
       const response = await result.response;
-      const text = response.text();
+      const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       // Parse JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -120,22 +183,20 @@ export class GeminiClient {
       const imageBase64 = this.imageToBase64(screenshotPath);
 
       const prompt = this.buildSinglePrompt(phase);
+      this.lastPromptText = prompt;
 
       if (this.config.vertexAI.streaming) {
         // Streaming response for real-time feedback
-        const streamingResult = await this.model.generateContentStream([
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType: 'image/png',
-              data: imageBase64,
-            },
-          },
-        ]);
+        const streamingResult = await this.model.generateContentStream({
+          contents: [{ role: 'user', parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/png', data: imageBase64 } },
+          ]}],
+        });
 
         let fullText = '';
         for await (const chunk of streamingResult.stream) {
-          const chunkText = chunk.text();
+          const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text || '';
           fullText += chunkText;
           process.stdout.write(chunkText); // Real-time output
         }
@@ -149,18 +210,15 @@ export class GeminiClient {
         return this.parseResponse(fullText);
       } else {
         // Non-streaming response
-        const result = await this.model.generateContent([
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType: 'image/png',
-              data: imageBase64,
-            },
-          },
-        ]);
+        const result = await this.model.generateContent({
+          contents: [{ role: 'user', parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/png', data: imageBase64 } },
+          ]}],
+        });
 
         const response = await result.response;
-        const text = response.text();
+        const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
         const latencyMs = Date.now() - startTime;
 
@@ -275,31 +333,51 @@ Respond in JSON:
       return this.createEmptyResponse();
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
 
-    const issues: AIIssue[] = (parsed.issues || []).map((issue: any, index: number) => ({
-      id: `VERTEX-${Date.now()}-${index}`,
-      severity: issue.severity,
-      category: issue.category,
-      title: issue.title,
-      description: issue.description,
-      suggestion: issue.suggestion,
-      location: issue.location,
-      confidence: issue.confidence || 0.8,
-    }));
+      // Handle issues that may be strings or objects
+      const rawIssues = parsed.issues || [];
+      const issues: AIIssue[] = rawIssues.map((issue: any, index: number) => {
+        if (typeof issue === 'string') {
+          return {
+            id: `VERTEX-${Date.now()}-${index}`,
+            severity: 'medium' as const,
+            category: 'ui' as const,
+            title: issue,
+            description: issue,
+            suggestion: 'Review and fix this issue',
+            confidence: 0.7,
+          };
+        }
+        return {
+          id: `VERTEX-${Date.now()}-${index}`,
+          severity: issue.severity || 'medium',
+          category: issue.category || 'ui',
+          title: issue.title || 'Unknown issue',
+          description: issue.description || issue.title || '',
+          suggestion: issue.suggestion || 'Review this issue',
+          location: issue.location,
+          confidence: issue.confidence || 0.8,
+        };
+      });
 
-    return {
-      decision: parsed.decision || 'UNKNOWN',
-      confidence: parsed.confidence || 0.5,
-      reason: parsed.reason || '',
-      issues,
-      rtlIssues: parsed.rtlIssues || [],
-      hardcodedText: parsed.hardcodedText || [],
-      imageText: parsed.imageText || [],
-      currencyIssues: parsed.currencyIssues || [],
-      dateIssues: parsed.dateIssues || [],
-      score: parsed.score || 5,
-    };
+      return {
+        decision: parsed.decision || 'UNKNOWN',
+        confidence: parsed.confidence || 0.5,
+        reason: parsed.reason || '',
+        issues,
+        rtlIssues: parsed.rtlIssues || [],
+        hardcodedText: parsed.hardcodedText || [],
+        imageText: parsed.imageText || [],
+        currencyIssues: parsed.currencyIssues || [],
+        dateIssues: parsed.dateIssues || [],
+        score: parsed.score || 5,
+      };
+    } catch {
+      console.error('[Vertex AI] Failed to parse JSON response');
+      return this.createEmptyResponse();
+    }
   }
 
   private createEmptyResponse(): VertexAIResponse {

@@ -6,6 +6,8 @@ import { RTLIntegration } from '../rtl-checker/rtl-integration';
 import { BaselineManager } from '../visual-regression/baseline-manager';
 import { PIIMasker } from '../artifact-manager/pii-masker';
 import { HTMLReporter } from '../reporter/html-reporter';
+import { FeedbackCollector } from '../fine-tuning/feedback-collector';
+import { Autopilot } from '../fine-tuning/autopilot';
 
 /**
  * Main orchestrator that coordinates all testing components
@@ -18,6 +20,9 @@ export class TestOrchestrator {
   private baselineManager: BaselineManager;
   private piiMasker: PIIMasker;
   private reporter: HTMLReporter;
+  private feedbackCollector: FeedbackCollector | null = null;
+  private autopilot: Autopilot | null = null;
+  private currentSuiteName: string = '';
 
   constructor(config: TestConfig) {
     this.config = config;
@@ -27,6 +32,18 @@ export class TestOrchestrator {
     this.baselineManager = new BaselineManager(config);
     this.piiMasker = new PIIMasker(config);
     this.reporter = new HTMLReporter(config);
+
+    // Initialize feedback collector if fine-tuning is enabled
+    if (config.fineTuning?.enabled) {
+      this.feedbackCollector = new FeedbackCollector(config.fineTuning);
+      console.log(`[Orchestrator] Feedback collection enabled`);
+
+      // Initialize autopilot if enabled
+      if (config.fineTuning.autopilot?.enabled) {
+        this.autopilot = new Autopilot(config);
+        console.log(`[Orchestrator] Autopilot enabled (auto-review + auto-tune)`);
+      }
+    }
   }
 
   /**
@@ -39,6 +56,7 @@ export class TestOrchestrator {
 
     const startTime = new Date();
     const phaseResults: PhaseResult[] = [];
+    this.currentSuiteName = suiteName;
 
     try {
       // Launch browser
@@ -121,13 +139,22 @@ export class TestOrchestrator {
     const reportPath = this.reporter.generateReport(result);
 
     console.log(`\n========================================`);
-    console.log(`🎯 Test Suite Complete: ${overallStatus.toUpperCase()}`);
+    console.log(`Test Suite Complete: ${overallStatus.toUpperCase()}`);
     console.log(`========================================`);
     console.log(`Duration: ${(duration / 1000).toFixed(1)}s`);
     console.log(`Passed: ${passedPhases}/${phases.length}`);
     console.log(`Total Cost: $${totalCost.toFixed(4)}`);
     console.log(`Report: ${reportPath}`);
     console.log(`========================================\n`);
+
+    // Run autopilot cycle (auto-review, auto-build, auto-tune)
+    if (this.autopilot) {
+      try {
+        await this.autopilot.runCycle();
+      } catch (apError: any) {
+        console.warn(`[Orchestrator] Autopilot cycle failed: ${apError.message}`);
+      }
+    }
 
     return result;
   }
@@ -199,9 +226,9 @@ export class TestOrchestrator {
 
       const duration = Date.now() - startTime;
 
-      console.log(`✅ Phase complete: ${phase.name} (${status})`);
+      console.log(`[Orchestrator] Phase complete: ${phase.name} (${status})`);
 
-      return {
+      const phaseResult: PhaseResult = {
         phase,
         status,
         duration,
@@ -210,6 +237,23 @@ export class TestOrchestrator {
         visualResult,
         artifacts: this.browserManager.getArtifacts(),
       };
+
+      // Collect feedback for fine-tuning pipeline
+      if (this.feedbackCollector) {
+        try {
+          const promptText = this.geminiClient.getLastPromptText();
+          this.feedbackCollector.collectFromPhaseResult(
+            this.currentSuiteName,
+            phaseResult,
+            promptText,
+            this.config.model
+          );
+        } catch (fbError: any) {
+          console.warn(`[Orchestrator] Feedback collection failed: ${fbError.message}`);
+        }
+      }
+
+      return phaseResult;
     } catch (error: any) {
       const duration = Date.now() - startTime;
       console.error(`❌ Phase failed: ${phase.name} - ${error.message}`);
@@ -254,7 +298,13 @@ export class TestOrchestrator {
   private checkDependencies(dependencies: string[], phaseResults: PhaseResult[]): boolean {
     for (const depId of dependencies) {
       const depResult = phaseResults.find((r) => r.phase.id === depId);
-      if (!depResult || depResult.status !== 'passed') {
+      // Only skip if dependency was skipped or had a critical execution error
+      // AI-detected issues (failed/unknown) should NOT block dependent phases
+      if (!depResult || depResult.status === 'skipped') {
+        return false;
+      }
+      // Block only if there was a critical execution error (page crash, 404, etc.)
+      if (depResult.status === 'failed' && depResult.error) {
         return false;
       }
     }

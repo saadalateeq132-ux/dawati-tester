@@ -5,13 +5,38 @@ import * as path from 'path';
 dotenv.config();
 
 export function loadConfig(): TestConfig {
-  const rootDir = path.resolve(__dirname, '../../..');
+  const rootDir = path.resolve(__dirname, '../..');
 
   return {
+    // Fine-Tuning Pipeline
+    fineTuning: {
+      enabled: process.env.FINE_TUNING_ENABLED === 'true',
+      feedbackDir: path.join(rootDir, 'feedback'),
+      trainingDataDir: path.join(rootDir, 'training-data'),
+      gcsBucket: process.env.GCS_TRAINING_BUCKET || '',
+      gcsPrefix: process.env.GCS_TRAINING_PREFIX || 'dawati-training-images',
+      tuningRegion: process.env.TUNING_REGION || 'europe-west4',
+      tuningBaseModel: 'gemini-2.0-flash-001',
+      epochs: parseInt(process.env.TUNING_EPOCHS || '4', 10),
+      learningRateMultiplier: parseFloat(process.env.TUNING_LR_MULTIPLIER || '1.0'),
+      adapterSize: parseInt(process.env.TUNING_ADAPTER_SIZE || '4', 10),
+      tunedModelEndpoint: process.env.TUNED_MODEL_ENDPOINT || undefined,
+      abTestingEnabled: process.env.AB_TESTING_ENABLED === 'true',
+      minTrainingExamples: parseInt(process.env.MIN_TRAINING_EXAMPLES || '100', 10),
+      autopilot: {
+        enabled: process.env.AUTOPILOT_ENABLED === 'true',
+        autoApproveThreshold: parseFloat(process.env.AUTOPILOT_APPROVE_THRESHOLD || '0.85'),
+        autoRejectThreshold: parseFloat(process.env.AUTOPILOT_REJECT_THRESHOLD || '0.4'),
+        autoTuneAtCount: parseInt(process.env.AUTOPILOT_TUNE_AT_COUNT || '100', 10),
+        autoSwitchModel: process.env.AUTOPILOT_AUTO_SWITCH !== 'false',
+        stateFilePath: path.join(rootDir, 'feedback', 'autopilot-state.json'),
+      },
+    },
+
     projectId: process.env.GCP_PROJECT_ID || 'your-project-id',
-    location: 'europe-west1', // Closest to Saudi Arabia
-    baseUrl: process.env.BASE_URL || 'https://dawati-v01.vercel.app',
-    model: 'gemini-2.0-flash-exp',
+    location: process.env.GCP_LOCATION || 'us-central1',
+    baseUrl: process.env.BASE_URL || 'http://localhost:8081',
+    model: process.env.GCP_MODEL || 'gemini-2.0-flash-001',
     timeout: 30000,
     retries: 2,
     parallel: true,

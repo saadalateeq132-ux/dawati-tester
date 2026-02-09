@@ -213,7 +213,7 @@ export class HTMLReporter {
           <p><strong>Description:</strong> ${issue.description}</p>
           <p><strong>Suggestion:</strong> ${issue.suggestion}</p>
           ${issue.location ? `<p><strong>Location:</strong> ${issue.location}</p>` : ''}
-          <p class="issue-meta">Confidence: ${(issue.confidence * 100).toFixed(0)}% • Screenshot: ${issue.screenshot}</p>
+          <p class="issue-meta">Confidence: ${(issue.confidence * 100).toFixed(0)}%${issue.location ? ` • Location: ${issue.location}` : ''}</p>
         </div>`;
       })
       .join('');

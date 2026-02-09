@@ -19,6 +19,7 @@ export interface TestConfig {
   visualRegression: VisualRegressionConfig;
   artifacts: ArtifactConfig;
   reporting: ReportingConfig;
+  fineTuning?: FineTuningConfig;
 }
 
 export interface DeviceConfig {
@@ -273,4 +274,148 @@ export interface TotalCostReport {
     batchSavings: number;
     potentialSavings: number;
   };
+}
+
+// Fine-Tuning Pipeline Types
+
+export type FeedbackLabel = 'correct' | 'incorrect' | 'pending';
+
+export type FeedbackReviewStatus = 'unreviewed' | 'reviewed' | 'exported';
+
+export interface FeedbackRecord {
+  id: string;
+  timestamp: string;
+  suiteName: string;
+  phaseId: string;
+  phaseName: string;
+  screenshotPath: string;
+  promptText: string;
+  originalResponse: VertexAIResponse;
+  modelUsed: string;
+  label: FeedbackLabel;
+  correctedResponse?: VertexAIResponse;
+  reviewerNotes?: string;
+  reviewStatus: FeedbackReviewStatus;
+  reviewedAt?: string;
+  device?: string;
+}
+
+export interface FineTuningConfig {
+  enabled: boolean;
+  feedbackDir: string;
+  trainingDataDir: string;
+  gcsBucket: string;
+  gcsPrefix: string;
+  tuningRegion: string;
+  tuningBaseModel: string;
+  epochs: number;
+  learningRateMultiplier: number;
+  adapterSize: number;
+  tunedModelEndpoint?: string;
+  abTestingEnabled: boolean;
+  minTrainingExamples: number;
+  autopilot: AutopilotConfig;
+}
+
+export interface AutopilotConfig {
+  enabled: boolean;
+  /** Auto-mark as correct when AI confidence >= this threshold */
+  autoApproveThreshold: number;
+  /** Auto-mark as incorrect when AI confidence <= this threshold */
+  autoRejectThreshold: number;
+  /** Auto-build dataset + submit tuning when reviewed count reaches this */
+  autoTuneAtCount: number;
+  /** Auto-switch to tuned model after successful fine-tuning */
+  autoSwitchModel: boolean;
+  /** Path to persist autopilot state (active tuning job, etc.) */
+  stateFilePath: string;
+}
+
+export interface AutopilotState {
+  /** Currently running tuning job name (if any) */
+  activeTuningJob?: string;
+  /** Last time auto-review ran */
+  lastAutoReviewAt?: string;
+  /** Last time dataset was built */
+  lastDatasetBuildAt?: string;
+  /** Last tuned model endpoint deployed */
+  lastTunedEndpoint?: string;
+  /** Total auto-approved records */
+  totalAutoApproved: number;
+  /** Total auto-rejected records */
+  totalAutoRejected: number;
+  /** Number of tuning jobs completed */
+  tuningJobsCompleted: number;
+}
+
+export interface TrainingExample {
+  systemInstruction: {
+    parts: Array<{ text: string }>;
+  };
+  contents: Array<{
+    role: 'user' | 'model';
+    parts: Array<
+      | { text: string }
+      | { fileData: { mimeType: string; fileUri: string } }
+    >;
+  }>;
+}
+
+export interface DatasetManifest {
+  buildId: string;
+  builtAt: string;
+  exampleCount: number;
+  screenshotCount: number;
+  gcsTrainingFileUri: string;
+  gcsImageUris: string[];
+  feedbackRecordIds: string[];
+  validation: DatasetValidationResult;
+}
+
+export interface DatasetValidationResult {
+  valid: boolean;
+  exampleCount: number;
+  errors: string[];
+  warnings: string[];
+  labelDistribution: {
+    pass: number;
+    fail: number;
+    unknown: number;
+  };
+}
+
+export type TuningJobStatus =
+  | 'JOB_STATE_PENDING'
+  | 'JOB_STATE_RUNNING'
+  | 'JOB_STATE_SUCCEEDED'
+  | 'JOB_STATE_FAILED'
+  | 'JOB_STATE_CANCELLED';
+
+export interface TuningJob {
+  name: string;
+  state: TuningJobStatus;
+  createTime: string;
+  endTime?: string;
+  baseModel: string;
+  trainingDatasetUri: string;
+  tunedModelEndpoint?: string;
+  tunedModelDisplayName?: string;
+  error?: string;
+  hyperParameters: {
+    epochCount: number;
+    learningRateMultiplier: number;
+    adapterSize: number;
+  };
+}
+
+export interface ABTestResult {
+  phaseId: string;
+  baseModelResponse: VertexAIResponse;
+  tunedModelResponse: VertexAIResponse;
+  baseModelLatencyMs: number;
+  tunedModelLatencyMs: number;
+  baseModelTokens: number;
+  tunedModelTokens: number;
+  selectedModel: 'base' | 'tuned';
+  agreement: 'agree' | 'disagree';
 }

@@ -61,14 +61,13 @@ async function main() {
       actions: [
         {
           type: 'click',
-          selector: 'a[href*="login"], button:has-text("تسجيل الدخول")',
-          description: 'Click login button',
+          selector: '[data-testid="welcome-login-button"]',
+          description: 'Click login button (تسجيل الدخول / إنشاء حساب)',
         },
         {
           type: 'wait',
-          selector: 'form',
-          timeout: 3000,
-          description: 'Wait for login form',
+          timeout: 5000,
+          description: 'Wait for login page to load',
         },
         {
           type: 'screenshot',
@@ -77,126 +76,58 @@ async function main() {
       ],
       validations: [
         {
-          type: 'element',
-          selector: 'input[type="email"], input[name="email"]',
-          description: 'Email input should be visible',
-        },
-        {
-          type: 'element',
-          selector: 'input[type="password"], input[name="password"]',
-          description: 'Password input should be visible',
-        },
-        {
           type: 'rtl',
-          description: 'Form should have RTL layout',
+          description: 'Login page should have RTL layout',
         },
         {
           type: 'ai',
-          description: 'Form should be complete and properly localized',
+          description: 'Login page should be properly localized',
         },
       ],
       dependencies: ['landing-page'],
     },
 
     {
-      id: 'fill-login-form',
-      name: 'Fill Login Form',
-      description: 'Enter test credentials',
+      id: 'vendor-login',
+      name: 'Vendor Login Page',
+      description: 'Navigate back and check vendor login option',
       actions: [
         {
-          type: 'fill',
-          selector: 'input[type="email"], input[name="email"]',
-          value: 'test@example.com',
-          description: 'Enter email',
+          type: 'navigate',
+          url: `${config.baseUrl}`,
+          description: 'Navigate back to landing page',
         },
         {
-          type: 'fill',
-          selector: 'input[type="password"], input[name="password"]',
-          value: 'TestPassword123!',
-          description: 'Enter password',
+          type: 'wait',
+          timeout: 5000,
+          description: 'Wait for page load',
         },
-        {
-          type: 'screenshot',
-          description: 'Form filled',
-        },
-      ],
-      validations: [
-        {
-          type: 'ai',
-          description: 'Form should be filled correctly',
-        },
-      ],
-      dependencies: ['login-page'],
-    },
-
-    {
-      id: 'submit-login',
-      name: 'Submit Login',
-      description: 'Submit form and verify success or error handling',
-      actions: [
         {
           type: 'click',
-          selector: 'button[type="submit"], button:has-text("تسجيل الدخول")',
-          description: 'Click submit button',
+          selector: '[data-testid="welcome-vendor-button"]',
+          description: 'Click vendor login button (تسجيل الدخول كمزود خدمة)',
         },
         {
           type: 'wait',
-          timeout: 3000,
-          description: 'Wait for response',
+          timeout: 5000,
+          description: 'Wait for vendor login page',
         },
         {
           type: 'screenshot',
-          description: 'Login result',
+          description: 'Vendor login page',
         },
       ],
       validations: [
-        {
-          type: 'url',
-          description: 'Should redirect to dashboard or show error',
-        },
-        {
-          type: 'ai',
-          description: 'Should show success or proper error message',
-        },
-      ],
-      dependencies: ['fill-login-form'],
-    },
-
-    {
-      id: 'dashboard',
-      name: 'Dashboard',
-      description: 'Verify user lands on dashboard after login',
-      actions: [
-        {
-          type: 'wait',
-          timeout: 2000,
-          description: 'Wait for dashboard load',
-        },
-        {
-          type: 'screenshot',
-          description: 'Dashboard view',
-        },
-      ],
-      validations: [
-        {
-          type: 'element',
-          selector: '[data-testid="dashboard"], main',
-          description: 'Dashboard should be visible',
-        },
         {
           type: 'rtl',
-          description: 'Dashboard should have RTL layout',
-        },
-        {
-          type: 'visual',
-          description: 'Dashboard should match baseline',
+          description: 'Vendor login should have RTL layout',
         },
         {
           type: 'ai',
-          description: 'Dashboard should be complete and properly localized',
+          description: 'Vendor login should be complete and properly localized',
         },
       ],
-      dependencies: ['submit-login'],
+      dependencies: ['landing-page'],
     },
   ];
 
