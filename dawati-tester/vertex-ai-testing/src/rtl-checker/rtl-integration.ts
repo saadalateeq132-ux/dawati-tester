@@ -1,5 +1,6 @@
 import { Page } from 'playwright';
 import { ComprehensiveRTLResult, RTLCheckResult } from '../types';
+import { ColorChecker, DesignSystemColors } from '../design-system/color-checker';
 
 /**
  * Integration with existing RTL checker from dawati-tester/src/rtl-checker.ts
@@ -49,6 +50,9 @@ export class RTLIntegration {
 
     // 10. Mobile Tap Target Size Check (NEW for mobile apps)
     checks.push(await this.checkTapTargetSizes());
+
+    // 11. Design System Color Consistency Check (NEW - catch color inconsistencies)
+    checks.push(await this.checkColorConsistency());
 
     // Calculate overall score
     const totalScore = checks.reduce((sum, check) => sum + check.score, 0);
@@ -534,6 +538,81 @@ export class RTLIntegration {
       };
     } catch (error) {
       return this.createErrorResult('Mobile Tap Target Sizes', error);
+    }
+  }
+
+  private async checkColorConsistency(): Promise<RTLCheckResult> {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+
+    try {
+      // Define Dawati design system colors (from constants/theme.ts)
+      const designSystemColors: DesignSystemColors = {
+        // Primary
+        primary: '#673AB7',
+        primaryLight: '#9575CD',
+        primaryDark: '#512DA8',
+
+        // Background
+        background: '#FFFDF9',
+        surface: '#FFFFFF',
+
+        // Text
+        textPrimary: '#1F2937',
+        textSecondary: '#6B7280',
+        textTertiary: '#9CA3AF',
+
+        // Buttons
+        buttonPrimary: '#673AB7',
+        buttonSecondary: '#F5F5F5',
+        buttonDanger: '#E8A8A8',
+
+        // Status
+        success: '#A8D4B8',
+        error: '#E8A8A8',
+        warning: '#F4D4A8',
+        info: '#A8C8E8',
+
+        // Borders
+        border: '#E5E7EB',
+        divider: '#F3F4F6',
+      };
+
+      const colorChecker = new ColorChecker(this.page, designSystemColors);
+      const result = await colorChecker.checkColorConsistency();
+
+      // Summarize violations
+      if (result.violatingElements.length > 0) {
+        const byType: Record<string, number> = {};
+        result.violatingElements.forEach((v) => {
+          byType[v.property] = (byType[v.property] || 0) + 1;
+        });
+
+        Object.entries(byType).forEach(([property, count]) => {
+          issues.push(`${count} elements with hardcoded ${property}`);
+        });
+
+        // Show first few examples
+        result.violatingElements.slice(0, 3).forEach((v) => {
+          issues.push(`  - ${v.selector}: ${v.property}=${v.actualColor}`);
+        });
+
+        if (result.violatingElements.length > 3) {
+          issues.push(`  ... and ${result.violatingElements.length - 3} more`);
+        }
+      }
+
+      suggestions.push(...result.suggestions);
+
+      return {
+        checkName: 'Design System Color Consistency',
+        passed: result.passed,
+        score: result.score,
+        issues,
+        suggestions,
+      };
+    } catch (error) {
+      return this.createErrorResult('Design System Color Consistency', error);
     }
   }
 
