@@ -1,4 +1,4 @@
-import { getPage, navigateTo, click, fill, waitForSelector, getCurrentUrl } from './browser';
+import { getPage, navigateTo } from './browser';
 import { takeScreenshot } from './screenshot-manager';
 import { config } from './config';
 import { createChildLogger } from './logger';
@@ -114,6 +114,48 @@ export async function testPhoneAuth(): Promise<AuthTestResult> {
     const screenshot3 = await takeScreenshot('phone_auth_04_phone_entered', 'Phone number entered');
     steps.push({ name: 'Enter phone number', success: true, screenshot: screenshot3.filename });
 
+    // Step 3.5: Check terms & conditions checkbox (CRITICAL FIX)
+    log.info('Looking for terms checkbox...');
+    const termsCheckboxSelectors = [
+      'input[type="checkbox"]',
+      '[data-testid="terms-checkbox"]',
+      'input[name="terms"]',
+      'input[name="acceptTerms"]',
+      'input[name="agree"]',
+      '[role="checkbox"]',
+      'label:has-text("terms") input',
+      'label:has-text("agree") input',
+    ];
+
+    let termsChecked = false;
+    for (const selector of termsCheckboxSelectors) {
+      try {
+        const checkbox = page.locator(selector).first();
+        if (await checkbox.isVisible({ timeout: 2000 })) {
+          // Check if already checked
+          const isChecked = await checkbox.isChecked().catch(() => false);
+          if (!isChecked) {
+            await checkbox.click();
+            log.info(`Checked terms checkbox: ${selector}`);
+          } else {
+            log.info(`Terms checkbox already checked: ${selector}`);
+          }
+          termsChecked = true;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (termsChecked) {
+      await page.waitForTimeout(500);
+      const screenshot3_5 = await takeScreenshot('phone_auth_04_5_terms_checked', 'Terms checkbox checked');
+      steps.push({ name: 'Accept terms', success: true, screenshot: screenshot3_5.filename });
+    } else {
+      log.info('No terms checkbox found (may not be required)');
+    }
+
     // Step 4: Click send code button
     const sendCodeSelectors = [
       'text=Send Code',
@@ -123,6 +165,8 @@ export async function testPhoneAuth(): Promise<AuthTestResult> {
       'text=متابعة',
       'button[type="submit"]',
       '[data-testid="send-code"]',
+      'button:has-text("Send")',
+      'button:has-text("Continue")',
     ];
 
     let codeSent = false;
@@ -130,24 +174,234 @@ export async function testPhoneAuth(): Promise<AuthTestResult> {
       try {
         await page.click(selector, { timeout: 2000 });
         codeSent = true;
+        log.info(`Clicked send code button: ${selector}`);
         break;
       } catch {
         continue;
       }
     }
 
-    await page.waitForTimeout(2000);
-    const screenshot4 = await takeScreenshot('phone_auth_05_code_sent', 'Code sent (or error)');
+    if (!codeSent) {
+      steps.push({
+        name: 'Request OTP code',
+        success: false,
+        error: 'Send code button not found or not clickable',
+      });
+      return { method: 'phone', success: false, steps, error: 'Cannot proceed to OTP screen' };
+    }
+
+    await page.waitForTimeout(3000); // Wait for OTP screen to load
+    const screenshot4 = await takeScreenshot('phone_auth_05_otp_screen', 'OTP screen loaded');
     steps.push({
       name: 'Request OTP code',
-      success: codeSent,
+      success: true,
       screenshot: screenshot4.filename,
-      error: codeSent ? undefined : 'Send code button not found',
     });
 
-    // Note: We can't actually complete OTP verification in automated tests
-    // unless we have a test mode that auto-fills codes
-    log.info('Phone auth flow tested up to OTP request (cannot complete without real OTP)');
+    // Step 5: Enter OTP code (test mode)
+    log.info('Entering OTP code...');
+    const otpCode = '123456'; // Test OTP code
+
+    const otpInputSelectors = [
+      'input[type="text"]',
+      'input[type="number"]',
+      'input[name="otp"]',
+      'input[name="code"]',
+      'input[placeholder*="code"]',
+      'input[placeholder*="OTP"]',
+      'input[placeholder*="رمز"]',
+      '[data-testid="otp-input"]',
+    ];
+
+    let otpEntered = false;
+
+    // Try single OTP input first
+    for (const selector of otpInputSelectors) {
+      try {
+        const input = page.locator(selector).first();
+        if (await input.isVisible({ timeout: 2000 })) {
+          await input.fill(otpCode);
+          log.info(`Entered OTP in single input: ${selector}`);
+          otpEntered = true;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    // If not found, try multiple OTP inputs (one digit per input)
+    if (!otpEntered) {
+      log.info('Trying multiple OTP inputs (one digit per field)...');
+      const otpDigits = otpCode.split('');
+      let digitsEntered = 0;
+
+      for (let i = 0; i < otpDigits.length; i++) {
+        try {
+          const digitInput = page.locator(`input[type="text"]`).nth(i);
+          if (await digitInput.isVisible({ timeout: 1000 })) {
+            await digitInput.fill(otpDigits[i]);
+            digitsEntered++;
+          }
+        } catch {
+          break;
+        }
+      }
+
+      if (digitsEntered === otpDigits.length) {
+        log.info(`Entered OTP across ${digitsEntered} separate inputs`);
+        otpEntered = true;
+      }
+    }
+
+    if (!otpEntered) {
+      steps.push({
+        name: 'Enter OTP code',
+        success: false,
+        error: 'OTP input fields not found',
+      });
+      return { method: 'phone', success: false, steps, error: 'Cannot enter OTP code' };
+    }
+
+    await page.waitForTimeout(1000);
+    const screenshot5 = await takeScreenshot('phone_auth_06_otp_entered', 'OTP code entered');
+    steps.push({ name: 'Enter OTP code', success: true, screenshot: screenshot5.filename });
+
+    // Step 6: Click verify button
+    log.info('Clicking verify button...');
+    const verifyButtonSelectors = [
+      'text=Verify',
+      'text=تحقق',
+      'text=Submit',
+      'text=إرسال',
+      'text=Confirm',
+      'text=تأكيد',
+      'button[type="submit"]',
+      '[data-testid="verify"]',
+      '[data-testid="submit"]',
+      'button:has-text("Verify")',
+      'button:has-text("Confirm")',
+    ];
+
+    let verifyClicked = false;
+    for (const selector of verifyButtonSelectors) {
+      try {
+        await page.click(selector, { timeout: 2000 });
+        verifyClicked = true;
+        log.info(`Clicked verify button: ${selector}`);
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!verifyClicked) {
+      log.info('Verify button not found - OTP may auto-submit');
+    }
+
+    // Step 7: Wait for authentication success
+    log.info('Waiting for authentication success...');
+    log.info(`Current URL before wait: ${await page.url()}`);
+
+    const successIndicators = [
+      { type: 'url', value: '/dashboard' },
+      { type: 'url', value: '/home' },
+      { type: 'url', value: '/events' },
+      { type: 'url', value: '/onboarding' },
+      { type: 'url', value: '/wizard' },
+      { type: 'element', value: 'text=Dashboard' },
+      { type: 'element', value: 'text=My Events' },
+      { type: 'element', value: 'text=Welcome' },
+      { type: 'element', value: 'text=مرحباً' },
+      { type: 'element', value: '[data-testid="user-menu"]' },
+      { type: 'element', value: '[data-testid="dashboard"]' },
+    ];
+
+    let authSuccess = false;
+    let successType = '';
+    let isOnboarding = false;
+
+    // Wait up to 15 seconds for success
+    for (let attempt = 0; attempt < 15; attempt++) {
+      await page.waitForTimeout(1000);
+
+      const currentUrl = await page.url();
+      log.info(`Checking auth success (attempt ${attempt + 1}/15), URL: ${currentUrl}`);
+
+      for (const indicator of successIndicators) {
+        try {
+          if (indicator.type === 'url') {
+            if (currentUrl.includes(indicator.value)) {
+              authSuccess = true;
+              successType = `URL contains ${indicator.value}`;
+              if (indicator.value.includes('onboarding') || indicator.value.includes('wizard')) {
+                isOnboarding = true;
+              }
+              break;
+            }
+          } else {
+            // Check element
+            const element = page.locator(indicator.value).first();
+            if (await element.isVisible({ timeout: 1000 }).catch(() => false)) {
+              authSuccess = true;
+              successType = `Found element: ${indicator.value}`;
+              if (indicator.value.includes('Welcome') || indicator.value.includes('مرحباً')) {
+                isOnboarding = true;
+              }
+              break;
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (authSuccess) {
+        log.info(`Auth success detected: ${successType}`);
+        break;
+      }
+    }
+
+    if (!authSuccess) {
+      log.error('Authentication did not complete - no redirect or success indicator found');
+      log.info(`Final URL: ${await page.url()}`);
+      log.info(`Page title: ${await page.title()}`);
+
+      const screenshot6_error = await takeScreenshot('phone_auth_07_timeout', 'Auth timeout - no success indicator');
+      steps.push({
+        name: 'Wait for auth success',
+        success: false,
+        screenshot: screenshot6_error.filename,
+        error: 'No redirect or success indicator found after 15 seconds',
+      });
+
+      return {
+        method: 'phone',
+        success: false,
+        steps,
+        error: 'Authentication timeout - verify did not complete',
+      };
+    }
+
+    // Success!
+    await page.waitForTimeout(1000);
+    const screenshot6 = await takeScreenshot('phone_auth_07_success', 'Authentication successful');
+
+    if (isOnboarding) {
+      log.info('Auth successful - user redirected to ONBOARDING WIZARD (expected for new users)');
+      steps.push({
+        name: 'Authentication success (onboarding)',
+        success: true,
+        screenshot: screenshot6.filename,
+      });
+    } else {
+      log.info('Auth successful - user redirected to dashboard');
+      steps.push({
+        name: 'Authentication success (dashboard)',
+        success: true,
+        screenshot: screenshot6.filename,
+      });
+    }
 
     return {
       method: 'phone',
