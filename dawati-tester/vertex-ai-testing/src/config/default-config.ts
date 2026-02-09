@@ -21,12 +21,29 @@ export function loadConfig(): TestConfig {
 
     devices: [
       {
+        name: 'iPhone 14 Pro Max',
+        viewport: { width: 430, height: 932 },
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+      },
+      {
         name: 'iPhone 13 Pro',
         viewport: { width: 390, height: 844 },
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+      },
+      {
+        name: 'Samsung Galaxy S23 Ultra',
+        viewport: { width: 412, height: 915 },
+        userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
       },
       {
         name: 'Samsung Galaxy S21',
         viewport: { width: 360, height: 800 },
+        userAgent: 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
+      },
+      {
+        name: 'iPad Air (Saudi market)',
+        viewport: { width: 820, height: 1180 },
+        userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
       },
     ],
 

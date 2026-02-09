@@ -22,16 +22,22 @@ export class BrowserManager {
   }
 
   async launch(): Promise<void> {
-    console.log('[Playwright] Launching browser...');
+    const device = this.config.devices[0];
+    console.log(`[Playwright] Launching browser for mobile device: ${device.name}`);
+    console.log(`[Playwright] Viewport: ${device.viewport.width}x${device.viewport.height}`);
 
     this.browser = await chromium.launch({
       headless: this.config.headless,
     });
 
     this.context = await this.browser.newContext({
-      viewport: this.config.devices[0].viewport,
+      viewport: device.viewport,
+      userAgent: device.userAgent || 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
       locale: this.config.locale,
       timezoneId: this.config.timezone,
+      hasTouch: true, // Enable touch events for mobile
+      isMobile: true,  // Mobile-specific behaviors
+      deviceScaleFactor: 2, // Retina display
     });
 
     this.page = await this.context.newPage();

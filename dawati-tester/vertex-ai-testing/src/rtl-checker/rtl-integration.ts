@@ -47,6 +47,9 @@ export class RTLIntegration {
     // 9. Icon Alignment Check
     checks.push(await this.checkIconAlignment());
 
+    // 10. Mobile Tap Target Size Check (NEW for mobile apps)
+    checks.push(await this.checkTapTargetSizes());
+
     // Calculate overall score
     const totalScore = checks.reduce((sum, check) => sum + check.score, 0);
     const overallScore = totalScore / checks.length;
@@ -456,6 +459,81 @@ export class RTLIntegration {
       };
     } catch (error) {
       return this.createErrorResult('Icon Alignment', error);
+    }
+  }
+
+  private async checkTapTargetSizes(): Promise<RTLCheckResult> {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+
+    try {
+      // Check tap target sizes for mobile (Apple HIG: 44x44pt min, Android: 48x48dp min)
+      const targetSizeIssues = await this.page.evaluate(() => {
+        const tappableElements = document.querySelectorAll(
+          'button, a, input, [role="button"], [onclick], [role="tab"], [role="menuitem"]'
+        );
+
+        const tooSmall: string[] = [];
+        const tooBig: string[] = [];
+        const good: number = 0;
+
+        tappableElements.forEach((el, index) => {
+          const rect = el.getBoundingClientRect();
+          const width = rect.width;
+          const height = rect.height;
+
+          // Get element identifier
+          const id = (el as HTMLElement).id || `element-${index}`;
+          const text = el.textContent?.trim().substring(0, 20) || id;
+
+          // Too small (< 44px minimum for comfortable tapping)
+          if (width < 44 || height < 44) {
+            tooSmall.push(`"${text}" (${Math.round(width)}x${Math.round(height)}px)`);
+          }
+
+          // Too big (> 300px width for mobile - likely not a button/tap target)
+          if (width > 300 && el.tagName.toLowerCase() === 'button') {
+            tooBig.push(`"${text}" (${Math.round(width)}px wide)`);
+          }
+        });
+
+        return { tooSmall, tooBig, total: tappableElements.length };
+      });
+
+      if (targetSizeIssues.tooSmall.length > 0) {
+        issues.push(
+          `${targetSizeIssues.tooSmall.length} tap targets TOO SMALL (< 44x44px): ${targetSizeIssues.tooSmall.slice(0, 5).join(', ')}${targetSizeIssues.tooSmall.length > 5 ? '...' : ''}`
+        );
+        suggestions.push(
+          'Minimum tap target size: 44x44px (iOS) or 48x48dp (Android). Add padding to small buttons/links.'
+        );
+      }
+
+      if (targetSizeIssues.tooBig.length > 0) {
+        issues.push(
+          `${targetSizeIssues.tooBig.length} buttons TOO WIDE (> 300px): ${targetSizeIssues.tooBig.slice(0, 3).join(', ')}`
+        );
+        suggestions.push(
+          'Mobile buttons should be narrower. Use max-width or appropriate sizing for mobile screens.'
+        );
+      }
+
+      // Scoring
+      const totalIssues = targetSizeIssues.tooSmall.length + targetSizeIssues.tooBig.length;
+      let score = 10;
+      if (totalIssues > 0 && totalIssues <= 3) score = 7;
+      else if (totalIssues > 3 && totalIssues <= 7) score = 5;
+      else if (totalIssues > 7) score = 3;
+
+      return {
+        checkName: 'Mobile Tap Target Sizes',
+        passed: totalIssues === 0,
+        score,
+        issues,
+        suggestions,
+      };
+    } catch (error) {
+      return this.createErrorResult('Mobile Tap Target Sizes', error);
     }
   }
 
