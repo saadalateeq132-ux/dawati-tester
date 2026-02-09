@@ -188,7 +188,7 @@ For EACH screenshot, analyze:
    - Hardcoded English text: Submit, Cancel, Save, Delete, Edit, Add, Search, Loading, Error, Login, etc.
    - Hardcoded Arabic text (should use i18n keys): إرسال, إلغاء, حفظ, حذف, تعديل, إضافة, بحث, تحميل, خطأ, etc.
    - BiDi text handling: Mixed Arabic/English without proper isolation (phone numbers, emails in Arabic context)
-   - Currency formatting: SAR/ريال/ر.س MUST be after number ("100 ر.س" not "ر.س 100")
+   - Currency formatting: Hardcoded text (SAR/sar/ريال/ر.س/س.ر/سر/رس) should be replaced with SVG icon. Symbol MUST be after number ("100 [icon]" not "[icon] 100")
    - Date formatting: Hijri calendar support, DD/MM/YYYY format
    - Number formatting: Consistency (Western 0-9 or Arabic ٠-٩)
    - Layout expansion: Elements too small for Arabic text (30% longer than English)
@@ -228,7 +228,7 @@ Respond in this JSON format:
   ]
 }
 
-IMPORTANT: Saudi Arabia uses Arabic RTL, SAR currency (ر.س after number), Hijri calendar, DD/MM/YYYY format.`;
+IMPORTANT: Saudi Arabia uses Arabic RTL, SAR currency (replace hardcoded SAR/ريال/ر.س/س.ر/سر with SVG icon, place after number), Hijri calendar, DD/MM/YYYY format.`;
   }
 
   private buildSinglePrompt(phase: string): string {
@@ -245,7 +245,7 @@ Analyze this screenshot for:
    - Hardcoded English: Submit, Cancel, Save, Delete, Edit, Add, Search, Loading, Error, etc.
    - Hardcoded Arabic: إرسال, إلغاء, حفظ, حذف, تعديل, إضافة, بحث, تحميل, خطأ, etc.
    - BiDi handling: Mixed Arabic/English
-   - Currency: SAR/ريال/ر.س MUST be after number ("100 ر.س" not "ر.س 100")
+   - Currency: Hardcoded text (SAR/sar/ريال/ر.س/س.ر/سر/رس) should be replaced with SVG icon. Symbol MUST be after number ("100 [icon]" not "[icon] 100")
    - Dates: Hijri calendar, DD/MM/YYYY
    - Numbers: Consistency
    - Layout: 30% expansion for Arabic

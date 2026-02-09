@@ -209,18 +209,33 @@ export class RTLIntegration {
       const arabicPatterns = [
         'إرسال', 'إلغاء', 'حفظ', 'حذف', 'تعديل', 'إضافة', 'بحث', 'تحميل',
         'خطأ', 'نجح', 'تسجيل الدخول', 'تسجيل', 'خروج', 'كلمة المرور',
+        'ريال', 'ر.س', 'س.ر', 'سر', 'رس', // Currency text (should use SVG icon)
       ];
 
-      const allPatterns = [...englishPatterns, ...arabicPatterns];
+      // Currency patterns (English variants)
+      const currencyPatterns = [
+        'SAR', 'sar', 'Sar', 'S.A.R', // All case variations
+      ];
+
+      const allPatterns = [...englishPatterns, ...arabicPatterns, ...currencyPatterns];
 
       for (const pattern of allPatterns) {
         if (pageText.includes(pattern)) {
-          issues.push(`Hardcoded string found: "${pattern}"`);
+          // Check if it's a currency pattern
+          const isCurrency = currencyPatterns.includes(pattern) ||
+                           ['ريال', 'ر.س', 'س.ر', 'سر', 'رس'].includes(pattern);
+
+          if (isCurrency) {
+            issues.push(`Hardcoded currency text: "${pattern}" (should use SVG icon)`);
+          } else {
+            issues.push(`Hardcoded string found: "${pattern}"`);
+          }
         }
       }
 
       if (issues.length > 0) {
         suggestions.push('Replace all hardcoded strings with i18n keys: t("key")');
+        suggestions.push('Replace currency text (SAR/ريال/ر.س/etc.) with SVG icon: /Users/saadalateeq/Desktop/untitled folder 4/SVG/Saudi_Riyal_Symbol-2.svg');
       }
 
       const score = issues.length === 0 ? 10 : issues.length <= 3 ? 7 : issues.length <= 10 ? 5 : 2;
@@ -244,23 +259,45 @@ export class RTLIntegration {
     try {
       const pageText = await this.page.evaluate(() => document.body.innerText);
 
-      // Check for currency symbol before number (WRONG)
-      const wrongPatterns = [
-        /SAR\s*\d+/,
-        /ر\.س\s*\d+/,
-        /ريال\s*\d+/,
-        /\$\s*\d+/, // Dollar sign (shouldn't be used)
+      // Check for hardcoded currency text (should use SVG icon instead)
+      const hardcodedCurrencyPatterns = [
+        /SAR/gi,           // SAR, sar, Sar
+        /ر\.س/g,           // ر.س (Arabic with dot)
+        /س\.ر/g,           // س.ر (reversed)
+        /ريال/g,           // ريال (full Arabic word)
+        /سر/g,             // سر (without dots)
+        /رس/g,             // رس (reversed without dots)
+        /\$/g,             // Dollar sign (shouldn't be used at all)
       ];
 
-      for (const pattern of wrongPatterns) {
-        const matches = pageText.match(new RegExp(pattern, 'g'));
+      const hardcodedMatches: string[] = [];
+      for (const pattern of hardcodedCurrencyPatterns) {
+        const matches = pageText.match(pattern);
         if (matches) {
-          issues.push(`Currency before number: ${matches.join(', ')}`);
+          hardcodedMatches.push(...matches);
         }
       }
 
-      if (issues.length > 0) {
-        suggestions.push('Place SAR/ريال/ر.س AFTER the number: "100 ر.س" not "ر.س 100"');
+      if (hardcodedMatches.length > 0) {
+        // Remove duplicates
+        const uniqueMatches = [...new Set(hardcodedMatches)];
+        issues.push(`Hardcoded currency text found: ${uniqueMatches.join(', ')}`);
+        suggestions.push(
+          'Replace hardcoded currency text (SAR/ريال/ر.س/س.ر/سر) with SVG icon: /Users/saadalateeq/Desktop/untitled folder 4/SVG/Saudi_Riyal_Symbol-2.svg'
+        );
+      }
+
+      // Also check for currency symbol before number (WRONG placement)
+      const wrongPlacementPatterns = [
+        /(?:SAR|ر\.س|س\.ر|ريال|سر|رس)\s*\d+/gi,
+      ];
+
+      for (const pattern of wrongPlacementPatterns) {
+        const matches = pageText.match(pattern);
+        if (matches) {
+          issues.push(`Currency before number: ${matches.join(', ')} (should be after number)`);
+          suggestions.push('Place currency symbol AFTER the number: "100 [SVG]" not "[SVG] 100"');
+        }
       }
 
       const score = issues.length === 0 ? 10 : issues.length <= 2 ? 6 : 3;
