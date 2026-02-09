@@ -1,0 +1,275 @@
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { TestConfig, PhaseAction, TestArtifacts, NetworkLog, ConsoleLog } from '../types';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export class BrowserManager {
+  private browser: Browser | null = null;
+  private context: BrowserContext | null = null;
+  private page: Page | null = null;
+  private config: TestConfig;
+  private artifacts: TestArtifacts;
+
+  constructor(config: TestConfig) {
+    this.config = config;
+    this.artifacts = {
+      screenshots: [],
+      htmlSnapshots: [],
+      networkLogs: [],
+      consoleLogs: [],
+      errors: [],
+    };
+  }
+
+  async launch(): Promise<void> {
+    console.log('[Playwright] Launching browser...');
+
+    this.browser = await chromium.launch({
+      headless: this.config.headless,
+    });
+
+    this.context = await this.browser.newContext({
+      viewport: this.config.devices[0].viewport,
+      locale: this.config.locale,
+      timezoneId: this.config.timezone,
+    });
+
+    this.page = await this.context.newPage();
+
+    // Set timeouts
+    this.page.setDefaultTimeout(this.config.timeout);
+    this.page.setDefaultNavigationTimeout(this.config.timeout);
+
+    // Capture network logs
+    if (this.config.artifacts.saveNetworkLogs) {
+      this.page.on('response', (response) => {
+        this.artifacts.networkLogs.push({
+          timestamp: new Date(),
+          url: response.url(),
+          method: response.request().method(),
+          status: response.status(),
+          duration: 0, // Playwright doesn't expose timing directly
+        });
+      });
+    }
+
+    // Capture console logs
+    if (this.config.artifacts.saveConsoleLogs) {
+      this.page.on('console', (msg) => {
+        this.artifacts.consoleLogs.push({
+          timestamp: new Date(),
+          level: msg.type() as any,
+          message: msg.text(),
+        });
+      });
+    }
+
+    // Capture errors
+    this.page.on('pageerror', (error) => {
+      this.artifacts.errors.push({
+        timestamp: new Date(),
+        message: error.message,
+        stack: error.stack,
+        phase: 'browser-error',
+      });
+    });
+
+    console.log('[Playwright] Browser launched successfully');
+  }
+
+  async executeAction(action: PhaseAction): Promise<void> {
+    if (!this.page) {
+      throw new Error('Browser not initialized. Call launch() first.');
+    }
+
+    console.log(`[Playwright] Executing action: ${action.type} - ${action.description}`);
+
+    try {
+      switch (action.type) {
+        case 'navigate':
+          await this.navigate(action.url!);
+          break;
+
+        case 'click':
+          await this.page.click(action.selector!, { timeout: action.timeout });
+          break;
+
+        case 'fill':
+          await this.page.fill(action.selector!, action.value!, { timeout: action.timeout });
+          break;
+
+        case 'scroll':
+          await this.page.evaluate((pixels) => window.scrollBy(0, pixels), action.value ? parseInt(action.value) : 500);
+          await this.page.waitForTimeout(500);
+          break;
+
+        case 'wait':
+          if (action.selector) {
+            await this.page.waitForSelector(action.selector, { timeout: action.timeout });
+          } else {
+            await this.page.waitForTimeout(action.timeout || 1000);
+          }
+          break;
+
+        case 'screenshot':
+          await this.captureScreenshot(action.description);
+          break;
+
+        default:
+          throw new Error(`Unknown action type: ${action.type}`);
+      }
+
+      console.log(`[Playwright] Action completed: ${action.type}`);
+    } catch (error: any) {
+      console.error(`[Playwright] Action failed: ${action.type} - ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async navigate(url: string): Promise<void> {
+    if (!this.page) throw new Error('Page not initialized');
+
+    console.log(`[Playwright] Navigating to: ${url}`);
+
+    const response = await this.page.goto(url, { waitUntil: 'networkidle' });
+
+    // Check for HTTP errors (404, 500, etc.)
+    if (response) {
+      const status = response.status();
+      if (status >= 400) {
+        const errorMessage = `HTTP ${status} error when navigating to ${url}`;
+        console.error(`[Playwright] ${errorMessage}`);
+        throw new Error(errorMessage);
+      }
+    }
+
+    // Check for error page content
+    const pageContent = await this.page.content();
+    const errorIndicators = [
+      'NOT_FOUND',
+      '404',
+      'Page Not Found',
+      'This page could not be found',
+      'Application error',
+      'deployment not found',
+    ];
+
+    const contentLower = pageContent.toLowerCase();
+    for (const indicator of errorIndicators) {
+      if (contentLower.includes(indicator.toLowerCase())) {
+        const errorMessage = `Error page detected (${indicator}) at ${url}`;
+        console.error(`[Playwright] ${errorMessage}`);
+        throw new Error(errorMessage);
+      }
+    }
+
+    console.log(`[Playwright] Navigation successful: HTTP ${response?.status()}`);
+  }
+
+  async captureScreenshot(description: string): Promise<string> {
+    if (!this.page) throw new Error('Page not initialized');
+
+    const timestamp = Date.now();
+    const filename = `screenshot-${timestamp}-${description.replace(/\s+/g, '-')}.png`;
+    const filepath = path.join(this.config.artifacts.artifactsDir, filename);
+
+    // Ensure directory exists
+    fs.mkdirSync(this.config.artifacts.artifactsDir, { recursive: true });
+
+    await this.page.screenshot({
+      path: filepath,
+      fullPage: true,
+    });
+
+    this.artifacts.screenshots.push(filepath);
+    console.log(`[Playwright] Screenshot saved: ${filename}`);
+
+    return filepath;
+  }
+
+  async captureHTML(): Promise<string> {
+    if (!this.page) throw new Error('Page not initialized');
+
+    const timestamp = Date.now();
+    const filename = `html-${timestamp}.html`;
+    const filepath = path.join(this.config.artifacts.artifactsDir, filename);
+
+    const html = await this.page.content();
+
+    fs.mkdirSync(this.config.artifacts.artifactsDir, { recursive: true });
+    fs.writeFileSync(filepath, html, 'utf-8');
+
+    this.artifacts.htmlSnapshots.push(filepath);
+    console.log(`[Playwright] HTML snapshot saved: ${filename}`);
+
+    return filepath;
+  }
+
+  async getCurrentUrl(): Promise<string> {
+    if (!this.page) throw new Error('Page not initialized');
+    return this.page.url();
+  }
+
+  async getElementText(selector: string): Promise<string> {
+    if (!this.page) throw new Error('Page not initialized');
+    const element = await this.page.$(selector);
+    if (!element) throw new Error(`Element not found: ${selector}`);
+    return element.textContent() || '';
+  }
+
+  async isElementVisible(selector: string): Promise<boolean> {
+    if (!this.page) throw new Error('Page not initialized');
+    try {
+      const element = await this.page.$(selector);
+      if (!element) return false;
+      return await element.isVisible();
+    } catch {
+      return false;
+    }
+  }
+
+  async validateDOM(selector: string): Promise<boolean> {
+    if (!this.page) throw new Error('Page not initialized');
+    try {
+      const element = await this.page.$(selector);
+      return element !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  getArtifacts(): TestArtifacts {
+    return this.artifacts;
+  }
+
+  clearArtifacts(): void {
+    this.artifacts = {
+      screenshots: [],
+      htmlSnapshots: [],
+      networkLogs: [],
+      consoleLogs: [],
+      errors: [],
+    };
+  }
+
+  async close(): Promise<void> {
+    console.log('[Playwright] Closing browser...');
+
+    if (this.page) {
+      await this.page.close();
+      this.page = null;
+    }
+
+    if (this.context) {
+      await this.context.close();
+      this.context = null;
+    }
+
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+    }
+
+    console.log('[Playwright] Browser closed');
+  }
+}

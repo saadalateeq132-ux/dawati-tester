@@ -1,0 +1,44 @@
+{
+  "name": "vertex-ai-testing",
+  "version": "1.0.0",
+  "description": "Production-grade Vertex AI + Playwright testing system for Dawati",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "ts-node tests/auth-flow.test.ts",
+    "test:headless": "HEADLESS=true ts-node tests/auth-flow.test.ts",
+    "test:update-baselines": "UPDATE_BASELINES=true ts-node tests/auth-flow.test.ts",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "keywords": [
+    "testing",
+    "vertex-ai",
+    "playwright",
+    "gemini",
+    "rtl",
+    "i18n",
+    "qa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/vertexai": "^1.7.0",
+    "playwright": "^1.48.0",
+    "dotenv": "^16.4.7",
+    "pngjs": "^7.0.0",
+    "pixelmatch": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pngjs": "^6.0.5",
+    "@types/pixelmatch": "^5.2.6",
+    "typescript": "^5.7.2",
+    "ts-node": "^10.9.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
