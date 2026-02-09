@@ -125,7 +125,43 @@ export async function closeBrowser(): Promise<void> {
 export async function navigateTo(url: string): Promise<void> {
   const currentPage = await getPage();
   log.info({ url }, 'Navigating to URL');
-  await currentPage.goto(url, { waitUntil: 'networkidle' });
+
+  const response = await currentPage.goto(url, { waitUntil: 'networkidle' });
+
+  // Check for HTTP error responses (404, 500, etc.)
+  if (response) {
+    const status = response.status();
+    if (status >= 400) {
+      const errorMessage = `HTTP ${status} error when navigating to ${url}`;
+      log.error({ url, status }, errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Check for error page content
+  const pageContent = await currentPage.content();
+  const errorIndicators = [
+    'NOT_FOUND',
+    '404',
+    'Page Not Found',
+    'This page could not be found',
+    'Application error',
+    'deployment not found',
+    '<title>404</title>',
+    'error-page',
+    'error-message'
+  ];
+
+  const contentLower = pageContent.toLowerCase();
+  for (const indicator of errorIndicators) {
+    if (contentLower.includes(indicator.toLowerCase())) {
+      const errorMessage = `Error page detected (${indicator}) at ${url}`;
+      log.error({ url, indicator }, errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
+
+  log.info({ url, status: response?.status() }, 'Navigation successful');
 }
 
 export async function waitForSelector(selector: string, timeout = 10000): Promise<void> {
