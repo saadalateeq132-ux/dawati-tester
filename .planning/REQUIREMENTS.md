@@ -1,193 +1,114 @@
-# Requirements: Dawati Autonomous Testing System
+# Requirements: Dawati Autonomous Testing System — v1.1 Hardening & Full Coverage
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Setup & Configuration
+### Level 1: Visual & User Experience Testing
 
-- [ ] **SETUP-01**: System installs with one command (auto-setup.bat on Windows)
-- [ ] **SETUP-02**: User only provides Gemini API key and Dawati app URL
-- [ ] **SETUP-03**: Auto-installs Node.js if not present
-- [ ] **SETUP-04**: Auto-installs all npm dependencies
-- [ ] **SETUP-05**: Auto-installs Playwright browsers
-- [ ] **SETUP-06**: Creates .env file from user input
-- [ ] **SETUP-07**: Validates configuration before first run
+- [ ] **VIS-01**: Page-by-page screenshot comparison (baseline vs current) using pixelmatch with configurable threshold (default 1%)
+- [ ] **VIS-02**: PII masking in screenshots before storage/AI analysis (emails, phone numbers, names, credit cards) using Playwright's `mask` option
+- [ ] **VIS-03**: Baseline management workflow (create, approve, reject, update baselines per screen)
+- [ ] **VIS-04**: Visual diff reports with annotated screenshots showing changed regions
+- [ ] **VIS-05**: Component consistency checker — verify back button, header, tab bar, primary buttons same position/size/color across pages (flag >5-10% positional variance)
+- [ ] **VIS-06**: RTL visual validation — force RTL, screenshot, verify mirroring, no overlaps, BiDi text support (beyond DOM checks — pixel-level comparison)
+- [ ] **VIS-07**: Portrait/landscape orientation testing for mobile responsiveness
+- [ ] **VIS-08**: Notification display testing — trigger notifications, screenshot states, verify visibility/clickability
+- [ ] **VIS-09**: Header uniformity check — all marketplace sections have identical top headers with consistent branding, search, and navigation
 
-### Authentication Testing
+### Level 2: Data Validation & Component Testing
 
-- [ ] **AUTH-01**: Tests Phone OTP sign-in flow completely (enter phone → receive code → verify → logged in)
-- [ ] **AUTH-02**: Tests Email sign-in flow completely (enter email → receive code → verify → logged in)
-- [ ] **AUTH-03**: Tests logout flow from any screen
-- [ ] **AUTH-04**: Verifies auth state persists after page refresh
-- [ ] **AUTH-05**: Takes screenshot at each auth step
+- [ ] **DAT-01**: Hardcoded English string detection — expand from ~30 to 150+ patterns (Submit, Cancel, Save, Delete, Edit, Add, Remove, Search, Filter, Sort, View, Back, Next, Previous, Loading, Error, Success, Welcome, Hello, Sign In, Sign Up, Log In, Log Out, Profile, Settings, Home, Continue, OK, Yes, No, Menu, Cart, Book Now, Upload Photo, Event Details, Vendor List, Availability, Confirm, Reset, etc.)
+- [ ] **DAT-02**: Hardcoded Arabic string detection — expand to 150+ patterns (إرسال, إلغاء, حفظ, حذف, تعديل, إضافة, إزالة, بحث, تحميل, خطأ, نجح, فشل, قيد الانتظار, مكتمل, تسجيل الدخول, تسجيل, خروج, كلمة المرور, البريد الإلكتروني, الرئيسية, الملف الشخصي, الإعدادات, لوحة التحكم, القائمة, حدث, مناسبة, بائع, خدمة, حجز, طلب, سلة, الدفع, محرم, صفر, ربيع الأول, رمضان, شوال, ذو القعدة, ذو الحجة, ريال, ر.س, etc.)
+- [ ] **DAT-03**: Number formatting detection — flag Arabic/Eastern numerals (١٢٣٤) when Western (1234) expected in UI; validate consistency
+- [ ] **DAT-04**: Currency formatting enforcement — SAR after number (100 SAR), flag text currency when SVG icon preferred
+- [ ] **DAT-05**: Date format validation — detect English MM/DD/YYYY in Arabic context, verify Hijri month names present
+- [ ] **DAT-06**: Authentication component testing — email format validation (@, valid domain), phone format (country code + digits), auto error messages
+- [ ] **DAT-07**: User flow validation — existing users redirect to homepage, new users trigger onboarding wizard
+- [ ] **DAT-08**: Name field validation — reject numeric input, invalid characters, max length enforcement
+- [ ] **DAT-09**: Password field validation — complexity requirements (uppercase, lowercase, special, min 8-12), show/hide toggle, confirm match
+- [ ] **DAT-10**: Event creation wizard validation — required fields, image uploads (<5MB, JPG/PNG), step progression, back/forward nav, error handling
+- [ ] **DAT-11**: Date/time picker validation — backend-available slots, vendor availability calendars, no past dates, time conflict detection, Hijri/Gregorian format
+- [ ] **DAT-12**: General form validation — max lengths, input types, autocomplete, real-time validation with visual indicators
+- [ ] **DAT-13**: Marketplace search deep testing — autocomplete, filters, results from backend, sort functionality
+- [ ] **DAT-14**: Hardcoded colors & theme consistency — flag inline hex codes, check all primary buttons use same color, detect theme breaks
+- [ ] **DAT-15**: Dynamic content & script detection — JS-generated text not localized, script injection checks in forms
 
-### Navigation Testing
+### Level 3: Backend Integration & Data Flow
 
-- [ ] **NAV-01**: Tests all homepage tabs (Birthdays, Weddings, Corporate, Gatherings, etc.)
-- [ ] **NAV-02**: Tests all 15+ marketplace categories
-- [ ] **NAV-03**: Tests navigation to vendor profiles
-- [ ] **NAV-04**: Tests back navigation works correctly
-- [ ] **NAV-05**: Tests bottom navigation bar (all tabs)
-- [ ] **NAV-06**: Takes screenshot of each unique screen visited
+- [ ] **API-01**: Frontend-to-backend connectivity verification — all API calls return 200 OK, no 4xx/5xx errors
+- [ ] **API-02**: Data synchronization testing — submitted data persists, updates in real-time, graceful failure handling
+- [ ] **API-03**: Vendor dashboard data flow — event creation to vendor assignment, real-time booking updates
+- [ ] **API-04**: Navigation state management — no data loss on back navigation, sessions persist across screens
+- [ ] **API-05**: Real-time data updates — saved drafts, synced profiles, instant booking notifications
 
-### Scrolling Testing
+### Security Testing
 
-- [ ] **SCROLL-01**: Tests vertical scrolling on list pages
-- [ ] **SCROLL-02**: Tests horizontal scrolling (carousels, tabs)
-- [ ] **SCROLL-03**: Tests infinite scroll / load more functionality
-- [ ] **SCROLL-04**: Verifies smooth scrolling (no jank)
-- [ ] **SCROLL-05**: Takes screenshots during scroll to capture all content
+- [ ] **SEC-01**: XSS payload injection testing across all user inputs (search, forms, reviews, chat)
+- [ ] **SEC-02**: SQL injection testing across all search/filter inputs
+- [ ] **SEC-03**: CSRF token validation on all mutation endpoints
+- [ ] **SEC-04**: Rate limiting verification (429 with retry-after)
+- [ ] **SEC-05**: Session timeout testing
+- [ ] **SEC-06**: Input sanitization checks on all text fields (event names, descriptions, reviews, messages)
+- [ ] **SEC-07**: File upload validation (size limits, type restrictions, error messages)
+- [ ] **SEC-08**: Auth bypass attempt testing
 
-### Screenshot Capture
+### Performance Testing
 
-- [ ] **SCREEN-01**: Captures screenshot after every significant action
-- [ ] **SCREEN-02**: Saves screenshots with descriptive filenames (001_home.png, 002_login.png)
-- [ ] **SCREEN-03**: Organizes screenshots in timestamped folders
-- [ ] **SCREEN-04**: Supports full-page screenshots for long content
+- [ ] **PERF-01**: First Contentful Paint measurement (<1.8s target)
+- [ ] **PERF-02**: Largest Contentful Paint measurement (<2.5s target)
+- [ ] **PERF-03**: Time to Interactive measurement (<3.8s target)
+- [ ] **PERF-04**: Cumulative Layout Shift measurement (<0.1 target)
+- [ ] **PERF-05**: First Input Delay / INP measurement (<100ms target)
+- [ ] **PERF-06**: Memory leak detection over navigation cycles
+- [ ] **PERF-07**: Bundle size tracking
 
-### AI Analysis (Gemini)
+### Coverage Expansion
 
-- [ ] **AI-01**: Sends each screenshot to Gemini for analysis
-- [ ] **AI-02**: Detects UI/UX issues (layout problems, missing elements)
-- [ ] **AI-03**: Detects functionality issues (broken buttons, failed actions)
-- [ ] **AI-04**: Detects performance issues (slow loading indicators)
-- [ ] **AI-05**: Provides actionable fix suggestions for each issue
-- [ ] **AI-06**: Rates issue severity (critical, high, medium, low)
+- [ ] **COV-01**: Vendor Dashboard test suite — 28/33 features tested (calendar, bookings, earnings, messaging, profile, packages, reviews)
+- [ ] **COV-02**: AI Consultant test suite — 15/18 features tested (natural language, recommendations, budget, history)
+- [ ] **COV-03**: Admin Panel test suite — 24/30 features tested (users, vendors, bookings, finance, disputes, security, settings)
+- [ ] **COV-04**: Guest Management expansion — 20/25 features tested (add/delete guests, invitations, RSVP, QR check-in)
+- [ ] **COV-05**: Event Test expansion — 28/35 features tested (create, edit, delete, visibility, cancel with notifications)
+- [ ] **COV-06**: Booking Test expansion — 27/30 features tested (complete flow, cancel/refund, payment, modification)
+- [ ] **COV-07**: Add click validation (expectAfterClick) to all 15 existing test suites
 
-### RTL & Internationalization
+### CI/CD & Production Readiness
 
-- [ ] **RTL-01**: Verifies all text displays right-to-left correctly
-- [ ] **RTL-02**: Detects hardcoded English text (should be Arabic)
-- [ ] **RTL-03**: Checks icon/button alignment for RTL
-- [ ] **RTL-04**: Verifies numbers and dates format correctly
-- [ ] **RTL-05**: Flags any LTR-only styling issues
+- [ ] **CICD-01**: GitHub Actions pipeline for automated test execution on push/PR
+- [ ] **CICD-02**: Docker containerization for consistent screenshot rendering across environments
+- [ ] **CICD-03**: Auto-setup script (setup.bat/setup.sh) for one-command installation
+- [ ] **CICD-04**: Test run comparison — compare two runs to show improvements/regressions
+- [ ] **CICD-05**: Allure reporting integration for historical tracking and trend analysis
 
-### UI State Coverage
+### Scoring & Threshold Hardening
 
-- [ ] **STATE-01**: Captures loading states (spinners, skeletons)
-- [ ] **STATE-02**: Captures error states (error messages, retry buttons)
-- [ ] **STATE-03**: Captures empty states (no data messages)
-- [ ] **STATE-04**: Captures success states (confirmations, checkmarks)
-- [ ] **STATE-05**: Verifies all states have appropriate visual feedback
-
-### Reporting
-
-- [ ] **REPORT-01**: Generates comprehensive HTML report
-- [ ] **REPORT-02**: Includes all screenshots in report
-- [ ] **REPORT-03**: Lists all issues with severity ratings
-- [ ] **REPORT-04**: Groups issues by category (UI, functionality, performance, RTL)
-- [ ] **REPORT-05**: Provides overall app health score (1-10)
-- [ ] **REPORT-06**: Includes fix suggestions for each issue
-- [ ] **REPORT-07**: Saves report with timestamp for history
-
-### Execution
-
-- [ ] **RUN-01**: Runs on-demand with single command (npm run test)
-- [ ] **RUN-02**: Completes full test and stops (not continuous)
-- [ ] **RUN-03**: Shows progress during execution
-- [ ] **RUN-04**: Handles errors gracefully (doesn't crash on failures)
-- [ ] **RUN-05**: Supports test plan configuration (what to test)
+- [ ] **SCORE-01**: Shadow mode for new checks — measure without failing, collect baselines before enforcement
+- [ ] **SCORE-02**: Graduated threshold tightening — RTL, Color, Code Quality thresholds increase over time
+- [ ] **SCORE-03**: AI decision re-engagement — move from always-PASS to threshold-gated FAIL on high-confidence critical issues
 
 ---
 
-## v2 Requirements (Deferred)
+## Future Requirements (v1.2+)
 
-### Authentication
-- [ ] Apple Sign-In testing
-- [ ] Google OAuth testing
-- [ ] Social login error handling
-
-### Advanced Features
-- [ ] Compare two test runs to show improvements
-- [ ] Self-healing locators (auto-fix broken selectors)
-- [ ] Visual regression detection (pixel-level comparison)
-- [ ] Flaky test detection and handling
-- [ ] CI/CD integration (GitHub Actions, etc.)
-- [ ] Parallel test execution
-- [ ] Test prioritization (critical paths first)
-
-### Reporting
-- [ ] Email report on completion
-- [ ] Slack/Teams notifications
-- [ ] Historical trend analysis
-- [ ] Allure Reporter integration
-
----
+- [ ] Multi-language test generation (auto-duplicate tests for Arabic + English)
+- [ ] Performance budgets in CI/CD (fail builds on regression)
+- [ ] Full WCAG 2.2 accessibility audit
+- [ ] Allure historical trend dashboards
+- [ ] Active learning UI for autopilot fine-tuning
 
 ## Out of Scope
 
 | Exclusion | Reason |
 |-----------|--------|
-| Native mobile testing | Playwright only supports web; use Maestro for native |
-| Real payment testing | Too risky; would need mock/sandbox |
-| Real SMS OTP | Cost + complexity; use test mode or mock |
-| 24/7 continuous monitoring | User wants on-demand testing only |
-| Autonomous test generation | High complexity, defer to post-MVP |
-| Cross-browser testing | Focus on Chrome/Chromium for MVP |
-| API testing | Focus on UI testing; API tests exist in Dawati codebase |
-
----
+| Test recording/codegen | Playwright has built-in codegen, don't rebuild |
+| Desktop browser testing | App is mobile-first, desktop = low priority |
+| Full API testing suite | Keep E2E focused on UI; API tests are separate concern |
+| Native mobile testing | Playwright tests web only; Maestro exists for native |
+| 100% WCAG compliance | Event planning app, not government portal |
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| SETUP-01 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-02 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-03 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-04 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-05 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-06 | Phase 1 - Foundation & Setup | Pending |
-| SETUP-07 | Phase 1 - Foundation & Setup | Pending |
-| AUTH-01 | Phase 2 - Authentication Testing | Pending |
-| AUTH-02 | Phase 2 - Authentication Testing | Pending |
-| AUTH-03 | Phase 2 - Authentication Testing | Pending |
-| AUTH-04 | Phase 2 - Authentication Testing | Pending |
-| AUTH-05 | Phase 2 - Authentication Testing | Pending |
-| NAV-01 | Phase 3 - Core Navigation Testing | Pending |
-| NAV-02 | Phase 3 - Core Navigation Testing | Pending |
-| NAV-03 | Phase 3 - Core Navigation Testing | Pending |
-| NAV-04 | Phase 3 - Core Navigation Testing | Pending |
-| NAV-05 | Phase 3 - Core Navigation Testing | Pending |
-| NAV-06 | Phase 3 - Core Navigation Testing | Pending |
-| SCROLL-01 | Phase 4 - Scrolling & State Coverage | Pending |
-| SCROLL-02 | Phase 4 - Scrolling & State Coverage | Pending |
-| SCROLL-03 | Phase 4 - Scrolling & State Coverage | Pending |
-| SCROLL-04 | Phase 4 - Scrolling & State Coverage | Pending |
-| SCROLL-05 | Phase 4 - Scrolling & State Coverage | Pending |
-| STATE-01 | Phase 4 - Scrolling & State Coverage | Pending |
-| STATE-02 | Phase 4 - Scrolling & State Coverage | Pending |
-| STATE-03 | Phase 4 - Scrolling & State Coverage | Pending |
-| STATE-04 | Phase 4 - Scrolling & State Coverage | Pending |
-| STATE-05 | Phase 4 - Scrolling & State Coverage | Pending |
-| SCREEN-01 | Phase 5 - Screenshot Capture System | Pending |
-| SCREEN-02 | Phase 5 - Screenshot Capture System | Pending |
-| SCREEN-03 | Phase 5 - Screenshot Capture System | Pending |
-| SCREEN-04 | Phase 5 - Screenshot Capture System | Pending |
-| AI-01 | Phase 6 - AI-Powered Analysis | Pending |
-| AI-02 | Phase 6 - AI-Powered Analysis | Pending |
-| AI-03 | Phase 6 - AI-Powered Analysis | Pending |
-| AI-04 | Phase 6 - AI-Powered Analysis | Pending |
-| AI-05 | Phase 6 - AI-Powered Analysis | Pending |
-| AI-06 | Phase 6 - AI-Powered Analysis | Pending |
-| RTL-01 | Phase 7 - RTL & Internationalization | Pending |
-| RTL-02 | Phase 7 - RTL & Internationalization | Pending |
-| RTL-03 | Phase 7 - RTL & Internationalization | Pending |
-| RTL-04 | Phase 7 - RTL & Internationalization | Pending |
-| RTL-05 | Phase 7 - RTL & Internationalization | Pending |
-| REPORT-01 | Phase 8 - Reporting System | Pending |
-| REPORT-02 | Phase 8 - Reporting System | Pending |
-| REPORT-03 | Phase 8 - Reporting System | Pending |
-| REPORT-04 | Phase 8 - Reporting System | Pending |
-| REPORT-05 | Phase 8 - Reporting System | Pending |
-| REPORT-06 | Phase 8 - Reporting System | Pending |
-| REPORT-07 | Phase 8 - Reporting System | Pending |
-| RUN-01 | Phase 9 - Execution & Orchestration | Pending |
-| RUN-02 | Phase 9 - Execution & Orchestration | Pending |
-| RUN-03 | Phase 9 - Execution & Orchestration | Pending |
-| RUN-04 | Phase 9 - Execution & Orchestration | Pending |
-| RUN-05 | Phase 9 - Execution & Orchestration | Pending |
-
-**Coverage:** 55/55 requirements mapped (100%)
+(Populated by roadmap — maps REQ-IDs to phases)
 
 ---
-*Generated: 2026-02-08*
+*Generated: 2026-02-10*
+*Total: 52 requirements across 9 categories*
