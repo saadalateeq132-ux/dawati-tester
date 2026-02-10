@@ -25,6 +25,7 @@ describe('validateConfig', () => {
     delete process.env.SLOW_MO;
     delete process.env.VIEWPORT_WIDTH;
     delete process.env.FULL_PAGE_SCREENSHOTS;
+    delete process.env.TEST_OTP;
 
     // Reset fs mocks
     vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -82,6 +83,7 @@ describe('validateConfig', () => {
     expect(config.slowMo).toBe(0);
     expect(config.viewportWidth).toBe(1280);
     expect(config.fullPageScreenshots).toBe(true);
+    expect(config.testOtp).toBe('123456'); // Default OTP
   });
 
   it('should parse numeric environment variables', () => {
@@ -102,6 +104,14 @@ describe('validateConfig', () => {
 
     expect(config.headless).toBe(false);
     expect(config.fullPageScreenshots).toBe(false);
+  });
+
+  it('should parse TEST_OTP environment variable', () => {
+    process.env.TEST_OTP = '654321';
+
+    const config = validateConfig();
+
+    expect(config.testOtp).toBe('654321');
   });
 
   it('should create test results directory if it does not exist', () => {

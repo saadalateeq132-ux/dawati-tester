@@ -200,7 +200,7 @@ export async function testPhoneAuth(): Promise<AuthTestResult> {
 
     // Step 5: Enter OTP code (test mode)
     log.info('Entering OTP code...');
-    const otpCode = '123456'; // Test OTP code
+    const otpCode = config.testOtp;
 
     const otpInputSelectors = [
       'input[type="text"]',

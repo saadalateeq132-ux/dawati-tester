@@ -226,13 +226,32 @@ export async function checkTextAlignment(): Promise<RTLCheckResult> {
     // Check for left-aligned text that should be right-aligned in RTL
     const leftAlignedElements = await page.evaluate(() => {
       const elements: string[] = [];
-      const all = document.querySelectorAll('*');
-      all.forEach((el) => {
-        const style = window.getComputedStyle(el);
-        if (style.textAlign === 'left' && el.textContent?.trim()) {
-          elements.push(el.tagName + ': ' + (el.textContent?.slice(0, 30) || ''));
+      const checked = new Set<Element>();
+
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+
+      let node;
+      while ((node = walker.nextNode())) {
+        const parent = node.parentElement;
+        if (!parent) continue;
+
+        if (checked.has(parent)) continue;
+        checked.add(parent);
+
+        const tagName = parent.tagName;
+        if (tagName === 'SCRIPT' || tagName === 'STYLE' || tagName === 'NOSCRIPT') continue;
+
+        if (!node.nodeValue?.trim()) continue;
+
+        const style = window.getComputedStyle(parent);
+        if (style.textAlign === 'left') {
+          elements.push(tagName + ': ' + (parent.textContent?.slice(0, 30) || ''));
         }
-      });
+      }
       return elements.slice(0, 10);
     });
 
