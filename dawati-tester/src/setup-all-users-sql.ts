@@ -255,7 +255,7 @@ async function main() {
   await Promise.all(TEST_USERS.map(async (user) => {
     try {
       // Step 1: Create auth user
-      const userId = await createAuthUserSQL(user);
+      const userId = await createAuthUser(user);
 
       // Step 2: Create user record (if needed)
       if (user.needsUserRecord) {
@@ -284,7 +284,6 @@ async function main() {
     await verifySetup();
   } else {
     console.log('\n⚠️  Some users failed. Check errors above.');
-    console.log('Note: Phone users may already exist from previous runs.');
     console.log('Run: npm run build && node dist/verify-setup.js');
     await verifySetup(); // Verify anyway to see current state
   }
