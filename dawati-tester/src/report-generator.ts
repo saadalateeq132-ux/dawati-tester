@@ -177,31 +177,36 @@ export function generateReport(
   return report;
 }
 
-export function saveReport(report: TestReport): string {
+export async function saveReport(report: TestReport): Promise<string> {
   const runDir = getCurrentRunDir();
   const template = Handlebars.compile(HTML_TEMPLATE);
   const html = template(report);
 
-  // Save HTML report
   const htmlPath = path.join(runDir, 'report.html');
-  fs.writeFileSync(htmlPath, html);
-  log.info({ path: htmlPath }, 'HTML report saved');
-
-  // Save JSON report
   const jsonPath = path.join(runDir, 'report.json');
-  fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
-  log.info({ path: jsonPath }, 'JSON report saved');
-
-  // Save issues as CSV for easy import to spreadsheets
   const csvPath = path.join(runDir, 'issues.csv');
+
+  // Prepare CSV content
   const csvHeader = 'ID,Severity,Category,Title,Description,Suggestion,Screenshot\n';
   const csvRows = report.allIssues
     .map((issue) =>
       `"${issue.id}","${issue.severity}","${issue.category}","${issue.title}","${issue.description}","${issue.suggestion}","${issue.screenshot}"`
     )
     .join('\n');
-  fs.writeFileSync(csvPath, csvHeader + csvRows);
-  log.info({ path: csvPath }, 'Issues CSV saved');
+
+  const writePromises = [
+    // Save HTML report
+    fs.promises.writeFile(htmlPath, html)
+      .then(() => log.info({ path: htmlPath }, 'HTML report saved')),
+
+    // Save JSON report
+    fs.promises.writeFile(jsonPath, JSON.stringify(report, null, 2))
+      .then(() => log.info({ path: jsonPath }, 'JSON report saved')),
+
+    // Save issues as CSV
+    fs.promises.writeFile(csvPath, csvHeader + csvRows)
+      .then(() => log.info({ path: csvPath }, 'Issues CSV saved'))
+  ];
 
   // Save accessibility issues as separate CSV
   if (report.accessibilityResults.length > 0) {
@@ -216,9 +221,13 @@ export function saveReport(report: TestReport): string {
         );
       }
     }
-    fs.writeFileSync(a11yCsvPath, a11yHeader + a11yRows.join('\n'));
-    log.info({ path: a11yCsvPath }, 'Accessibility issues CSV saved');
+    writePromises.push(
+      fs.promises.writeFile(a11yCsvPath, a11yHeader + a11yRows.join('\n'))
+        .then(() => log.info({ path: a11yCsvPath }, 'Accessibility issues CSV saved'))
+    );
   }
+
+  await Promise.all(writePromises);
 
   return htmlPath;
 }
