@@ -71,12 +71,14 @@ export class ChecklistValidator {
 
     logger.info('Loading master test checklist...');
 
-    if (!fs.existsSync(this.checklistPath)) {
+    try {
+      await fs.promises.access(this.checklistPath);
+    } catch (error) {
       logger.error(`Checklist not found: ${this.checklistPath}`);
       throw new Error('MASTER-TEST-CHECKLIST.md not found');
     }
 
-    const content = fs.readFileSync(this.checklistPath, 'utf-8');
+    const content = await fs.promises.readFile(this.checklistPath, 'utf-8');
     this.checklist = this.parseChecklist(content);
 
     logger.info(`Loaded ${this.checklist.length} checklist items`);
