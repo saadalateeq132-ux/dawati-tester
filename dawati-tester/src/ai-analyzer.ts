@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { calculateOverallScore } from './scoring-utils';
 import fs from 'fs';
 import path from 'path';
 import { config } from './config';
@@ -242,12 +243,7 @@ export function aggregateIssues(results: AnalysisResult[]): Issue[] {
   return allIssues;
 }
 
-export function calculateOverallScore(results: AnalysisResult[]): number {
-  if (results.length === 0) return 0;
-
-  const totalScore = results.reduce((sum, r) => sum + r.score, 0);
-  return Math.round((totalScore / results.length) * 10) / 10;
-}
+export { calculateOverallScore };
 
 export function getIssueSummary(issues: Issue[]): Record<string, number> {
   const summary: Record<string, number> = {
