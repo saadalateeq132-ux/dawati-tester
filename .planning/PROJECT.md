@@ -67,35 +67,47 @@ An autonomous tester that:
 - Unresponsive elements
 - Image load times
 
+## Current Milestone: v1.1 Hardening & Full Coverage
+
+**Goal:** Fix documentation gaps (visual regression, PII masking, pattern count), expand test coverage to 100% of app features, add CI/CD and production readiness.
+
+**Target features:**
+- Fix false claims: implement visual regression, PII masking, expand to real 300+ patterns
+- Expand test coverage: vendor dashboard, AI consultant, admin panel, security, performance
+- Add click validation (expectAfterClick) to all 15 test suites
+- Tighten scoring thresholds (currently too lenient)
+- CI/CD integration (GitHub Actions), Docker setup, auto-setup script
+- Compare test runs, Allure reporting
+
 ## Requirements
 
-### Validated
+### Validated (v1.0 — shipped 2026-02-10)
 
-(None yet — building from scratch)
+- [x] **SETUP-02**: User provides Gemini API key and app URL via .env
+- [x] **SCREEN-01**: Takes screenshot after every phase action
+- [x] **AI-01**: Sends screenshots to Gemini for analysis
+- [x] **AI-02**: AI identifies UI/UX issues
+- [x] **AI-03**: AI identifies functionality issues
+- [x] **AI-06**: Rates issue severity (critical, high, medium, low)
+- [x] **RTL-01**: 18 DOM-level RTL/i18n checks
+- [x] **RTL-02**: Detects hardcoded English text (~30 patterns)
+- [x] **RTL-03**: Checks icon/button alignment for RTL
+- [x] **RTL-04**: Verifies numbers, dates, currency formatting
+- [x] **REPORT-01**: Generates HTML + JSON reports
+- [x] **REPORT-02**: Prioritizes issues by severity
+- [x] **REPORT-03**: Provides actionable fix suggestions
+- [x] **RUN-01**: Runs on-demand with single command (npx ts-node)
+- [x] **RUN-02**: Stops when testing is complete
+- [x] **NAV-01**: Tests homepage tabs
+- [x] **NAV-02**: Tests marketplace categories
+- [x] **COLOR-01**: Design system color consistency checker
+- [x] **QUALITY-01**: Code quality checker (6 categories)
+- [x] **CLICK-01**: Click validation framework (expectAfterClick)
+- [x] **AUTOPILOT-01**: Auto-review + fine-tuning pipeline
 
 ### Active
 
-- [ ] **SETUP-01**: System installs with one command (auto-setup.bat)
-- [ ] **SETUP-02**: User only provides Gemini API key and app URL
-- [ ] **AUTH-01**: Tests Phone OTP sign-in flow completely
-- [ ] **AUTH-02**: Tests Apple sign-in flow completely
-- [ ] **AUTH-03**: Tests Google sign-in flow completely
-- [ ] **NAV-01**: Tests all homepage tabs (Birthdays, Weddings, Corporate, etc.)
-- [ ] **NAV-02**: Tests all 15+ marketplace categories
-- [ ] **SCROLL-01**: Tests vertical scrolling behavior
-- [ ] **SCROLL-02**: Tests horizontal scrolling (carousels, tabs)
-- [ ] **SCROLL-03**: Tests infinite scroll / load more
-- [ ] **SCREEN-01**: Takes screenshot after every action
-- [ ] **AI-01**: Sends screenshots to Gemini for analysis
-- [ ] **AI-02**: AI identifies UI/UX issues
-- [ ] **AI-03**: AI identifies functionality issues
-- [ ] **AI-04**: AI identifies performance issues
-- [ ] **REPORT-01**: Generates HTML report with all findings
-- [ ] **REPORT-02**: Prioritizes issues (critical, high, medium, low)
-- [ ] **REPORT-03**: Provides actionable fix suggestions
-- [ ] **RUN-01**: Runs on-demand with single command
-- [ ] **RUN-02**: Stops when testing is complete (not continuous)
-- [ ] **COMPARE-01**: Can compare two test runs to show improvements
+(Defined in v1.1 REQUIREMENTS.md)
 
 ### Out of Scope
 
@@ -129,4 +141,4 @@ An autonomous tester that:
 4. **Actionability:** Report provides clear next steps
 
 ---
-*Last updated: 2026-02-08 after initialization*
+*Last updated: 2026-02-10 — v1.1 milestone started*
