@@ -7,6 +7,7 @@
     "build": "tsc",
     "setup": "npm run build && node dist/setup-all-users-sql.js",
     "setup:verify": "npm run build && node dist/verify-setup.js",
+    "test:unit": "vitest",
     "test": "npm run build && node dist/index.js",
     "test:quick": "npm run build && node dist/index.js --quick",
     "test:auth": "npm run build && node dist/index.js --only=auth",
@@ -14,6 +15,7 @@
     "test:scroll": "npm run build && node dist/index.js --only=scrolling",
     "test:rtl": "npm run build && node dist/index.js --only=rtl",
     "test:devices": "npm run build && node dist/index.js --all-devices",
+    "test:unit": "npm run build && node dist/device-manager.test.js",
     "coverage": "npm run build && node dist/scripts/check-coverage.js",
     "coverage:verbose": "npm run build && node dist/scripts/check-coverage.js --verbose",
     "coverage:category": "npm run build && node dist/scripts/check-coverage.js --category",
@@ -39,7 +41,8 @@
     "@types/pngjs": "^6.0.5",
     "pino-pretty": "^13.0.0",
     "rimraf": "^6.0.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=20.0.0"
