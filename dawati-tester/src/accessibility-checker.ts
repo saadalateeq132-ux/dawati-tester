@@ -4,128 +4,128 @@ import { AccessibilityResult, AccessibilityViolation } from './types';
 import { getCurrentDevice } from './device-manager';
 import { createChildLogger } from './logger';
 
-const log = createChildLogger('accessibility');
+export class AccessibilityChecker {
+  private log = createChildLogger('accessibility');
+  private accessibilityResults: AccessibilityResult[] = [];
+  private impactLevels: string[];
 
-let accessibilityResults: AccessibilityResult[] = [];
-let impactLevels: string[] = ['critical', 'serious', 'moderate'];
+  constructor(levels: string[] = ['critical', 'serious', 'moderate']) {
+    this.impactLevels = levels;
+  }
 
-export function initAccessibility(levels: string[] = ['critical', 'serious', 'moderate']): void {
-  accessibilityResults = [];
-  impactLevels = levels;
-}
+  public async runCheck(
+    page: Page,
+    pageName: string
+  ): Promise<AccessibilityResult> {
+    const device = getCurrentDevice();
 
-export async function runAccessibilityCheck(
-  page: Page,
-  pageName: string
-): Promise<AccessibilityResult> {
-  const device = getCurrentDevice();
+    this.log.info({ page: pageName, device }, 'Running accessibility check');
 
-  log.info({ page: pageName, device }, 'Running accessibility check');
+    try {
+      const axeResults = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
 
-  try {
-    const axeResults = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-
-    // Filter violations by impact level
-    const filteredViolations = axeResults.violations.filter((v) =>
-      impactLevels.includes(v.impact || 'minor')
-    );
-
-    const violations: AccessibilityViolation[] = filteredViolations.map((v) => ({
-      id: v.id,
-      impact: v.impact as AccessibilityViolation['impact'],
-      description: v.description,
-      help: v.help,
-      helpUrl: v.helpUrl,
-      nodes: v.nodes.map((n) => ({
-        html: n.html,
-        target: n.target as string[],
-      })),
-    }));
-
-    const result: AccessibilityResult = {
-      page: pageName,
-      device,
-      violations,
-      passes: axeResults.passes.length,
-      incomplete: axeResults.incomplete.length,
-      timestamp: new Date(),
-    };
-
-    accessibilityResults.push(result);
-
-    if (violations.length > 0) {
-      log.warn(
-        { page: pageName, violations: violations.length },
-        'Accessibility violations found'
+      // Filter violations by impact level
+      const filteredViolations = axeResults.violations.filter((v) =>
+        this.impactLevels.includes(v.impact || 'minor')
       );
-    } else {
-      log.info({ page: pageName, passes: result.passes }, 'Accessibility check passed');
+
+      const violations: AccessibilityViolation[] = filteredViolations.map((v) => ({
+        id: v.id,
+        impact: v.impact as AccessibilityViolation['impact'],
+        description: v.description,
+        help: v.help,
+        helpUrl: v.helpUrl,
+        nodes: v.nodes.map((n) => ({
+          html: n.html,
+          target: n.target as string[],
+        })),
+      }));
+
+      const result: AccessibilityResult = {
+        page: pageName,
+        device,
+        violations,
+        passes: axeResults.passes.length,
+        incomplete: axeResults.incomplete.length,
+        timestamp: new Date(),
+      };
+
+      this.accessibilityResults.push(result);
+
+      if (violations.length > 0) {
+        this.log.warn(
+          { page: pageName, violations: violations.length },
+          'Accessibility violations found'
+        );
+      } else {
+        this.log.info({ page: pageName, passes: result.passes }, 'Accessibility check passed');
+      }
+
+      return result;
+    } catch (error) {
+      this.log.error({ page: pageName, error }, 'Accessibility check failed');
+
+      const emptyResult: AccessibilityResult = {
+        page: pageName,
+        device,
+        violations: [],
+        passes: 0,
+        incomplete: 0,
+        timestamp: new Date(),
+      };
+
+      this.accessibilityResults.push(emptyResult);
+      return emptyResult;
     }
+  }
 
-    return result;
-  } catch (error) {
-    log.error({ page: pageName, error }, 'Accessibility check failed');
+  public getResults(): AccessibilityResult[] {
+    return this.accessibilityResults;
+  }
 
-    const emptyResult: AccessibilityResult = {
-      page: pageName,
-      device,
-      violations: [],
-      passes: 0,
-      incomplete: 0,
-      timestamp: new Date(),
+  public getAllViolations(): AccessibilityViolation[] {
+    const allViolations: AccessibilityViolation[] = [];
+    for (const result of this.accessibilityResults) {
+      allViolations.push(...result.violations);
+    }
+    return allViolations;
+  }
+
+  public getViolationSummary(): Record<string, number> {
+    const summary: Record<string, number> = {
+      critical: 0,
+      serious: 0,
+      moderate: 0,
+      minor: 0,
+      total: 0,
     };
 
-    accessibilityResults.push(emptyResult);
-    return emptyResult;
-  }
-}
-
-export function getAccessibilityResults(): AccessibilityResult[] {
-  return accessibilityResults;
-}
-
-export function getAllViolations(): AccessibilityViolation[] {
-  const allViolations: AccessibilityViolation[] = [];
-  for (const result of accessibilityResults) {
-    allViolations.push(...result.violations);
-  }
-  return allViolations;
-}
-
-export function getViolationSummary(): Record<string, number> {
-  const summary: Record<string, number> = {
-    critical: 0,
-    serious: 0,
-    moderate: 0,
-    minor: 0,
-    total: 0,
-  };
-
-  for (const result of accessibilityResults) {
-    for (const violation of result.violations) {
-      summary[violation.impact]++;
-      summary.total++;
+    for (const result of this.accessibilityResults) {
+      for (const violation of result.violations) {
+        summary[violation.impact]++;
+        summary.total++;
+      }
     }
+
+    return summary;
   }
 
-  return summary;
-}
-
-export function formatViolationsForAI(violations: AccessibilityViolation[]): string {
-  if (violations.length === 0) {
-    return 'No accessibility violations detected.';
+  public clearResults(): void {
+    this.accessibilityResults = [];
   }
 
-  const formatted = violations.map((v) => {
-    const nodeTargets = v.nodes.map((n) => n.target.join(' > ')).join('; ');
-    return `- [${v.impact.toUpperCase()}] ${v.id}: ${v.help} (Affected: ${nodeTargets})`;
-  });
+  public static formatViolationsForAI(violations: AccessibilityViolation[]): string {
+    if (violations.length === 0) {
+      return 'No accessibility violations detected.';
+    }
 
-  return `Accessibility violations found:\n${formatted.join('\n')}`;
-}
+    const formatted = violations.map((v) => {
+      const nodeTargets = v.nodes.map((n) => n.target.join(' > ')).join('; ');
+      return `- [${v.impact.toUpperCase()}] ${v.id}: ${v.help} (Affected: ${nodeTargets})`;
+    });
 
-export function clearAccessibilityResults(): void {
-  accessibilityResults = [];
+    return `Accessibility violations found:\n${formatted.join('\n')}`;
+  }
 }

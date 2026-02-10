@@ -20,12 +20,7 @@ import { createChildLogger } from './logger';
 import { DeviceConfig, VisualDiff, AccessibilityResult, PerformanceMetric } from './types';
 import { withRetry, safeExecute } from './retry-helper';
 import { initVisualRegression, getVisualDiffs, getSignificantChanges } from './visual-regression';
-import {
-  initAccessibility,
-  runAccessibilityCheck,
-  getAccessibilityResults,
-  getViolationSummary,
-} from './accessibility-checker';
+import { AccessibilityChecker } from './accessibility-checker';
 import {
   initPerformanceMetrics,
   measurePageLoad,
@@ -131,7 +126,8 @@ function printDeviceBanner(deviceName: string, index: number, total: number): vo
 async function runTestsForDevice(
   deviceContext: DeviceContext,
   options: RunnerOptions,
-  testPlan: TestPlan
+  testPlan: TestPlan,
+  accessibilityChecker?: AccessibilityChecker
 ): Promise<{
   authResults: AuthTestResult[];
   navigationResults: NavigationTestResult[];
@@ -178,9 +174,9 @@ async function runTestsForDevice(
   await measurePageLoad(page, 'homepage');
 
   // Run accessibility check on homepage
-  if (testPlan.accessibility?.enabled && testPlan.accessibility.runOnMajorPages) {
+  if (testPlan.accessibility?.enabled && testPlan.accessibility.runOnMajorPages && accessibilityChecker) {
     const a11yResult = await safeExecute(
-      () => runAccessibilityCheck(page, 'homepage'),
+      () => accessibilityChecker.runCheck(page, 'homepage'),
       'Accessibility check on homepage'
     );
     if (a11yResult.success && a11yResult.result) {
@@ -222,11 +218,11 @@ async function runTestsForDevice(
       results.navigationResults = navResult.result;
 
       // Run accessibility on major navigation pages
-      if (testPlan.accessibility?.enabled && testPlan.accessibility.runOnMajorPages) {
+      if (testPlan.accessibility?.enabled && testPlan.accessibility.runOnMajorPages && accessibilityChecker) {
         for (const navResult of results.navigationResults) {
           if (navResult.success && navResult.pagesVisited.length > 0) {
             const a11yResult = await safeExecute(
-              () => runAccessibilityCheck(page, navResult.category),
+              () => accessibilityChecker.runCheck(page, navResult.category),
               `Accessibility check on ${navResult.category}`
             );
             if (a11yResult.success && a11yResult.result) {
@@ -344,8 +340,9 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     }
 
     // Initialize accessibility
+    let accessibilityChecker: AccessibilityChecker | undefined;
     if (testPlan.accessibility?.enabled) {
-      initAccessibility(testPlan.accessibility.impactLevels || ['critical', 'serious', 'moderate']);
+      accessibilityChecker = new AccessibilityChecker(testPlan.accessibility.impactLevels || ['critical', 'serious', 'moderate']);
     }
 
     // Initialize performance metrics
@@ -374,7 +371,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
       printDeviceBanner(deviceContext.name, i, deviceContexts.length);
       results.devicesTested.push(deviceContext.name);
 
-      const deviceResults = await runTestsForDevice(deviceContext, options, testPlan);
+      const deviceResults = await runTestsForDevice(deviceContext, options, testPlan, accessibilityChecker);
 
       // Aggregate results
       results.authResults.push(...deviceResults.authResults);
@@ -390,7 +387,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     // Collect visual diffs
     results.visualDiffs = getVisualDiffs();
     results.performanceMetrics = getPerformanceMetrics();
-    results.accessibilityResults = getAccessibilityResults();
+    results.accessibilityResults = accessibilityChecker ? accessibilityChecker.getResults() : [];
 
     // Save screenshot index
     await saveScreenshotIndex();
@@ -404,8 +401,8 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     }
 
     // Print accessibility summary if enabled
-    if (testPlan.accessibility?.enabled) {
-      const violationSummary = getViolationSummary();
+    if (testPlan.accessibility?.enabled && accessibilityChecker) {
+      const violationSummary = accessibilityChecker.getViolationSummary();
       if (violationSummary.total > 0) {
         console.log(`\n♿ Accessibility issues: ${violationSummary.total} violations found`);
         console.log(`   Critical: ${violationSummary.critical}, Serious: ${violationSummary.serious}, Moderate: ${violationSummary.moderate}`);
