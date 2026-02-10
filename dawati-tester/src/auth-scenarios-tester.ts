@@ -215,9 +215,27 @@ export async function testNewVendorPhone(): Promise<AuthScenarioResult> {
  * Test Scenario 4: Existing Vendor - Phone OTP → Skip Wizard → Vendor Dashboard
  */
 export async function testExistingVendorPhone(): Promise<AuthScenarioResult> {
-  log.info('👤🏢 Testing EXISTING VENDOR - Phone OTP → Vendor Dashboard (skip wizard)');
+  return runPhoneScenario(
+    'existing_vendor',
+    'Existing Vendor (Phone)',
+    config.testUsers.phone.existingVendor,
+    'expect_dashboard'
+  );
+}
+
+/**
+ * Helper to run a phone authentication scenario with specific expectations
+ */
+export async function runPhoneScenario(
+  userType: 'new_customer' | 'existing_customer' | 'new_vendor' | 'existing_vendor',
+  scenarioName: string,
+  phoneNumber: string,
+  expectation: 'expect_wizard' | 'expect_dashboard',
+  // Optional dependency injection for testing
+  _authFlow = phoneAuthFlow
+): Promise<AuthScenarioResult> {
+  log.info(`Testing ${scenarioName}`);
   const steps: AuthStep[] = [];
-  const scenario = 'Existing Vendor (Phone)';
 
   try {
     const result = await phoneAuthFlow(
@@ -227,44 +245,46 @@ export async function testExistingVendorPhone(): Promise<AuthScenarioResult> {
       steps
     );
 
-    // Expect vendor dashboard directly (no wizard) for existing vendor
-    if (result.success && !result.wizardDetected && result.dashboardReached) {
-      log.info('✅ EXISTING VENDOR: Vendor dashboard reached directly (EXPECTED)');
-      return {
-        scenario,
-        method: 'phone',
-        userType: 'existing_vendor',
-        success: true,
-        steps,
-        dashboardReached: true,
-      };
-    } else if (result.success && result.wizardDetected) {
-      log.warn('⚠️ EXISTING VENDOR: Wizard shown (should skip for existing vendors)');
-      return {
-        scenario,
-        method: 'phone',
-        userType: 'existing_vendor',
-        success: false,
-        steps,
-        error: 'Expected to skip wizard but wizard was shown',
-      };
+    let success = false;
+    let error: string | undefined = result.error;
+
+    if (result.success) {
+      if (expectation === 'expect_wizard') {
+        if (result.wizardDetected) {
+          log.info(`✅ ${scenarioName}: Onboarding wizard detected (EXPECTED)`);
+          success = true;
+        } else {
+          log.warn(`⚠️ ${scenarioName}: No onboarding wizard detected (should show wizard)`);
+          error = 'Expected onboarding wizard but went directly to dashboard';
+        }
+      } else { // expect_dashboard
+        if (!result.wizardDetected && result.dashboardReached) {
+          log.info(`✅ ${scenarioName}: Dashboard reached directly (EXPECTED)`);
+          success = true;
+        } else if (result.wizardDetected) {
+          log.warn(`⚠️ ${scenarioName}: Wizard shown (should skip for existing users)`);
+          error = 'Expected to skip wizard but wizard was shown';
+        }
+      }
     }
 
     return {
-      scenario,
+      scenario: scenarioName,
       method: 'phone',
-      userType: 'existing_vendor',
-      success: false,
+      userType,
+      success,
       steps,
-      error: result.error,
+      wizardDetected: result.wizardDetected,
+      dashboardReached: result.dashboardReached,
+      error,
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    log.error({ error: errorMessage }, 'EXISTING VENDOR test failed');
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    log.error({ error: errorMessage }, `${scenarioName} failed`);
     return {
-      scenario,
+      scenario: scenarioName,
       method: 'phone',
-      userType: 'existing_vendor',
+      userType,
       success: false,
       steps,
       error: errorMessage,
