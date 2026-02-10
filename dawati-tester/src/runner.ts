@@ -389,7 +389,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     results.accessibilityResults = getAccessibilityResults();
 
     // Save screenshot index
-    saveScreenshotIndex();
+    await saveScreenshotIndex();
 
     // Print visual regression summary if enabled
     if (testPlan.visualRegression?.enabled) {
