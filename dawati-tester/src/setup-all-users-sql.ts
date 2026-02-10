@@ -255,7 +255,7 @@ async function main() {
   await Promise.all(TEST_USERS.map(async (user) => {
     try {
       // Step 1: Create auth user
-      const userId = await createAuthUser(user);
+      const userId = await createAuthUserSQL(user);
 
       // Step 2: Create user record (if needed)
       if (user.needsUserRecord) {
