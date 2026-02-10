@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { PNG } from 'pngjs';
-import pixelmatch from 'pixelmatch';
+import { Worker } from 'worker_threads';
 import { VisualDiff } from './types';
 import { createChildLogger } from './logger';
 
@@ -27,95 +26,69 @@ export function getBaselinePath(screenshotFilename: string): string {
   return path.join(baselinesDir, screenshotFilename);
 }
 
-export async function compareWithBaseline(
+export function compareWithBaseline(
   screenshotPath: string,
   outputDir: string
 ): Promise<VisualDiff> {
-  const filename = path.basename(screenshotPath);
-  const baselinePath = getBaselinePath(filename);
+  return new Promise((resolve, reject) => {
+    const filename = path.basename(screenshotPath);
+    const baselinePath = getBaselinePath(filename);
 
-  const diff: VisualDiff = {
-    filename,
-    baselineExists: false,
-    diffPercentage: 0,
-    hasSignificantChange: false,
-  };
+    const workerFilename = 'visual-regression-worker.js';
+    let workerPath = path.resolve(__dirname, workerFilename);
 
-  // Check if baseline exists
-  if (!fs.existsSync(baselinePath)) {
-    log.debug({ filename }, 'No baseline found for comparison');
-    diff.baselineExists = false;
-    visualDiffs.push(diff);
-    return diff;
-  }
+    // Fallback for when running from src (e.g., tests)
+    if (!fs.existsSync(workerPath) && __dirname.endsWith('src')) {
+      workerPath = path.resolve(__dirname, '../dist', workerFilename);
+    }
 
-  diff.baselineExists = true;
+    if (!fs.existsSync(workerPath)) {
+      throw new Error(`Worker file not found at ${workerPath}. Please run 'npm run build' to generate it.`);
+    }
 
-  try {
-    // Read images
-    const img1 = PNG.sync.read(fs.readFileSync(baselinePath));
-    const img2 = PNG.sync.read(fs.readFileSync(screenshotPath));
+    const worker = new Worker(workerPath);
 
-    // Check dimensions match
-    if (img1.width !== img2.width || img1.height !== img2.height) {
-      log.warn(
-        { filename, baseline: `${img1.width}x${img1.height}`, current: `${img2.width}x${img2.height}` },
-        'Image dimensions differ'
-      );
-      diff.diffPercentage = 100;
-      diff.hasSignificantChange = true;
+    worker.on('message', (diff: VisualDiff) => {
       visualDiffs.push(diff);
-      return diff;
-    }
+      resolve(diff);
+      worker.terminate();
+    });
 
-    // Create diff image
-    const { width, height } = img1;
-    const diffImage = new PNG({ width, height });
+    worker.on('error', (err) => {
+      log.error({ filename, error: err }, 'Worker error');
+      const errorDiff: VisualDiff = {
+        filename,
+        baselineExists: true, // Optimistic assumption or irrelevant
+        diffPercentage: -1,
+        hasSignificantChange: false
+      };
+      visualDiffs.push(errorDiff);
+      resolve(errorDiff);
+      worker.terminate();
+    });
 
-    const numDiffPixels = pixelmatch(
-      img1.data,
-      img2.data,
-      diffImage.data,
-      width,
-      height,
-      { threshold: 0.1 }
-    );
-
-    const totalPixels = width * height;
-    diff.diffPercentage = (numDiffPixels / totalPixels) * 100;
-    diff.hasSignificantChange = diff.diffPercentage > diffThreshold;
-
-    // Save diff image if there are changes
-    if (diff.hasSignificantChange) {
-      const diffFilename = `diff_${filename}`;
-      const diffPath = path.join(outputDir, 'diffs', diffFilename);
-
-      // Ensure diffs directory exists
-      const diffsDir = path.dirname(diffPath);
-      if (!fs.existsSync(diffsDir)) {
-        fs.mkdirSync(diffsDir, { recursive: true });
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        log.error({ filename, code }, 'Worker exited with non-zero code');
+        // Resolve with error state if not already resolved
+        const errorDiff: VisualDiff = {
+          filename,
+          baselineExists: true,
+          diffPercentage: -1,
+          hasSignificantChange: false
+        };
+        visualDiffs.push(errorDiff);
+        resolve(errorDiff);
       }
+    });
 
-      fs.writeFileSync(diffPath, PNG.sync.write(diffImage));
-      diff.diffImagePath = diffPath;
-
-      log.warn(
-        { filename, diffPercentage: diff.diffPercentage.toFixed(2) },
-        'Significant visual change detected'
-      );
-    } else {
-      log.debug(
-        { filename, diffPercentage: diff.diffPercentage.toFixed(2) },
-        'Visual comparison passed'
-      );
-    }
-  } catch (error) {
-    log.error({ filename, error }, 'Error comparing images');
-    diff.diffPercentage = -1; // Indicate error
-  }
-
-  visualDiffs.push(diff);
-  return diff;
+    worker.postMessage({
+      baselinePath,
+      screenshotPath,
+      outputDir,
+      threshold: diffThreshold
+    });
+  });
 }
 
 export function saveAsBaseline(screenshotPath: string): void {
