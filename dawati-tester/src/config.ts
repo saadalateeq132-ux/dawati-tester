@@ -50,7 +50,7 @@ export interface Config {
   logLevel: string;
 }
 
-function validateConfig(): Config {
+export function validateConfig(): Config {
   const geminiApiKey = process.env.GEMINI_API_KEY || '';
   const dawatiUrl = process.env.DAWATI_URL;
 
