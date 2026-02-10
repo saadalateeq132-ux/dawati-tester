@@ -1,3 +1,4 @@
+import { Page } from 'playwright';
 import { getPage, navigateTo } from './browser';
 import { takeScreenshot } from './screenshot-manager';
 import { config } from './config';
@@ -500,15 +501,7 @@ async function emailAuthFlow(
     'text=تسجيل الدخول',
     '[data-testid="sign-in"]',
   ];
-
-  for (const selector of signInSelectors) {
-    try {
-      await page.click(selector, { timeout: 3000 });
-      break;
-    } catch {
-      continue;
-    }
-  }
+  await findAndClick(page, signInSelectors, 'sign-in');
 
   await page.waitForTimeout(1000);
 
@@ -518,15 +511,7 @@ async function emailAuthFlow(
     'text=البريد',
     '[data-testid="email-tab"]',
   ];
-
-  for (const selector of emailTabSelectors) {
-    try {
-      await page.click(selector, { timeout: 2000 });
-      break;
-    } catch {
-      continue;
-    }
-  }
+  await findAndClick(page, emailTabSelectors, 'email tab');
 
   await page.waitForTimeout(500);
   const ss2 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_email_02_email_tab`, 'Email tab');
@@ -539,17 +524,7 @@ async function emailAuthFlow(
     '[data-testid="email-input"]',
   ];
 
-  let emailEntered = false;
-  for (const selector of emailInputSelectors) {
-    try {
-      await page.fill(selector, email, { timeout: 2000 });
-      emailEntered = true;
-      log.info(`Entered email: ${email}`);
-      break;
-    } catch {
-      continue;
-    }
-  }
+  const emailEntered = await findAndFill(page, emailInputSelectors, email, 'email');
 
   if (!emailEntered) {
     steps.push({ name: 'Enter email', success: false, error: 'Email input not found' });
@@ -565,15 +540,7 @@ async function emailAuthFlow(
     'text=Continue',
     'button[type="submit"]',
   ];
-
-  for (const selector of sendCodeSelectors) {
-    try {
-      await page.click(selector, { timeout: 2000 });
-      break;
-    } catch {
-      continue;
-    }
-  }
+  await findAndClick(page, sendCodeSelectors, 'send code');
 
   await page.waitForTimeout(3000);
   const ss4 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_email_04_code_sent`, 'Code sent');
@@ -589,4 +556,71 @@ async function emailAuthFlow(
     wizardDetected: false,
     dashboardReached: false,
   };
+}
+
+/**
+ * Try to click an element using multiple selectors
+ */
+async function findAndClick(
+  page: Page,
+  selectors: string[],
+  description: string
+): Promise<boolean> {
+  for (const selector of selectors) {
+    try {
+      await page.click(selector, { timeout: 3000 });
+      log.info(`Clicked ${description}: ${selector}`);
+      return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
+ * Try to fill an input using multiple selectors
+ */
+async function findAndFill(
+  page: Page,
+  selectors: string[],
+  value: string,
+  description: string
+): Promise<boolean> {
+  for (const selector of selectors) {
+    try {
+      await page.fill(selector, value, { timeout: 2000 });
+      log.info(`Filled ${description}: ${value}`);
+      return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
+ * Try to check a checkbox using multiple selectors
+ */
+async function findAndCheck(
+  page: Page,
+  selectors: string[],
+  description: string
+): Promise<boolean> {
+  for (const selector of selectors) {
+    try {
+      const checkbox = page.locator(selector).first();
+      if (await checkbox.isVisible({ timeout: 2000 })) {
+        const isChecked = await checkbox.isChecked().catch(() => false);
+        if (!isChecked) {
+          await checkbox.click();
+          log.info(`Checked ${description}`);
+        }
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
 }
