@@ -92,52 +92,9 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
   console.log(`   Type: ${type}`);
   console.log(`   Expected: ${description}`);
 
-  const userId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  // Create auth user directly in auth.users table
-  const sql = `
-    INSERT INTO auth.users (
-      id,
-      instance_id,
-      ${phone ? 'phone' : 'email'},
-      ${phone ? 'phone_confirmed_at' : 'email_confirmed_at'},
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      is_super_admin,
-      role,
-      created_at,
-      updated_at,
-      confirmation_token,
-      recovery_token,
-      aud,
-      confirmed_at
-    ) VALUES (
-      '${userId}',
-      '00000000-0000-0000-0000-000000000000',
-      '${phone || email}',
-      '${now}',
-      '$2a$10$dummy_encrypted_password_hash_for_test_user',
-      ${email ? `'${now}'` : 'NULL'},
-      '{"provider":"${phone ? 'phone' : 'email'}","providers":["${phone ? 'phone' : 'email'}"]}',
-      '{"test_user":true,"test_type":"${type}"}',
-      false,
-      'authenticated',
-      '${now}',
-      '${now}',
-      '',
-      '',
-      'authenticated',
-      '${now}'
-    )
-    ON CONFLICT (id) DO NOTHING
-    RETURNING id;
-  `;
-
   try {
-    await supabase.auth.admin.createUser({
+    // Use the actual ID returned by Supabase to avoid inconsistencies
+    const { data, error } = await supabase.auth.admin.createUser({
       phone,
       email,
       phone_confirm: phone ? true : undefined,
@@ -148,6 +105,10 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
       },
     });
 
+    if (error) throw error;
+    if (!data.user) throw new Error('User creation failed: No user returned');
+
+    const userId = data.user.id;
     console.log(`   ✅ Auth user created (ID: ${userId})`);
     return userId;
   } catch (error: any) {
