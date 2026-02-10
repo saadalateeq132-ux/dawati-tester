@@ -79,65 +79,15 @@ const TEST_USERS: TestUserSetup[] = [
   },
 ];
 
-async function executeSQL(sql: string): Promise<any> {
-  const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
-  if (error) throw error;
-  return data;
-}
-
-async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
+async function createAuthUser(user: TestUserSetup): Promise<string> {
   const { phone, email, type, description } = user;
 
   console.log(`\n📱 Creating auth user: ${phone || email}`);
   console.log(`   Type: ${type}`);
   console.log(`   Expected: ${description}`);
 
-  const userId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  // Create auth user directly in auth.users table
-  const sql = `
-    INSERT INTO auth.users (
-      id,
-      instance_id,
-      ${phone ? 'phone' : 'email'},
-      ${phone ? 'phone_confirmed_at' : 'email_confirmed_at'},
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      is_super_admin,
-      role,
-      created_at,
-      updated_at,
-      confirmation_token,
-      recovery_token,
-      aud,
-      confirmed_at
-    ) VALUES (
-      '${userId}',
-      '00000000-0000-0000-0000-000000000000',
-      '${phone || email}',
-      '${now}',
-      '$2a$10$dummy_encrypted_password_hash_for_test_user',
-      ${email ? `'${now}'` : 'NULL'},
-      '{"provider":"${phone ? 'phone' : 'email'}","providers":["${phone ? 'phone' : 'email'}"]}',
-      '{"test_user":true,"test_type":"${type}"}',
-      false,
-      'authenticated',
-      '${now}',
-      '${now}',
-      '',
-      '',
-      'authenticated',
-      '${now}'
-    )
-    ON CONFLICT (id) DO NOTHING
-    RETURNING id;
-  `;
-
   try {
-    await supabase.auth.admin.createUser({
+    const { data, error } = await supabase.auth.admin.createUser({
       phone,
       email,
       phone_confirm: phone ? true : undefined,
@@ -148,8 +98,11 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
       },
     });
 
-    console.log(`   ✅ Auth user created (ID: ${userId})`);
-    return userId;
+    if (error) throw error;
+    if (!data.user) throw new Error('No user returned after creation');
+
+    console.log(`   ✅ Auth user created (ID: ${data.user.id})`);
+    return data.user.id;
   } catch (error: any) {
     // If user already exists, try to find it
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
@@ -294,7 +247,7 @@ async function main() {
   for (const user of TEST_USERS) {
     try {
       // Step 1: Create auth user
-      const userId = await createAuthUserSQL(user);
+      const userId = await createAuthUser(user);
 
       // Step 2: Create user record (if needed)
       if (user.needsUserRecord) {
