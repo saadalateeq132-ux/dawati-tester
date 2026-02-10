@@ -2,7 +2,7 @@
 /**
  * Complete Automated Test Users Setup
  *
- * Creates all 6 test users by using Supabase Admin API:
+ * Creates all 6 test users by using the Supabase Admin API:
  * - 4 phone users
  * - 2 email users
  * - Creates user records for "existing" users
@@ -79,7 +79,7 @@ const TEST_USERS: TestUserSetup[] = [
   },
 ];
 
-async function createAuthUser(user: TestUserSetup): Promise<string> {
+async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
   const { phone, email, type, description } = user;
 
   console.log(`\n📱 Creating auth user: ${phone || email}`);
@@ -87,29 +87,12 @@ async function createAuthUser(user: TestUserSetup): Promise<string> {
   console.log(`   Expected: ${description}`);
 
   try {
-    const { data, error } = await supabase.auth.admin.createUser({
-      phone,
-      email,
-      phone_confirm: phone ? true : undefined,
-      email_confirm: email ? true : undefined,
-      user_metadata: {
-        test_user: true,
-        test_type: type,
-      },
-    });
+    // First, try to find if the user already exists
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) throw listError;
 
-    if (error) throw error;
-    if (!data.user) throw new Error('No user returned from createUser');
-
-    console.log(`   ✅ Auth user created (ID: ${data.user.id})`);
-    return data.user.id;
-  } catch (error: any) {
-    // If user already exists, try to find it
-    console.log(`   ℹ️  Error creating user (might exist): ${error.message}`);
-
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existing = existingUsers?.users?.find(
-      (u: any) => u.phone === phone || u.email === email
+      (u: any) => (phone && u.phone === phone) || (email && u.email === email)
     );
 
     if (existing) {
@@ -117,6 +100,25 @@ async function createAuthUser(user: TestUserSetup): Promise<string> {
       return existing.id;
     }
 
+    // Create auth user using Supabase Admin API (safe from SQL injection)
+    const { data, error: createError } = await supabase.auth.admin.createUser({
+      phone,
+      email,
+      phone_confirm: !!phone,
+      email_confirm: !!email,
+      user_metadata: {
+        test_user: true,
+        test_type: type,
+      },
+    });
+
+    if (createError) throw createError;
+    if (!data?.user) throw new Error('Failed to create user: No data returned');
+
+    console.log(`   ✅ Auth user created (ID: ${data.user.id})`);
+    return data.user.id;
+  } catch (error: any) {
+    console.error(`   ❌ Error in createAuthUserSQL: ${error.message}`);
     throw error;
   }
 }
@@ -202,10 +204,14 @@ async function verifySetup(): Promise<void> {
   const testPhones = TEST_USERS.filter(u => u.phone).map(u => u.phone!);
   const testEmails = TEST_USERS.filter(u => u.email).map(u => u.email!);
 
+  const phoneFilter = testPhones.length > 0 ? `phone.in.(${testPhones.map(p => `"${p}"`).join(',')})` : '';
+  const emailFilter = testEmails.length > 0 ? `email.in.(${testEmails.map(e => `"${e}"`).join(',')})` : '';
+  const orFilter = [phoneFilter, emailFilter].filter(Boolean).join(',');
+
   const { data: userRecords } = await supabase
     .from('users')
     .select('*')
-    .or(`phone.in.(${testPhones.map(p => `"${p}"`).join(',')}),email.in.(${testEmails.map(e => `"${e}"`).join(',')})`);
+    .or(orFilter || 'id.neq.00000000-0000-0000-0000-000000000000'); // Fallback to a filter that returns nothing if both lists are empty
 
   const expectedUserRecords = TEST_USERS.filter(u => u.needsUserRecord).length;
   console.log(`✅ User records: ${userRecords?.length || 0}/${expectedUserRecords} (expected)`);
@@ -246,7 +252,7 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
-  for (const user of TEST_USERS) {
+  await Promise.all(TEST_USERS.map(async (user) => {
     try {
       // Step 1: Create auth user
       const userId = await createAuthUser(user);
@@ -267,7 +273,7 @@ async function main() {
       console.error(`   ❌ Failed: ${error.message}`);
       failCount++;
     }
-  }
+  }));
 
   console.log('\n' + '='.repeat(60));
   console.log(`✅ Success: ${successCount}/${TEST_USERS.length}`);
