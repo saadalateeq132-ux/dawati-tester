@@ -329,7 +329,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
         }
       : undefined;
 
-    const runDir = initScreenshotSession(visualRegressionOptions);
+    const runDir = await initScreenshotSession(visualRegressionOptions);
 
     // Initialize visual regression
     if (testPlan.visualRegression?.enabled) {

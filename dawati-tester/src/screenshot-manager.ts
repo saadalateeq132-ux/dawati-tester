@@ -27,25 +27,27 @@ let screenshots: Screenshot[] = [];
 let currentPage: Page | null = null;
 let visualRegressionEnabled = false;
 
-export function initScreenshotSession(options?: {
+export async function initScreenshotSession(options?: {
   visualRegression?: { enabled: boolean; baselinesDir: string; diffThreshold: number };
-}): string {
+}): Promise<string> {
   const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
   currentRunDir = path.join(config.testResultsDir, timestamp);
 
   // Create directories
-  fs.mkdirSync(path.join(currentRunDir, 'screenshots'), { recursive: true });
+  await fs.promises.mkdir(path.join(currentRunDir, 'screenshots'), { recursive: true });
 
   // Create/update latest symlink
   const latestLink = path.join(config.testResultsDir, 'latest');
-  if (fs.existsSync(latestLink)) {
-    fs.rmSync(latestLink, { recursive: true });
+  try {
+    await fs.promises.rm(latestLink, { recursive: true, force: true });
+  } catch (error) {
+    // Ignore error if it doesn't exist or can't be removed
   }
 
   try {
-    fs.symlinkSync(currentRunDir, latestLink, 'junction');
+    await fs.promises.symlink(currentRunDir, latestLink, 'junction');
   } catch {
-    fs.writeFileSync(latestLink + '.txt', currentRunDir);
+    await fs.promises.writeFile(latestLink + '.txt', currentRunDir);
   }
 
   // Initialize visual regression if enabled
