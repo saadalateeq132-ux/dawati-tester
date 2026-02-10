@@ -84,13 +84,17 @@ export interface TestResults {
   checklistScore?: ChecklistScore;
 }
 
-function loadTestPlan(testPlanPath?: string): TestPlan {
+async function loadTestPlan(testPlanPath?: string): Promise<TestPlan> {
   const planPath = testPlanPath || path.join(config.testPlansDir, 'dawati.json');
-  if (fs.existsSync(planPath)) {
-    const content = fs.readFileSync(planPath, 'utf-8');
+  try {
+    const content = await fs.promises.readFile(planPath, 'utf-8');
     return JSON.parse(content);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      return { name: 'Default', version: '1.0.0' };
+    }
+    throw error;
   }
-  return { name: 'Default', version: '1.0.0' };
 }
 
 function printBanner(deviceName?: string): void {
@@ -283,7 +287,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
   const startTime = new Date();
 
   // Load test plan
-  const testPlan = loadTestPlan(testPlanPath);
+  const testPlan = await loadTestPlan(testPlanPath);
   const locale = testPlan.execution?.locale || 'ar-SA';
   const timezone = testPlan.execution?.timezone || 'Asia/Riyadh';
   let aiEnabled = !skipAI && testPlan.aiAnalysis?.enabled !== false;
@@ -389,7 +393,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     results.accessibilityResults = getAccessibilityResults();
 
     // Save screenshot index
-    saveScreenshotIndex();
+    await saveScreenshotIndex();
 
     // Print visual regression summary if enabled
     if (testPlan.visualRegression?.enabled) {
