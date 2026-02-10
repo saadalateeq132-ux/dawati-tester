@@ -43,8 +43,8 @@ function getGenAI(): GoogleGenerativeAI {
   return genAI;
 }
 
-function imageToBase64(filepath: string): string {
-  const imageBuffer = fs.readFileSync(filepath);
+async function imageToBase64(filepath: string): Promise<string> {
+  const imageBuffer = await fs.promises.readFile(filepath);
   return imageBuffer.toString('base64');
 }
 
@@ -65,7 +65,7 @@ export async function analyzeScreenshot(screenshot: Screenshot): Promise<Analysi
   const ai = getGenAI();
   const model = ai.getGenerativeModel({ model: config.aiModel });
 
-  const imageBase64 = imageToBase64(screenshot.filepath);
+  const imageBase64 = await imageToBase64(screenshot.filepath);
   const mimeType = getMimeType(screenshot.filepath);
 
   const prompt = `You are an expert QA tester analyzing a screenshot from a marketplace mobile app (Dawati - an event planning app for Saudi Arabia).
