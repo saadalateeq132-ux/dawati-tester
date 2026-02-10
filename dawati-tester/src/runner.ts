@@ -458,7 +458,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
       results.checklistScore,
       { enabled: aiEnabled, skippedReason: aiSkippedReason }
     );
-    saveReport(report);
+    await saveReport(report);
     printProgress('Generating report', 'done');
 
     // Print summary
