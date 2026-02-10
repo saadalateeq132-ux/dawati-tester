@@ -30,8 +30,8 @@ export interface ChecklistScore {
   passingItems: number;
   failingItems: number;
   missingItems: number;
-  overallScore: number; // 0-100
-  requiredScore: number; // P0 coverage (must be 100%)
+  overallScore: number; // 0-100 (Weighted)
+  requiredScore: number; // P0 coverage (Weighted)
   categories: Map<string, CategoryScore>;
 }
 
@@ -47,14 +47,28 @@ export class ChecklistValidator {
   private checklistPath: string;
   private checklist: ChecklistItem[] = [];
 
-  constructor() {
+  // Priority Weights for scoring
+  private static PRIORITY_WEIGHTS = {
+    'P0': 10, // Critical
+    'P1': 5,  // High
+    'P2': 3,  // Medium
+    'P3': 1   // Low
+  };
+
+  constructor(checklist?: ChecklistItem[]) {
     this.checklistPath = path.join(__dirname, '../../.planning/MASTER-TEST-CHECKLIST.md');
+    if (checklist) {
+      this.checklist = checklist;
+    }
   }
 
   /**
    * Load and parse the master checklist
    */
   async loadChecklist(): Promise<void> {
+    // If checklist was injected via constructor, don't overwrite it unless empty
+    if (this.checklist.length > 0) return;
+
     logger.info('Loading master test checklist...');
 
     if (!fs.existsSync(this.checklistPath)) {
@@ -211,16 +225,34 @@ export class ChecklistValidator {
     const failingItems = items.filter(item => item.status === 'FAIL').length;
     const missingItems = items.filter(item => item.status === 'TODO').length;
 
+    // Helper to calculate weighted score
+    const calculateWeightedScore = (itemList: ChecklistItem[]): number => {
+      if (itemList.length === 0) return 0;
+
+      let totalMaxScore = 0;
+      let totalActualScore = 0;
+
+      for (const item of itemList) {
+        const weight = ChecklistValidator.PRIORITY_WEIGHTS[item.priority] || 1;
+        totalMaxScore += weight;
+
+        let multiplier = 0;
+        if (item.status === 'PASS') multiplier = 1;
+        else if (item.status === 'PARTIAL') multiplier = 0.5;
+
+        totalActualScore += (weight * multiplier);
+      }
+
+      return totalMaxScore > 0
+        ? Math.round((totalActualScore / totalMaxScore) * 100)
+        : 0;
+    };
+
     // Overall score (0-100)
-    const overallScore = items.length > 0
-      ? Math.round((passingItems / items.length) * 100)
-      : 0;
+    const overallScore = calculateWeightedScore(items);
 
     // Required score (P0 only - must be 100%)
-    const requiredPassing = requiredItems.filter(item => item.status === 'PASS').length;
-    const requiredScore = requiredItems.length > 0
-      ? Math.round((requiredPassing / requiredItems.length) * 100)
-      : 100;
+    const requiredScore = calculateWeightedScore(requiredItems);
 
     // Category breakdown
     const categories = new Map<string, CategoryScore>();
@@ -232,9 +264,7 @@ export class ChecklistValidator {
         ['PASS', 'FAIL', 'PARTIAL'].includes(item.status)
       ).length;
       const catPassing = catItems.filter(item => item.status === 'PASS').length;
-      const catScore = catItems.length > 0
-        ? Math.round((catPassing / catItems.length) * 100)
-        : 0;
+      const catScore = calculateWeightedScore(catItems);
 
       categories.set(catName, {
         name: catName,
