@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { PNG } from 'pngjs';
-import pixelmatch from 'pixelmatch';
 import { VisualRegressionResult, TestConfig } from '../types';
 
 export class BaselineManager {
@@ -80,6 +79,9 @@ export class BaselineManager {
     // Create diff image
     const { width, height } = baselineImage;
     const diff = new PNG({ width, height });
+
+    // Dynamically import pixelmatch
+    const pixelmatch = (await import('pixelmatch')).default;
 
     // Compare images
     const diffPixels = pixelmatch(
