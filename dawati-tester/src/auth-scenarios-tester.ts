@@ -3,6 +3,18 @@ import { getPage, navigateTo } from './browser';
 import { takeScreenshot } from './screenshot-manager';
 import { config } from './config';
 import { createChildLogger } from './logger';
+import {
+  AuthStep,
+  AuthFlowResult,
+  navigateToHome,
+  findAndClickSignIn,
+  enterPhoneNumber,
+  handleTermsCheckbox,
+  clickSendCode,
+  enterOtp,
+  clickVerify,
+  detectAuthRedirect,
+} from './auth-helpers';
 
 const log = createChildLogger('auth-scenarios');
 
@@ -17,13 +29,6 @@ export interface AuthScenarioResult {
   error?: string;
 }
 
-export interface AuthStep {
-  name: string;
-  success: boolean;
-  screenshot?: string;
-  error?: string;
-}
-
 /**
  * Test Scenario 1: New Customer - Phone OTP → Customer Onboarding Wizard
  */
@@ -35,7 +40,7 @@ export async function testNewCustomerPhone(): Promise<AuthScenarioResult> {
   try {
     const result = await phoneAuthFlow(
       config.testUsers.phone.newCustomer,
-      '123456',
+      config.testOtp,
       scenario,
       steps
     );
@@ -96,7 +101,7 @@ export async function testExistingCustomerPhone(): Promise<AuthScenarioResult> {
   try {
     const result = await phoneAuthFlow(
       config.testUsers.phone.existingCustomer,
-      '123456',
+      config.testOtp,
       scenario,
       steps
     );
@@ -157,7 +162,7 @@ export async function testNewVendorPhone(): Promise<AuthScenarioResult> {
   try {
     const result = await phoneAuthFlow(
       config.testUsers.phone.newVendor,
-      '123456',
+      config.testOtp,
       scenario,
       steps
     );
@@ -218,7 +223,7 @@ export async function testExistingVendorPhone(): Promise<AuthScenarioResult> {
   try {
     const result = await phoneAuthFlow(
       config.testUsers.phone.existingVendor,
-      '123456',
+      config.testOtp,
       scenario,
       steps
     );
@@ -409,17 +414,6 @@ export async function runAllAuthScenarios(): Promise<AuthScenarioResult[]> {
   return results;
 }
 
-// ========================================
-// HELPER FUNCTIONS
-// ========================================
-
-interface AuthFlowResult {
-  success: boolean;
-  wizardDetected: boolean;
-  dashboardReached: boolean;
-  error?: string;
-}
-
 /**
  * Phone authentication flow (reusable for all phone scenarios)
  */
@@ -431,209 +425,38 @@ async function phoneAuthFlow(
 ): Promise<AuthFlowResult> {
   const page = await getPage();
 
-  // Step 1: Navigate to auth page
-  await navigateTo(config.dawatiUrl);
-  await page.waitForTimeout(1000);
-  const ss1 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_01_home`, 'Home page');
-  steps.push({ name: 'Navigate to home', success: true, screenshot: ss1.filename });
+  // Step 1: Navigate to home
+  await navigateToHome(page, scenarioName, steps);
 
-  // Step 2: Find and click sign in button
-  const signInSelectors = [
-    'text=Sign In',
-    'text=تسجيل الدخول',
-    'text=Login',
-    'text=دخول',
-    '[data-testid="sign-in"]',
-    'button:has-text("Sign")',
-  ];
-  await findAndClick(page, signInSelectors, 'sign-in');
-
-  await page.waitForTimeout(1000);
-  const ss2 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_02_login_page`, 'Login page');
-  steps.push({ name: 'Open login page', success: true, screenshot: ss2.filename });
+  // Step 2: Find and click sign in
+  await findAndClickSignIn(page, log, scenarioName, steps);
 
   // Step 3: Enter phone number
-  const phoneInputSelectors = [
-    'input[type="tel"]',
-    'input[name="phone"]',
-    'input[placeholder*="phone"]',
-    'input[placeholder*="هاتف"]',
-    '[data-testid="phone-input"]',
-  ];
-
-  const phoneEntered = await findAndFill(page, phoneInputSelectors, phoneNumber, 'phone');
-
-  if (!phoneEntered) {
-    steps.push({ name: 'Enter phone', success: false, error: 'Phone input not found' });
+  const phoneSuccess = await enterPhoneNumber(page, phoneNumber, log, scenarioName, steps);
+  if (!phoneSuccess) {
     return { success: false, wizardDetected: false, dashboardReached: false, error: 'Phone input not found' };
   }
 
-  const ss3 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_03_phone_entered`, 'Phone entered');
-  steps.push({ name: 'Enter phone', success: true, screenshot: ss3.filename });
+  // Step 4: Check terms
+  await handleTermsCheckbox(page, log);
 
-  // Step 4: Check terms checkbox
-  const termsCheckboxSelectors = [
-    'input[type="checkbox"]',
-    '[data-testid="terms-checkbox"]',
-    'input[name="terms"]',
-    'input[name="acceptTerms"]',
-    '[role="checkbox"]',
-  ];
-  await findAndCheck(page, termsCheckboxSelectors, 'terms checkbox');
-
-  await page.waitForTimeout(500);
-
-  // Step 5: Click send code button
-  const sendCodeSelectors = [
-    'text=Send Code',
-    'text=Continue',
-    'text=متابعة',
-    'button[type="submit"]',
-    '[data-testid="send-code"]',
-  ];
-
-  const codeSent = await findAndClick(page, sendCodeSelectors, 'send code');
-
-  if (!codeSent) {
-    steps.push({ name: 'Send code', success: false, error: 'Send button not found' });
+  // Step 5: Click send code
+  const sendCodeSuccess = await clickSendCode(page, log, scenarioName, steps);
+  if (!sendCodeSuccess) {
     return { success: false, wizardDetected: false, dashboardReached: false, error: 'Send button not found' };
   }
 
-  await page.waitForTimeout(3000);
-  const ss4 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_04_otp_screen`, 'OTP screen');
-  steps.push({ name: 'Request OTP', success: true, screenshot: ss4.filename });
-
   // Step 6: Enter OTP
-  let otpEntered = false;
-  const otpInputSelectors = [
-    'input[type="text"]',
-    'input[type="number"]',
-    'input[name="otp"]',
-    '[data-testid="otp-input"]',
-  ];
-
-  if (await findAndFill(page, otpInputSelectors, otpCode, 'OTP')) {
-    otpEntered = true;
-  } else {
-    // Try multiple digit inputs
-    const digits = otpCode.split('');
-    let digitsEntered = 0;
-    for (let i = 0; i < digits.length; i++) {
-      try {
-        const digitInput = page.locator('input[type="text"]').nth(i);
-        if (await digitInput.isVisible({ timeout: 1000 })) {
-          await digitInput.fill(digits[i]);
-          digitsEntered++;
-        }
-      } catch {
-        break;
-      }
-    }
-    otpEntered = digitsEntered === digits.length;
-  }
-
-  if (!otpEntered) {
-    steps.push({ name: 'Enter OTP', success: false, error: 'OTP input not found' });
+  const otpSuccess = await enterOtp(page, otpCode, log, scenarioName, steps);
+  if (!otpSuccess) {
     return { success: false, wizardDetected: false, dashboardReached: false, error: 'OTP input not found' };
   }
 
-  await page.waitForTimeout(1000);
-  const ss5 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_05_otp_entered`, 'OTP entered');
-  steps.push({ name: 'Enter OTP', success: true, screenshot: ss5.filename });
-
   // Step 7: Click verify
-  const verifySelectors = [
-    'text=Verify',
-    'text=تحقق',
-    'text=Submit',
-    'button[type="submit"]',
-    '[data-testid="verify"]',
-  ];
-  await findAndClick(page, verifySelectors, 'verify');
+  await clickVerify(page, log);
 
-  // Step 8: Wait for result (wizard or dashboard)
-  log.info('Waiting for redirect...');
-  await page.waitForTimeout(5000);
-
-  const currentUrl = await page.url();
-  log.info(`Current URL after auth: ${currentUrl}`);
-
-  // Check for wizard
-  const wizardIndicators = [
-    '/onboarding',
-    '/wizard',
-    '/vendor-onboarding',
-    'text=Welcome',
-    'text=مرحباً',
-    'text=Business',
-    'text=Step 1',
-  ];
-
-  let wizardDetected = false;
-  for (const indicator of wizardIndicators) {
-    try {
-      if (indicator.startsWith('/')) {
-        if (currentUrl.includes(indicator)) {
-          wizardDetected = true;
-          log.info(`Wizard detected: URL contains ${indicator}`);
-          break;
-        }
-      } else {
-        if (await page.locator(indicator).isVisible({ timeout: 2000 })) {
-          wizardDetected = true;
-          log.info(`Wizard detected: Found ${indicator}`);
-          break;
-        }
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  // Check for dashboard
-  const dashboardIndicators = [
-    '/dashboard',
-    '/home',
-    '/events',
-    '/vendor-dashboard',
-    'text=Dashboard',
-    'text=My Events',
-    '[data-testid="dashboard"]',
-  ];
-
-  let dashboardReached = false;
-  for (const indicator of dashboardIndicators) {
-    try {
-      if (indicator.startsWith('/')) {
-        if (currentUrl.includes(indicator)) {
-          dashboardReached = true;
-          log.info(`Dashboard detected: URL contains ${indicator}`);
-          break;
-        }
-      } else {
-        if (await page.locator(indicator).isVisible({ timeout: 2000 })) {
-          dashboardReached = true;
-          log.info(`Dashboard detected: Found ${indicator}`);
-          break;
-        }
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  const ss6 = await takeScreenshot(`${scenarioName.replace(/\s+/g, '_').toLowerCase()}_06_final`, 'Final state');
-  steps.push({
-    name: wizardDetected ? 'Wizard shown' : 'Dashboard reached',
-    success: true,
-    screenshot: ss6.filename,
-  });
-
-  return {
-    success: true,
-    wizardDetected,
-    dashboardReached,
-  };
+  // Step 8: Detect redirect
+  return await detectAuthRedirect(page, log, scenarioName, steps);
 }
 
 /**

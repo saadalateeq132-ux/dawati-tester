@@ -15,7 +15,6 @@
     "test:scroll": "npm run build && node dist/index.js --only=scrolling",
     "test:rtl": "npm run build && node dist/index.js --only=rtl",
     "test:devices": "npm run build && node dist/index.js --all-devices",
-    "test:unit": "npm run build && node dist/device-manager.test.js",
     "coverage": "npm run build && node dist/scripts/check-coverage.js",
     "coverage:verbose": "npm run build && node dist/scripts/check-coverage.js --verbose",
     "coverage:category": "npm run build && node dist/scripts/check-coverage.js --category",
