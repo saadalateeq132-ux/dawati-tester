@@ -1,0 +1,99 @@
+name: Dawati Test Suite
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Run nightly at 2am Saudi Arabia time (11pm UTC)
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to run (auth, marketplace, events, vendor, bookings, account, components, misc, all)'
+        required: false
+        default: 'all'
+      headless:
+        description: 'Run headless'
+        required: false
+        default: 'true'
+
+env:
+  BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:8081' }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_LOCATION: ${{ secrets.GCP_LOCATION || 'us-central1' }}
+  GCP_MODEL: ${{ secrets.GCP_MODEL || 'gemini-3-flash-001' }}
+  HEADLESS: 'true'
+  NODE_ENV: ci
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dawati-tester/vertex-ai-testing/package-lock.json
+      - run: npm ci
+        working-directory: dawati-tester/vertex-ai-testing
+      - run: npx tsc --noEmit
+        working-directory: dawati-tester/vertex-ai-testing
+
+  test:
+    name: Run Tests
+    needs: typecheck
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [auth, marketplace, events, vendor, bookings, account, components, misc]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dawati-tester/vertex-ai-testing/package-lock.json
+      - run: npm ci
+        working-directory: dawati-tester/vertex-ai-testing
+      - run: npx playwright install --with-deps chromium
+        working-directory: dawati-tester/vertex-ai-testing
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Run ${{ matrix.suite }} suite
+        working-directory: dawati-tester/vertex-ai-testing
+        run: |
+          case "${{ matrix.suite }}" in
+            auth) npx ts-node tests/auth-flow.test.ts ;;
+            marketplace) npx ts-node tests/marketplace.test.ts ;;
+            events) npx ts-node tests/event-creation.test.ts ;;
+            vendor) npx ts-node tests/vendor-dashboard.test.ts ;;
+            bookings) npx ts-node tests/bookings.test.ts ;;
+            account) npx ts-node tests/account-settings.test.ts ;;
+            components) npx ts-node tests/component-deep.test.ts ;;
+            misc) npx ts-node tests/misc-pages.test.ts ;;
+          esac
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report-${{ matrix.suite }}
+          path: dawati-tester/vertex-ai-testing/reports/
+          retention-days: 30
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ matrix.suite }}
+          path: dawati-tester/vertex-ai-testing/artifacts/
+          retention-days: 14

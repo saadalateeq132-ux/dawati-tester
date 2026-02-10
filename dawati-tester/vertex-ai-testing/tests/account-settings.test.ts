@@ -27,6 +27,7 @@ async function main() {
       id: 'account-home',
       name: 'Account Settings Home',
       description: 'Main account/settings menu page',
+      checklistItems: ['ACC-F01', 'ACC-F02', 'ACC-F03', 'ACC-F04', 'ACC-F05', 'ACC-F06', 'ACC-F07', 'ACC-F08'],
       actions: [
         {
           type: 'navigate',
@@ -62,6 +63,7 @@ async function main() {
       id: 'account-home-scroll',
       name: 'Account Settings Scrolled',
       description: 'Bottom of account settings page',
+      checklistItems: ['ACC-F12', 'ACC-F17', 'ACC-F18'],
       actions: [
         {
           type: 'scroll-to-bottom',
@@ -84,6 +86,7 @@ async function main() {
       id: 'edit-profile',
       name: 'Edit Profile Page',
       description: 'User profile editing form',
+      checklistItems: ['ACC-F01', 'ACC-F26'],
       actions: [
         {
           type: 'navigate',
@@ -115,6 +118,7 @@ async function main() {
       id: 'wallet-page',
       name: 'Wallet Page',
       description: 'User balance and credits',
+      checklistItems: ['ACC-F06', 'ACC-F07'],
       actions: [
         {
           type: 'navigate',
@@ -144,6 +148,7 @@ async function main() {
       id: 'packages-page',
       name: 'Packages Page',
       description: 'Invitation credit packages',
+      checklistItems: ['ACC-F06'],
       actions: [
         {
           type: 'navigate',
@@ -173,6 +178,7 @@ async function main() {
       id: 'notifications-settings',
       name: 'Notification Settings',
       description: 'Push/email/SMS notification preferences',
+      checklistItems: ['ACC-F09', 'SET-F02'],
       actions: [
         {
           type: 'navigate',
@@ -201,6 +207,7 @@ async function main() {
       id: 'appearance-settings',
       name: 'Appearance Settings',
       description: 'Theme and language settings',
+      checklistItems: ['ACC-F20', 'SET-F01', 'ACC-F08'],
       actions: [
         {
           type: 'navigate',
@@ -229,6 +236,7 @@ async function main() {
       id: 'security-page',
       name: 'Security Settings',
       description: 'Password, 2FA, login history',
+      checklistItems: ['ACC-F04', 'ACC-F05', 'ACC-F13', 'ACC-F14', 'SET-F04'],
       actions: [
         {
           type: 'navigate',
@@ -259,6 +267,7 @@ async function main() {
       id: 'help-page',
       name: 'Help Page',
       description: 'Help center and support',
+      checklistItems: ['ACC-F17'],
       actions: [
         {
           type: 'navigate',

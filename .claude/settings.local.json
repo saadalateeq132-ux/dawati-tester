@@ -85,7 +85,19 @@
       "Bash(\"C:/Users/pc/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd\" ai models list --region=europe-west1 --project=gen-lang-client-0239967081)",
       "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"C:/Users/pc/AppData/Roaming/gcloud/application_default_credentials.json\" node -e:*)",
       "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"C:/Users/pc/AppData/Roaming/gcloud/application_default_credentials.json\" npx ts-node:*)",
-      "Bash(\"/c/Users/pc/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd\" storage buckets create gs://gen-lang-client-0239967081-training --location=europe-west4)"
+      "Bash(\"/c/Users/pc/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd\" storage buckets create gs://gen-lang-client-0239967081-training --location=europe-west4)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(git status:*)",
+      "Bash(gh repo view:*)",
+      "Bash(dir:*)",
+      "Bash(git -C \"c:\\\\Users\\\\pc\\\\Desktop\\\\new\" remote -v)",
+      "Bash(git -C \"c:\\\\Users\\\\pc\\\\Desktop\\\\new\" log --oneline -20)",
+      "Bash(git -C \"c:\\\\Users\\\\pc\\\\Desktop\\\\new\" pull origin master)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(echo:*)"
     ]
   }
 }

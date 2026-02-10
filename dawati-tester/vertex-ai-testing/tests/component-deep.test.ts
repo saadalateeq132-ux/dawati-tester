@@ -285,7 +285,14 @@ async function main() {
       validations: [
         {
           type: 'ai',
-          description: 'Check: if vendor dashboard - stats cards aligned, bookings list RTL, tab bar at bottom. If redirected - page correct. No errors or blank screens.',
+          description: `Check vendor dashboard layout:
+1. Stats cards aligned in 2x2 grid with RTL flow (first card top-RIGHT)
+2. Bookings list with RTL layout (customer icon on RIGHT, amount on LEFT)
+3. Tab bar at bottom with Arabic labels
+4. No errors, crashes, or blank screens
+5. No hardcoded English UI text (customer names like "Sarah Ahmed" are data, not UI)
+6. CURRENCY: Saudi Riyal SVG icon (﷼) should appear AFTER the number in RTL reading order. In RTL, reading right-to-left: number first, then symbol. On screen the number may appear on the right and symbol on the left — this is CORRECT for RTL.
+7. DATES: Hijri calendar months (رمضان/شعبان/etc.) are CORRECT — do not flag as Gregorian.`,
         },
         { type: 'rtl', description: 'RTL check' },
       ],

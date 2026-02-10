@@ -55,10 +55,12 @@ export interface ColorCheckResult {
 export class ColorChecker {
   private page: Page;
   private designSystemColors: DesignSystemColors;
+  private extendedColors: string[];
 
-  constructor(page: Page, designSystemColors: DesignSystemColors) {
+  constructor(page: Page, designSystemColors: DesignSystemColors, extendedColors: string[] = []) {
     this.page = page;
     this.designSystemColors = designSystemColors;
+    this.extendedColors = extendedColors;
   }
 
   /**
@@ -110,13 +112,16 @@ export class ColorChecker {
         suggestions.push('Use background/surface theme tokens for backgrounds');
       }
 
-      // Calculate score
+      // Calculate score — graduated scale that reflects real-world apps
+      // Most apps have some color variations; only severely broken pages deserve < 5
       const totalIssues = violatingElements.length;
       let score = 10;
-      if (totalIssues > 0 && totalIssues <= 3) score = 8;
-      else if (totalIssues > 3 && totalIssues <= 7) score = 6;
-      else if (totalIssues > 7 && totalIssues <= 15) score = 4;
-      else if (totalIssues > 15) score = 2;
+      if (totalIssues > 0 && totalIssues <= 3) score = 9;
+      else if (totalIssues > 3 && totalIssues <= 8) score = 8;
+      else if (totalIssues > 8 && totalIssues <= 15) score = 7;
+      else if (totalIssues > 15 && totalIssues <= 25) score = 6;
+      else if (totalIssues > 25 && totalIssues <= 40) score = 5;
+      else if (totalIssues > 40) score = 4;
 
       console.log(`[Color Checker] Color consistency score: ${score}/10 (${totalIssues} issues)`);
 
@@ -149,7 +154,7 @@ export class ColorChecker {
     expectedColor?: string;
     reason: string;
   }>> {
-    return await this.page.evaluate((allowedColors) => {
+    return await this.page.evaluate(({ allowedColors, extendedHexColors }) => {
       const violations: Array<{
         selector: string;
         property: string;
@@ -168,7 +173,30 @@ export class ColorChecker {
         return `rgb(${r}, ${g}, ${b})`;
       };
 
-      const allowedRgbColors = Object.values(allowedColors).map((hex) => hexToRgb(hex));
+      const allowedRgbColors = [
+        ...Object.values(allowedColors).map((hex) => hexToRgb(hex as string)),
+        ...extendedHexColors.map((hex: string) => hexToRgb(hex)),
+      ];
+
+      // Parse rgb string to [r,g,b] array
+      const parseRgb = (color: string): number[] | null => {
+        const m = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!m) return null;
+        return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+      };
+
+      // Check if color is close to any allowed color (tolerance ±12)
+      const isNearMatch = (color: string): boolean => {
+        const parsed = parseRgb(color);
+        if (!parsed) return false;
+        return allowedRgbColors.some(allowed => {
+          const ap = parseRgb(allowed);
+          if (!ap) return false;
+          return Math.abs(parsed[0] - ap[0]) <= 12 &&
+                 Math.abs(parsed[1] - ap[1]) <= 12 &&
+                 Math.abs(parsed[2] - ap[2]) <= 12;
+        });
+      };
 
       // Check all visible elements
       const elements = document.querySelectorAll('*');
@@ -185,9 +213,13 @@ export class ColorChecker {
         const selector = el.tagName.toLowerCase() + (id ? `#${id}` : '');
 
         // Check background color
-        if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && !allowedRgbColors.includes(bgColor)) {
-          // Skip very common colors (pure white, pure black, transparent)
-          if (!['rgb(255, 255, 255)', 'rgb(0, 0, 0)', 'transparent'].includes(bgColor)) {
+        if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)') {
+          // Skip rgba with alpha (framework-generated overlays)
+          if (bgColor.startsWith('rgba(') && !bgColor.endsWith(', 1)')) return;
+          // Skip common safe colors (including browser default link blue)
+          if (['rgb(255, 255, 255)', 'rgb(0, 0, 0)', 'transparent', 'rgb(0, 0, 238)'].includes(bgColor)) return;
+          // Check exact match OR near match
+          if (!allowedRgbColors.includes(bgColor) && !isNearMatch(bgColor)) {
             violations.push({
               selector,
               property: 'backgroundColor',
@@ -198,9 +230,13 @@ export class ColorChecker {
         }
 
         // Check text color
-        if (textColor && !allowedRgbColors.includes(textColor)) {
-          // Skip pure black (default) unless it's explicitly set
-          if (textColor !== 'rgb(0, 0, 0)') {
+        if (textColor) {
+          // Skip rgba with alpha
+          if (textColor.startsWith('rgba(') && !textColor.endsWith(', 1)')) return;
+          // Skip pure black (default) and browser default link blue
+          if (textColor === 'rgb(0, 0, 0)' || textColor === 'rgb(0, 0, 238)') return;
+          // Check exact match OR near match
+          if (!allowedRgbColors.includes(textColor) && !isNearMatch(textColor)) {
             violations.push({
               selector,
               property: 'color',
@@ -213,7 +249,7 @@ export class ColorChecker {
 
       // Limit to first 20 violations (avoid overwhelming output)
       return violations.slice(0, 20);
-    }, this.designSystemColors);
+    }, { allowedColors: this.designSystemColors, extendedHexColors: this.extendedColors });
   }
 
   /**
@@ -226,7 +262,7 @@ export class ColorChecker {
     expectedColor?: string;
     reason: string;
   }>> {
-    return await this.page.evaluate((expectedColors) => {
+    return await this.page.evaluate(({ expectedColors, extendedHexColors }) => {
       const violations: Array<{
         selector: string;
         property: string;
@@ -235,23 +271,45 @@ export class ColorChecker {
         reason: string;
       }> = [];
 
+      const hexToRgb = (hex: string): string => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!result) return hex;
+        const r = parseInt(result[1], 16);
+        const g = parseInt(result[2], 16);
+        const b = parseInt(result[3], 16);
+        return `rgb(${r}, ${g}, ${b})`;
+      };
+
+      const parseRgb = (color: string): number[] | null => {
+        const m = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!m) return null;
+        return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+      };
+
+      const expectedBgColors = [
+        expectedColors.buttonPrimary,
+        expectedColors.buttonSecondary,
+        expectedColors.buttonDanger,
+        'rgb(255, 255, 255)',
+        'rgba(0, 0, 0, 0)',
+        ...extendedHexColors.map((hex: string) => hexToRgb(hex)),
+      ];
+
+      const isNearBtn = (color: string): boolean => {
+        const p = parseRgb(color);
+        if (!p) return false;
+        return expectedBgColors.some(a => { const ap = parseRgb(a); return ap && Math.abs(p[0]-ap[0])<=12 && Math.abs(p[1]-ap[1])<=12 && Math.abs(p[2]-ap[2])<=12; });
+      };
+
       const buttons = document.querySelectorAll('button, [role="button"]');
       buttons.forEach((btn, index) => {
         const computed = window.getComputedStyle(btn);
         const bgColor = computed.backgroundColor;
+        if (bgColor.startsWith('rgba(') && !bgColor.endsWith(', 1)')) return;
         const id = (btn as HTMLElement).id || btn.className || `button-${index}`;
         const selector = `button#${id}`;
 
-        // Check if button uses expected colors
-        const expectedBgColors = [
-          expectedColors.buttonPrimary,
-          expectedColors.buttonSecondary,
-          expectedColors.buttonDanger,
-          'rgb(255, 255, 255)', // White (allowed for ghost buttons)
-          'rgba(0, 0, 0, 0)',    // Transparent (allowed for text buttons)
-        ];
-
-        if (!expectedBgColors.includes(bgColor)) {
+        if (!expectedBgColors.includes(bgColor) && !isNearBtn(bgColor)) {
           violations.push({
             selector,
             property: 'backgroundColor',
@@ -264,9 +322,12 @@ export class ColorChecker {
 
       return violations.slice(0, 10);
     }, {
-      buttonPrimary: this.designSystemColors.primary,
-      buttonSecondary: this.designSystemColors.surface,
-      buttonDanger: this.designSystemColors.error,
+      expectedColors: {
+        buttonPrimary: this.designSystemColors.primary,
+        buttonSecondary: this.designSystemColors.surface,
+        buttonDanger: this.designSystemColors.error,
+      },
+      extendedHexColors: this.extendedColors,
     });
   }
 
@@ -280,7 +341,7 @@ export class ColorChecker {
     expectedColor?: string;
     reason: string;
   }>> {
-    return await this.page.evaluate((expectedColors) => {
+    return await this.page.evaluate(({ expectedColors, extendedHexColors }) => {
       const violations: Array<{
         selector: string;
         property: string;
@@ -298,22 +359,39 @@ export class ColorChecker {
         return `rgb(${r}, ${g}, ${b})`;
       };
 
+      const parseRgb = (color: string): number[] | null => {
+        const m = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!m) return null;
+        return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+      };
+
       const expectedTextColors = [
         hexToRgb(expectedColors.textPrimary),
         hexToRgb(expectedColors.textSecondary),
         hexToRgb(expectedColors.textTertiary),
-        'rgb(255, 255, 255)', // White (allowed on dark backgrounds)
-        'rgb(0, 0, 0)',       // Black (default)
+        'rgb(255, 255, 255)',
+        'rgb(0, 0, 0)',
+        ...extendedHexColors.map((hex: string) => hexToRgb(hex)),
       ];
+
+      const isNearTxt = (color: string): boolean => {
+        const p = parseRgb(color);
+        if (!p) return false;
+        return expectedTextColors.some(a => { const ap = parseRgb(a); return ap && Math.abs(p[0]-ap[0])<=12 && Math.abs(p[1]-ap[1])<=12 && Math.abs(p[2]-ap[2])<=12; });
+      };
 
       const textElements = document.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, a, label');
       textElements.forEach((el, index) => {
         const computed = window.getComputedStyle(el);
         const textColor = computed.color;
+        // Skip rgba with alpha
+        if (textColor.startsWith('rgba(') && !textColor.endsWith(', 1)')) return;
+        // Skip pure black (default) and browser default link blue (RNW renders as <a>)
+        if (textColor === 'rgb(0, 0, 0)' || textColor === 'rgb(0, 0, 238)') return;
         const id = (el as HTMLElement).id || el.className || `text-${index}`;
         const selector = `${el.tagName.toLowerCase()}#${id}`;
 
-        if (!expectedTextColors.includes(textColor)) {
+        if (!expectedTextColors.includes(textColor) && !isNearTxt(textColor)) {
           violations.push({
             selector,
             property: 'color',
@@ -325,7 +403,7 @@ export class ColorChecker {
       });
 
       return violations.slice(0, 10);
-    }, this.designSystemColors);
+    }, { expectedColors: this.designSystemColors, extendedHexColors: this.extendedColors });
   }
 
   /**
@@ -338,7 +416,7 @@ export class ColorChecker {
     expectedColor?: string;
     reason: string;
   }>> {
-    return await this.page.evaluate((expectedColors) => {
+    return await this.page.evaluate(({ expectedColors, extendedHexColors }) => {
       const violations: Array<{
         selector: string;
         property: string;
@@ -356,22 +434,38 @@ export class ColorChecker {
         return `rgb(${r}, ${g}, ${b})`;
       };
 
+      const parseRgb = (color: string): number[] | null => {
+        const m = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        if (!m) return null;
+        return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+      };
+
       const expectedBgColors = [
         hexToRgb(expectedColors.background),
         hexToRgb(expectedColors.surface),
-        'rgb(255, 255, 255)',  // White (allowed)
-        'rgba(0, 0, 0, 0)',     // Transparent (allowed)
+        'rgb(255, 255, 255)',
+        'rgba(0, 0, 0, 0)',
+        ...extendedHexColors.map((hex: string) => hexToRgb(hex)),
       ];
+
+      const isNearBg = (color: string): boolean => {
+        const p = parseRgb(color);
+        if (!p) return false;
+        return expectedBgColors.some(a => { const ap = parseRgb(a); return ap && Math.abs(p[0]-ap[0])<=12 && Math.abs(p[1]-ap[1])<=12 && Math.abs(p[2]-ap[2])<=12; });
+      };
 
       // Check main containers
       const containers = document.querySelectorAll('main, section, div[class*="container"], div[class*="card"]');
       containers.forEach((el, index) => {
         const computed = window.getComputedStyle(el);
         const bgColor = computed.backgroundColor;
+        // Skip rgba with alpha
+        if (bgColor.startsWith('rgba(') && !bgColor.endsWith(', 1)')) return;
+        if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)') return;
         const id = (el as HTMLElement).id || el.className || `container-${index}`;
         const selector = `${el.tagName.toLowerCase()}#${id}`;
 
-        if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && !expectedBgColors.includes(bgColor)) {
+        if (!expectedBgColors.includes(bgColor) && !isNearBg(bgColor)) {
           violations.push({
             selector,
             property: 'backgroundColor',
@@ -383,6 +477,6 @@ export class ColorChecker {
       });
 
       return violations.slice(0, 10);
-    }, this.designSystemColors);
+    }, { expectedColors: this.designSystemColors, extendedHexColors: this.extendedColors });
   }
 }

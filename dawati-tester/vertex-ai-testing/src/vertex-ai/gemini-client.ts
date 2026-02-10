@@ -246,8 +246,8 @@ For EACH screenshot, analyze:
    - Hardcoded English text: Submit, Cancel, Save, Delete, Edit, Add, Search, Loading, Error, Login, etc.
    - Hardcoded Arabic text (should use i18n keys): إرسال, إلغاء, حفظ, حذف, تعديل, إضافة, بحث, تحميل, خطأ, etc.
    - BiDi text handling: Mixed Arabic/English without proper isolation (phone numbers, emails in Arabic context)
-   - Currency formatting: Hardcoded text (SAR/sar/ريال/ر.س/س.ر/سر/رس) should be replaced with SVG icon. Symbol MUST be after number ("100 [icon]" not "[icon] 100")
-   - Date formatting: Hijri calendar support, DD/MM/YYYY format
+   - Currency formatting: Hardcoded text (SAR/sar/ريال/ر.س/س.ر/سر/رس) should be replaced with SVG icon. In RTL layout, the currency icon appears to the LEFT of the number on screen — this is CORRECT because Arabic reads right-to-left (number first, then symbol). Do NOT flag this as "symbol before number."
+   - Date formatting: Hijri calendar support. Month names like رمضان/شعبان/ذو الحجة ARE Hijri months — do NOT flag as Gregorian.
    - Number formatting: Consistency (Western 0-9 or Arabic ٠-٩)
    - Layout expansion: Elements too small for Arabic text (30% longer than English)
    - Icon alignment: Directional icons should flip in RTL
@@ -292,7 +292,7 @@ Respond in this JSON format:
   ]
 }
 
-IMPORTANT: Saudi Arabia uses Arabic RTL, SAR currency (replace hardcoded SAR/ريال/ر.س/س.ر/سر with SVG icon, place after number), Hijri calendar, DD/MM/YYYY format.`;
+IMPORTANT: Saudi Arabia uses Arabic RTL. Currency: replace hardcoded SAR/ريال/ر.س text with SVG icon. In RTL the icon appears LEFT of number on screen — this is correct (Arabic reads R-to-L). Hijri calendar: months like رمضان are Hijri, not Gregorian.`;
   }
 
   private buildSinglePrompt(phase: string): string {
@@ -300,25 +300,35 @@ IMPORTANT: Saudi Arabia uses Arabic RTL, SAR currency (replace hardcoded SAR/ر�
 
 ⚠️ CRITICAL: First check if this is an error page (404, NOT_FOUND, deployment error). If so, report as CRITICAL issue.
 
-Analyze this screenshot for:
+Analyze this screenshot for ALL THREE testing levels:
 
-1. **UI/UX Issues**: Layout problems, visual bugs, text overflow, missing elements
-2. **Functionality Issues**: Broken elements, error pages, incomplete states
-3. **RTL Issues** (COMPREHENSIVE - Saudi Arabia):
-   - Text direction (right-to-left for Arabic)
-   - Hardcoded English: Submit, Cancel, Save, Delete, Edit, Add, Search, Loading, Error, etc.
-   - Hardcoded Arabic: إرسال, إلغاء, حفظ, حذف, تعديل, إضافة, بحث, تحميل, خطأ, etc.
-   - BiDi handling: Mixed Arabic/English
-   - Currency: Hardcoded text (SAR/sar/ريال/ر.س/س.ر/سر/رس) should be replaced with SVG icon. Symbol MUST be after number ("100 [icon]" not "[icon] 100")
-   - Dates: Hijri calendar, DD/MM/YYYY
-   - Numbers: Consistency
-   - Layout: 30% expansion for Arabic
-4. **Image Text (OCR)**: Read text in images/graphics
-5. **Mobile UI** (iOS/Android app):
-   - Tap targets: min 44x44px (iOS) or 48x48dp (Android)
-   - Text size: minimum 14px for readability
-   - Elements cut off on mobile
-6. **Accessibility**: Labels, contrast, touch targets
+**LEVEL 1 — Visual & User Experience:**
+1. **UI/UX Issues**: Layout problems, visual bugs, text overflow, missing elements, overlapping elements
+2. **Component Consistency**: Back button position, header uniformity, tab bar alignment, primary button consistency
+3. **Notifications/Alerts**: Pop-ups, in-app alerts visible and properly rendered
+4. **Mobile Responsiveness**: Portrait layout correctness, touch gesture areas, no visual distortions
+
+**LEVEL 2 — Data Validation & Components:**
+5. **Hardcoded Values Detection**:
+   - English strings: Submit, Cancel, Save, Delete, Edit, Add, Remove, Search, Filter, Sort, View, Back, Next, Previous, Loading, Error, Success, Welcome, Hello, Sign In, Sign Up, Log In, Log Out, Profile, Settings, Home, Continue, OK, Yes, No, Menu, Cart, Book Now, Upload Photo, Event Details, Vendor List, Availability, Confirm, Reset
+   - Currency text: SAR/sar/ريال/ر.س (should use SVG icon). In RTL, icon LEFT of number = CORRECT.
+   - Number format: Flag Arabic-Eastern numerals (١٢٣٤) if used instead of Western (1234) in UI
+6. **Form Validation**: Email (@+domain), phone (+966), password complexity, required markers
+7. **Mock/Placeholder Data**: lorem ipsum, test@test.com, placeholder images, TODO text
+
+**LEVEL 3 — Backend & Data Flow:**
+8. **Functionality Issues**: Broken elements, error pages, incomplete states, disconnected buttons
+9. **State Management**: Data loss indicators, empty states that should have content
+
+**RTL Issues** (COMPREHENSIVE — 21 checks):
+   - Text direction, alignment, margin/padding direction
+   - BiDi handling: Mixed Arabic/English without isolation
+   - Hijri calendar: Month names like رمضان/شعبان/ذو الحجة ARE Hijri — do NOT flag
+   - Layout expansion (30% rule), icon alignment, flexbox direction
+   - Typography: lineHeight >= fontSize for Arabic
+   - Accessibility: lang="ar", ARIA labels, contrast
+10. **Image Text (OCR)**: Read ALL text in images/graphics, flag if not localized
+11. **Mobile UI**: Tap targets (min 44x44px iOS, 48x48dp Android), text >= 14px
 
 Phase: ${phase}
 
@@ -327,12 +337,12 @@ Respond in JSON:
   "decision": "PASS" | "FAIL" | "UNKNOWN",
   "confidence": 0.0-1.0,
   "reason": "Brief explanation",
-  "issues": [...],
-  "rtlIssues": [...],
-  "hardcodedText": [...],
-  "imageText": [...],
-  "currencyIssues": [...],
-  "dateIssues": [...],
+  "issues": [{"severity":"critical|high|medium|low","category":"ui|functionality|rtl|accessibility|performance","title":"...","description":"...","suggestion":"...","location":"...","confidence":0.8}],
+  "rtlIssues": ["..."],
+  "hardcodedText": ["..."],
+  "imageText": ["..."],
+  "currencyIssues": ["..."],
+  "dateIssues": ["..."],
   "score": 0-10
 }`;
   }

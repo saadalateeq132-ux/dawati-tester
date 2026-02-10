@@ -48,7 +48,7 @@ export class ChecklistValidator {
   private checklist: ChecklistItem[] = [];
 
   constructor() {
-    this.checklistPath = path.join(__dirname, '../.planning/MASTER-TEST-CHECKLIST.md');
+    this.checklistPath = path.join(__dirname, '../../.planning/MASTER-TEST-CHECKLIST.md');
   }
 
   /**
@@ -82,9 +82,24 @@ export class ChecklistValidator {
       const line = lines[i];
 
       // Detect category headers (## 1️⃣ HOME PAGE)
-      if (line.startsWith('##') && line.includes('️⃣')) {
-        const match = line.match(/##\s+\d️⃣\s+(.+?)\s*\(/);
-        currentCategory = match ? match[1].trim() : '';
+      if (line.startsWith('## ') && !line.startsWith('### ')) {
+        const emojiMatch = line.match(/##\s+\d️⃣\s+(.+?)\s*\(/);
+        if (emojiMatch) {
+          currentCategory = emojiMatch[1].trim();
+        } else {
+          // Handle other ## headers like "## 🔥 PRIORITY 0: ..."
+          const otherMatch = line.match(/##\s+.+?\s+(.+)/);
+          currentCategory = otherMatch ? otherMatch[1].trim() : '';
+        }
+        continue;
+      }
+
+      // Detect sub-category headers (### Authentication & Security)
+      if (line.startsWith('### ') && !line.startsWith('####')) {
+        const subMatch = line.match(/###\s+(.+)/);
+        if (subMatch) {
+          currentCategory = subMatch[1].trim();
+        }
         continue;
       }
 
@@ -108,7 +123,8 @@ export class ChecklistValidator {
         const checked = line.includes('[x]');
 
         // Extract ID and name from format: - [ ] 📝 TODO ACC-003: Password change
-        const match = line.match(/\*\*([A-Z]+-[A-Z0-9]+)\*\*:(.+?)(\||$)/);
+        // Handles both bold (**ACC-003**:) and plain (ACC-003:) formats
+        const match = line.match(/(?:\*\*)?([A-Z]+-[A-Z0-9]+)(?:\*\*)?:\s*(.+?)(\||$)/);
 
         if (match) {
           const id = match[1];
@@ -134,15 +150,17 @@ export class ChecklistValidator {
         }
       }
 
-      // Parse table rows (| ACC-003 | Password change | ✅ PASS | P0 |)
+      // Parse table rows (| HOME-F01 | Feature | Test Case | ✅ PASS | P0 |)
       if (line.startsWith('|') && !line.includes('---') && !line.includes('ID |')) {
         const cols = line.split('|').map(c => c.trim()).filter(Boolean);
 
         if (cols.length >= 4) {
           const id = cols[0];
           const name = cols[1];
-          const statusCol = cols[2];
-          const priorityCol = cols[3];
+          // Handle 5-column format (ID | Feature | Test Case | Status | Priority)
+          // and 4-column format (ID | Feature | Status | Priority)
+          const statusCol = cols.length >= 5 ? cols[3] : cols[2];
+          const priorityCol = cols.length >= 5 ? cols[4] : cols[3];
 
           // Skip header rows
           if (id === 'ID' || id === 'Feature') continue;

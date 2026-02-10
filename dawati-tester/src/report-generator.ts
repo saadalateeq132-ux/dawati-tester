@@ -49,6 +49,10 @@ export interface TestReport {
   };
   visualChangesCount: number;
   checklistScore?: ChecklistScore;
+  aiStatus?: {
+    enabled: boolean;
+    skippedReason?: string | null;
+  };
 }
 
 const HTML_TEMPLATE = `
@@ -322,7 +326,27 @@ const HTML_TEMPLATE = `
                 <div class="stat-value">{{formatMs performanceSummary.avgLoadTimeMs}}</div>
                 <div class="stat-label">Avg Load Time</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-value {{#if aiStatus}}{{#unless aiStatus.enabled}}warning{{/unless}}{{/if}}">
+                    {{#if aiStatus}}{{#if aiStatus.enabled}}ON{{else}}SKIPPED{{/if}}{{else}}N/A{{/if}}
+                </div>
+                <div class="stat-label">AI Analysis</div>
+            </div>
         </div>
+
+        {{#if aiStatus}}
+        {{#unless aiStatus.enabled}}
+        <div class="section">
+            <h2 class="warning">AI Analysis Skipped</h2>
+            <p style="color: #666; margin-bottom: 10px;">AI analysis did not run for this test.</p>
+            {{#if aiStatus.skippedReason}}
+            <div class="issue-suggestion">
+                <strong>Reason:</strong> {{aiStatus.skippedReason}}
+            </div>
+            {{/if}}
+        </div>
+        {{/unless}}
+        {{/if}}
 
         {{#if (gt visualChangesCount 0)}}
         <div class="section">
@@ -545,7 +569,8 @@ export function generateReport(
   accessibilityResults: AccessibilityResult[] = [],
   performanceMetrics: PerformanceMetric[] = [],
   devicesTested: string[] = [],
-  checklistScore?: ChecklistScore
+  checklistScore?: ChecklistScore,
+  aiStatus?: { enabled: boolean; skippedReason?: string | null }
 ): TestReport {
   const endTime = new Date();
   const duration = (endTime.getTime() - startTime.getTime()) / 1000;
@@ -615,6 +640,7 @@ export function generateReport(
     accessibilitySummary,
     visualChangesCount,
     checklistScore,
+    aiStatus,
   };
 
   return report;
@@ -679,6 +705,7 @@ export function printReportSummary(report: TestReport): void {
 
   // AI Score (overall score from Gemini analysis)
   const aiScore = report.overallScore;
+  const aiStatus = report.aiStatus;
 
   // Checklist Score
   const checklistScore = report.checklistScore ? report.checklistScore.overallScore : null;
@@ -689,6 +716,13 @@ export function printReportSummary(report: TestReport): void {
   console.log('                    🎯 TEST SCORES                    ');
   console.log('═══════════════════════════════════════════════════════');
   console.log('');
+  if (aiStatus && !aiStatus.enabled) {
+    console.log('âڑ ï¸ڈ  AI analysis was skipped.');
+    if (aiStatus.skippedReason) {
+      console.log(`   Reason: ${aiStatus.skippedReason}`);
+    }
+    console.log('');
+  }
 
   // Score 1: RTL Score
   const rtlEmoji = rtlScore !== 'N/A' && parseFloat(rtlScore) >= 7 ? '✅' : rtlScore !== 'N/A' && parseFloat(rtlScore) >= 5 ? '⚠️' : '❌';

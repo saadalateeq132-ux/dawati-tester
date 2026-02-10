@@ -35,6 +35,9 @@ let issueCounter = 0;
 
 function getGenAI(): GoogleGenerativeAI {
   if (!genAI) {
+    if (!config.geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is required for AI analysis. Set it or run with --skip-ai.');
+    }
     genAI = new GoogleGenerativeAI(config.geminiApiKey);
   }
   return genAI;

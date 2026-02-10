@@ -141,9 +141,9 @@ private async checkCurrencyFormatting(): Promise<RTLCheckResult> {
 
 ---
 
-## ✅ RTL COMPREHENSIVE CHECKS (11 Total)
+## ✅ RTL COMPREHENSIVE CHECKS (18 Total)
 
-All 11 checks are implemented:
+All 18 checks are implemented:
 
 1. ✅ RTL Direction (dir="rtl")
 2. ✅ Text Alignment (start/end vs left/right)
@@ -154,8 +154,15 @@ All 11 checks are implemented:
 7. ✅ Hijri Calendar (12 month names)
 8. ✅ Layout Expansion (30% rule for Arabic)
 9. ✅ Icon Alignment (directional flipping)
-10. ✅ **Mobile Tap Target Sizes (44×44px minimum)** ⭐
-11. ✅ **Design System Color Consistency** ⭐ NEW
+10. ✅ Mobile Tap Target Sizes (44×44px minimum)
+11. ✅ Design System Color Consistency
+12. ✅ Element Overlap Detection
+13. ✅ Back Button / Navigation Position (RTL)
+14. ✅ Tab Bar (alignment, active state, RTL order)
+15. ✅ Flexbox Direction (row auto-flips in RTL)
+16. ✅ Form Input Direction (phone/numbers stay LTR)
+17. ✅ **Arabic Typography / lineHeight (prevents clipping)** ⭐ NEW
+18. ✅ **Animation Direction (translateX RTL awareness)** ⭐ NEW
 
 ---
 
@@ -265,7 +272,7 @@ checks.push(await this.checkColorConsistency());
 | **14 Test Suites** | ✅ DONE | 123 phases covering entire app |
 | **Mobile Tap Target Check** | ✅ DONE | Check 10/11 validates 44×44px |
 | **Currency Detection** | ✅ DONE | Detects SAR/ريال/ر.س/etc. |
-| **11 RTL Checks** | ✅ DONE | All comprehensive checks |
+| **18 RTL Checks** | ✅ DONE | All comprehensive checks |
 | **AI Mobile Prompts** | ✅ DONE | Detects mobile-specific issues |
 | **5 Mobile Devices** | ✅ DONE | iPhone, Samsung, iPad |
 | **Click Validation** | ✅ DONE | Verifies clicks work with expectAfterClick |

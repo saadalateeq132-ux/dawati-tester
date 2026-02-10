@@ -51,16 +51,21 @@ export interface TestPlan {
     runOnMajorPages: boolean;
     impactLevels: string[];
   };
+  aiAnalysis?: {
+    enabled?: boolean;
+  };
   execution?: {
     timeout: number;
     navigationTimeout: number;
     retryAttempts: number;
     retryDelayMs: number;
+    locale?: string;
+    timezone?: string;
   };
 }
 
 export interface RunnerOptions {
-  only?: 'auth' | 'navigation' | 'scrolling' | 'rtl' | 'all';
+  only?: 'auth' | 'navigation' | 'scrolling' | 'rtl' | 'auth+navigation' | 'all';
   skipAI?: boolean;
   deviceIndex?: number;
   testPlanPath?: string;
@@ -180,7 +185,7 @@ async function runTestsForDevice(
   }
 
   // Run tests based on options with retry logic
-  if (only === 'all' || only === 'auth') {
+  if (only === 'all' || only === 'auth' || only === 'auth+navigation') {
     printProgress('Authentication tests', 'start');
     const authResult = await safeExecute(
       () =>
@@ -198,7 +203,7 @@ async function runTestsForDevice(
     printProgress('Authentication tests', 'done', `${authPassed}/${results.authResults.length} passed`);
   }
 
-  if (only === 'all' || only === 'navigation') {
+  if (only === 'all' || only === 'navigation' || only === 'auth+navigation') {
     printProgress('Navigation tests', 'start');
     const navResult = await safeExecute(
       () =>
@@ -279,6 +284,20 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
 
   // Load test plan
   const testPlan = loadTestPlan(testPlanPath);
+  const locale = testPlan.execution?.locale || 'ar-SA';
+  const timezone = testPlan.execution?.timezone || 'Asia/Riyadh';
+  let aiEnabled = !skipAI && testPlan.aiAnalysis?.enabled !== false;
+  let aiSkippedReason: string | null = null;
+  if (skipAI) {
+    aiEnabled = false;
+    aiSkippedReason = 'Disabled via --skip-ai';
+  } else if (testPlan.aiAnalysis?.enabled === false) {
+    aiEnabled = false;
+    aiSkippedReason = 'Disabled by test plan (aiAnalysis.enabled=false)';
+  } else if (!config.geminiApiKey) {
+    aiEnabled = false;
+    aiSkippedReason = 'GEMINI_API_KEY missing (AI analysis skipped)';
+  }
 
   printBanner();
 
@@ -341,8 +360,8 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
 
     // Create device contexts
     const deviceContexts = await createDeviceContexts(devicesToTest, {
-      locale: 'ar-SA',
-      timezoneId: 'Asia/Riyadh',
+      locale,
+      timezoneId: timezone,
     });
 
     // Run tests for each device
@@ -399,12 +418,14 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
     }
 
     // AI Analysis
-    if (!skipAI) {
+    if (aiEnabled) {
       const screenshots = getScreenshots();
       printProgress('AI Analysis', 'start', `${screenshots.length} screenshots`);
       results.analysisResults = await analyzeAllScreenshots(screenshots);
       const totalIssues = results.analysisResults.reduce((sum, r) => sum + r.issues.length, 0);
       printProgress('AI Analysis', 'done', `${totalIssues} issues found`);
+    } else if (aiSkippedReason) {
+      console.warn(`\n⚠️  AI analysis skipped: ${aiSkippedReason}`);
     }
 
     // Checklist Validation
@@ -434,7 +455,8 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
       results.accessibilityResults,
       results.performanceMetrics,
       results.devicesTested,
-      results.checklistScore
+      results.checklistScore,
+      { enabled: aiEnabled, skippedReason: aiSkippedReason }
     );
     saveReport(report);
     printProgress('Generating report', 'done');
@@ -456,7 +478,7 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
 
 export async function runQuickTest(): Promise<void> {
   console.log('\n🚀 Running quick test (auth + navigation only)...\n');
-  await runTests({ only: 'all', skipAI: true });
+  await runTests({ only: 'auth+navigation', skipAI: true });
 }
 
 export async function runFullTest(): Promise<void> {

@@ -45,11 +45,11 @@ export interface Config {
 }
 
 function validateConfig(): Config {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY || '';
   const dawatiUrl = process.env.DAWATI_URL;
 
   if (!geminiApiKey || geminiApiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is required. Get one from https://aistudio.google.com/apikey');
+    console.warn('GEMINI_API_KEY not set. AI analysis will be unavailable unless you provide a key.');
   }
 
   if (!dawatiUrl || dawatiUrl === 'https://your-dawati-app.vercel.app') {

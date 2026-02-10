@@ -15,7 +15,7 @@ function parseArgs(): RunnerOptions {
   for (const arg of args) {
     if (arg.startsWith('--only=')) {
       const value = arg.split('=')[1];
-      if (['auth', 'navigation', 'scrolling', 'rtl', 'all'].includes(value)) {
+      if (['auth', 'navigation', 'scrolling', 'rtl', 'auth+navigation', 'all'].includes(value)) {
         options.only = value as RunnerOptions['only'];
       }
     }
@@ -45,12 +45,12 @@ Usage:
   npm run report            Open the latest report
 
 Options:
-  --only=<type>    Run specific test type (auth|navigation|scrolling|rtl|all)
+  --only=<type>    Run specific test type (auth|navigation|scrolling|rtl|auth+navigation|all)
   --skip-ai        Skip AI analysis (faster, no Gemini API calls)
   --help, -h       Show this help message
 
 Environment Variables:
-  GEMINI_API_KEY   Your Gemini API key (required)
+  GEMINI_API_KEY   Your Gemini API key (required for AI analysis)
   DAWATI_URL       URL of your Dawati app (required)
   HEADLESS         Run browser in headless mode (default: true)
   LOG_LEVEL        Logging level (default: info)

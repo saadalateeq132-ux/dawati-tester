@@ -1,6 +1,6 @@
 {
   "name": "vertex-ai-testing",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Production-grade Vertex AI + Playwright testing system for Dawati",
   "main": "src/index.ts",
   "scripts": {
@@ -18,7 +18,18 @@
     "tuning:submit": "ts-node scripts/submit-tuning-job.ts",
     "tuning:submit:wait": "ts-node scripts/submit-tuning-job.ts --wait",
     "tuning:status": "ts-node scripts/check-tuning-status.ts",
-    "tuning:list": "ts-node scripts/check-tuning-status.ts --list"
+    "tuning:list": "ts-node scripts/check-tuning-status.ts --list",
+    "test:auth": "ts-node tests/auth-flow.test.ts",
+    "test:marketplace": "ts-node tests/marketplace.test.ts",
+    "test:events": "ts-node tests/event-creation.test.ts",
+    "test:vendor": "ts-node tests/vendor-dashboard.test.ts",
+    "test:bookings": "ts-node tests/bookings.test.ts",
+    "test:account": "ts-node tests/account-settings.test.ts",
+    "test:components": "ts-node tests/component-deep.test.ts",
+    "test:misc": "ts-node tests/misc-pages.test.ts",
+    "test:all": "ts-node tests/auth-flow.test.ts && ts-node tests/marketplace.test.ts && ts-node tests/event-creation.test.ts && ts-node tests/vendor-dashboard.test.ts && ts-node tests/bookings.test.ts && ts-node tests/account-settings.test.ts && ts-node tests/component-deep.test.ts && ts-node tests/misc-pages.test.ts",
+    "typecheck": "tsc --noEmit",
+    "test:ci": "HEADLESS=true npm run test:all"
   },
   "keywords": [
     "testing",
@@ -36,8 +47,8 @@
     "@google-cloud/vertexai": "^1.7.0",
     "dotenv": "^16.4.7",
     "google-auth-library": "^9.15.1",
-    "pixelmatch": "^6.0.0",
-    "playwright": "^1.48.0",
+    "pixelmatch": "^7.1.0",
+    "playwright": "^1.50.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {

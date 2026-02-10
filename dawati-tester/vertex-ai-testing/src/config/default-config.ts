@@ -16,7 +16,7 @@ export function loadConfig(): TestConfig {
       gcsBucket: process.env.GCS_TRAINING_BUCKET || '',
       gcsPrefix: process.env.GCS_TRAINING_PREFIX || 'dawati-training-images',
       tuningRegion: process.env.TUNING_REGION || 'europe-west4',
-      tuningBaseModel: 'gemini-2.0-flash-001',
+      tuningBaseModel: 'gemini-3-flash-001',
       epochs: parseInt(process.env.TUNING_EPOCHS || '4', 10),
       learningRateMultiplier: parseFloat(process.env.TUNING_LR_MULTIPLIER || '1.0'),
       adapterSize: parseInt(process.env.TUNING_ADAPTER_SIZE || '4', 10),
@@ -36,7 +36,7 @@ export function loadConfig(): TestConfig {
     projectId: process.env.GCP_PROJECT_ID || 'your-project-id',
     location: process.env.GCP_LOCATION || 'us-central1',
     baseUrl: process.env.BASE_URL || 'http://localhost:8081',
-    model: process.env.GCP_MODEL || 'gemini-2.0-flash-001',
+    model: process.env.GCP_MODEL || 'gemini-3-flash-001',
     timeout: 30000,
     retries: 2,
     parallel: true,
@@ -91,6 +91,15 @@ export function loadConfig(): TestConfig {
       checkHijri: true,
       checkLayoutExpansion: true,
       checkIconAlignment: true,
+      checkNumberFormatting: true,
+      checkAccessibility: true,
+      checkDynamicContent: true,
+    },
+
+    testLevels: {
+      level1Visual: true,           // Component consistency checks
+      level2DataValidation: true,    // Form validation + hardcoded detection
+      level3BackendIntegration: true, // API monitoring + state management
     },
 
     visualRegression: {
