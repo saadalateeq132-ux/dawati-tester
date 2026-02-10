@@ -10,11 +10,17 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-async function checkSchema() {
-  console.log('Checking vendors table schema...\n');
+async function checkSchema(tableName: string) {
+  if (!tableName) {
+    console.error('Error: Table name is required.');
+    console.error('Usage: bun src/check-schema.ts <table_name>');
+    process.exit(1);
+  }
+
+  console.log(`Checking ${tableName} table schema...\n`);
 
   const { data, error } = await supabase
-    .from('vendors')
+    .from(tableName)
     .select('*')
     .limit(1);
 
@@ -24,14 +30,14 @@ async function checkSchema() {
   }
 
   if (data && data.length > 0) {
-    console.log('Vendors table columns:');
+    console.log(`${tableName} table columns:`);
     console.log(Object.keys(data[0]));
   } else {
-    console.log('No vendors in table yet - checking schema differently...');
+    console.log(`No ${tableName} in table yet - checking schema differently...`);
 
     // Try to insert a dummy record to see schema
     const { error: insertError } = await supabase
-      .from('vendors')
+      .from(tableName)
       .insert({})
       .select();
 
@@ -42,4 +48,5 @@ async function checkSchema() {
   }
 }
 
-checkSchema();
+const tableName = process.argv[2];
+checkSchema(tableName);
