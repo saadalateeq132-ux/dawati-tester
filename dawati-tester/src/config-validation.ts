@@ -9,6 +9,7 @@ export interface Config {
   // Test credentials
   testPhone: string;
   testEmail: string;
+  testOtp: string;
 
   // Multiple test phone numbers for different scenarios
   testUsers: {
@@ -71,6 +72,7 @@ export function validateConfig(): Config {
     dawatiUrl,
     testPhone: process.env.TEST_PHONE || '+966501234567',
     testEmail: process.env.TEST_EMAIL || 'test@dawati.app',
+    testOtp: process.env.TEST_OTP || '123456',
     // Multiple test phone numbers for different scenarios
     testUsers: {
       phone: {
