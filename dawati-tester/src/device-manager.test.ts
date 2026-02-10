@@ -1,29 +1,46 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert';
-import { sanitizeDeviceName } from './device-manager';
+import { describe, it, expect } from 'vitest';
+import { parseDeviceConfigs, getDefaultDevices } from './device-manager';
+import { DeviceConfig } from './types';
 
-describe('sanitizeDeviceName', () => {
-  it('should return alphanumeric strings unchanged', () => {
-    assert.strictEqual(sanitizeDeviceName('iPhone12'), 'iPhone12');
-  });
+describe('device-manager', () => {
+  describe('parseDeviceConfigs', () => {
+    it('should return default devices when input is undefined', () => {
+      const result = parseDeviceConfigs(undefined);
+      expect(result).toEqual(getDefaultDevices());
+    });
 
-  it('should replace spaces with underscores', () => {
-    assert.strictEqual(sanitizeDeviceName('iPhone 12'), 'iPhone_12');
-  });
+    it('should return default devices when input is null', () => {
+      // @ts-ignore: Testing runtime safety for null input which might occur in JS usage
+      const result = parseDeviceConfigs(null);
+      expect(result).toEqual(getDefaultDevices());
+    });
 
-  it('should replace special characters with underscores', () => {
-    assert.strictEqual(sanitizeDeviceName('iPhone-12!'), 'iPhone_12_');
-  });
+    it('should return default devices when input is empty array', () => {
+      const result = parseDeviceConfigs([]);
+      expect(result).toEqual(getDefaultDevices());
+    });
 
-  it('should handle strings with multiple special characters', () => {
-    assert.strictEqual(sanitizeDeviceName('a b-c!d'), 'a_b_c_d');
-  });
+    it('should return provided configs when valid array provided', () => {
+      const customConfigs: DeviceConfig[] = [
+        { name: 'Custom Device', viewport: { width: 1024, height: 768 } }
+      ];
+      const result = parseDeviceConfigs(customConfigs);
 
-  it('should return empty string for empty input', () => {
-    assert.strictEqual(sanitizeDeviceName(''), '');
-  });
+      // Should return the exact same array reference
+      expect(result).toBe(customConfigs);
 
-  it('should replace all non-alphanumeric characters', () => {
-    assert.strictEqual(sanitizeDeviceName('!@#$%^&*()'), '__________');
+      // Verify content matches just to be sure
+      expect(result).toEqual(customConfigs);
+    });
+
+    it('should return multiple provided configs correctly', () => {
+      const customConfigs: DeviceConfig[] = [
+        { name: 'Device 1', viewport: { width: 1024, height: 768 } },
+        { name: 'Device 2', viewport: { width: 375, height: 667 } }
+      ];
+      const result = parseDeviceConfigs(customConfigs);
+      expect(result).toBe(customConfigs);
+      expect(result).toHaveLength(2);
+    });
   });
 });

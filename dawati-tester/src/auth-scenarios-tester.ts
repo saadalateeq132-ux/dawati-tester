@@ -33,7 +33,7 @@ export async function testNewCustomerPhone(): Promise<AuthScenarioResult> {
 
   try {
     const result = await phoneAuthFlow(
-      config.testPhoneNewCustomer,
+      config.testUsers.phone.newCustomer,
       '123456',
       scenario,
       steps
@@ -94,7 +94,7 @@ export async function testExistingCustomerPhone(): Promise<AuthScenarioResult> {
 
   try {
     const result = await phoneAuthFlow(
-      config.testPhoneExistingCustomer,
+      config.testUsers.phone.existingCustomer,
       '123456',
       scenario,
       steps
@@ -155,7 +155,7 @@ export async function testNewVendorPhone(): Promise<AuthScenarioResult> {
 
   try {
     const result = await phoneAuthFlow(
-      config.testPhoneNewVendor,
+      config.testUsers.phone.newVendor,
       '123456',
       scenario,
       steps
@@ -216,7 +216,7 @@ export async function testExistingVendorPhone(): Promise<AuthScenarioResult> {
 
   try {
     const result = await phoneAuthFlow(
-      config.testPhoneExistingVendor,
+      config.testUsers.phone.existingVendor,
       '123456',
       scenario,
       steps
@@ -277,7 +277,7 @@ export async function testEmailSignInNew(): Promise<AuthScenarioResult> {
 
   try {
     const result = await emailAuthFlow(
-      config.testEmailNew,
+      config.testUsers.email.new,
       scenario,
       steps
     );
@@ -336,7 +336,7 @@ export async function testEmailSignInExisting(): Promise<AuthScenarioResult> {
 
   try {
     const result = await emailAuthFlow(
-      config.testEmailExisting,
+      config.testUsers.email.existing,
       scenario,
       steps
     );

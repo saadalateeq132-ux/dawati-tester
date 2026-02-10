@@ -317,11 +317,10 @@ export async function checkHardcodedStrings(): Promise<RTLCheckResult> {
 
     // Check for hardcoded English patterns
     let englishCount = 0;
+    const pageTextSetLower = new Set(pageText.map((t) => t.toLowerCase()));
+
     for (const pattern of HARDCODED_ENGLISH_PATTERNS) {
-      const found = pageText.filter(
-        (text) => text.toLowerCase() === pattern.toLowerCase()
-      );
-      if (found.length > 0) {
+      if (pageTextSetLower.has(pattern.toLowerCase())) {
         result.hardcodedStrings.push(pattern);
         englishCount++;
       }
@@ -329,9 +328,10 @@ export async function checkHardcodedStrings(): Promise<RTLCheckResult> {
 
     // Check for hardcoded Arabic patterns (should use i18n)
     let arabicCount = 0;
+    const pageTextSet = new Set(pageText);
+
     for (const pattern of HARDCODED_ARABIC_PATTERNS) {
-      const found = pageText.filter((text) => text === pattern);
-      if (found.length > 0) {
+      if (pageTextSet.has(pattern)) {
         result.hardcodedStrings.push(pattern);
         arabicCount++;
       }
