@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Complete Automated Test Users Setup via Direct SQL
+ * Complete Automated Test Users Setup
  *
- * Creates all 6 test users by executing SQL directly against Supabase:
- * - 4 phone users (bypasses auth.admin API phone provider limitations)
- * - 2 email users (already working)
+ * Creates all 6 test users by using the Supabase Admin API:
+ * - 4 phone users
+ * - 2 email users
  * - Creates user records for "existing" users
  * - Creates vendor records for existing vendor
  */
@@ -79,12 +79,6 @@ const TEST_USERS: TestUserSetup[] = [
   },
 ];
 
-async function executeSQL(sql: string): Promise<any> {
-  const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
-  if (error) throw error;
-  return data;
-}
-
 async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
   const { phone, email, type, description } = user;
 
@@ -92,69 +86,13 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
   console.log(`   Type: ${type}`);
   console.log(`   Expected: ${description}`);
 
-  const userId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  // Create auth user directly in auth.users table
-  const sql = `
-    INSERT INTO auth.users (
-      id,
-      instance_id,
-      ${phone ? 'phone' : 'email'},
-      ${phone ? 'phone_confirmed_at' : 'email_confirmed_at'},
-      encrypted_password,
-      email_confirmed_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      is_super_admin,
-      role,
-      created_at,
-      updated_at,
-      confirmation_token,
-      recovery_token,
-      aud,
-      confirmed_at
-    ) VALUES (
-      '${userId}',
-      '00000000-0000-0000-0000-000000000000',
-      '${phone || email}',
-      '${now}',
-      '$2a$10$dummy_encrypted_password_hash_for_test_user',
-      ${email ? `'${now}'` : 'NULL'},
-      '{"provider":"${phone ? 'phone' : 'email'}","providers":["${phone ? 'phone' : 'email'}"]}',
-      '{"test_user":true,"test_type":"${type}"}',
-      false,
-      'authenticated',
-      '${now}',
-      '${now}',
-      '',
-      '',
-      'authenticated',
-      '${now}'
-    )
-    ON CONFLICT (id) DO NOTHING
-    RETURNING id;
-  `;
-
   try {
-    await supabase.auth.admin.createUser({
-      phone,
-      email,
-      phone_confirm: phone ? true : undefined,
-      email_confirm: email ? true : undefined,
-      user_metadata: {
-        test_user: true,
-        test_type: type,
-      },
-    });
+    // First, try to find if the user already exists
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) throw listError;
 
-    console.log(`   ✅ Auth user created (ID: ${userId})`);
-    return userId;
-  } catch (error: any) {
-    // If user already exists, try to find it
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existing = existingUsers?.users?.find(
-      (u: any) => u.phone === phone || u.email === email
+      (u: any) => (phone && u.phone === phone) || (email && u.email === email)
     );
 
     if (existing) {
@@ -162,6 +100,25 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
       return existing.id;
     }
 
+    // Create auth user using Supabase Admin API (safe from SQL injection)
+    const { data, error: createError } = await supabase.auth.admin.createUser({
+      phone,
+      email,
+      phone_confirm: !!phone,
+      email_confirm: !!email,
+      user_metadata: {
+        test_user: true,
+        test_type: type,
+      },
+    });
+
+    if (createError) throw createError;
+    if (!data?.user) throw new Error('Failed to create user: No data returned');
+
+    console.log(`   ✅ Auth user created (ID: ${data.user.id})`);
+    return data.user.id;
+  } catch (error: any) {
+    console.error(`   ❌ Error in createAuthUserSQL: ${error.message}`);
     throw error;
   }
 }
@@ -247,10 +204,14 @@ async function verifySetup(): Promise<void> {
   const testPhones = TEST_USERS.filter(u => u.phone).map(u => u.phone!);
   const testEmails = TEST_USERS.filter(u => u.email).map(u => u.email!);
 
+  const phoneFilter = testPhones.length > 0 ? `phone.in.(${testPhones.map(p => `"${p}"`).join(',')})` : '';
+  const emailFilter = testEmails.length > 0 ? `email.in.(${testEmails.map(e => `"${e}"`).join(',')})` : '';
+  const orFilter = [phoneFilter, emailFilter].filter(Boolean).join(',');
+
   const { data: userRecords } = await supabase
     .from('users')
     .select('*')
-    .or(`phone.in.(${testPhones.map(p => `"${p}"`).join(',')}),email.in.(${testEmails.map(e => `"${e}"`).join(',')})`);
+    .or(orFilter || 'id.neq.00000000-0000-0000-0000-000000000000'); // Fallback to a filter that returns nothing if both lists are empty
 
   const expectedUserRecords = TEST_USERS.filter(u => u.needsUserRecord).length;
   console.log(`✅ User records: ${userRecords?.length || 0}/${expectedUserRecords} (expected)`);
