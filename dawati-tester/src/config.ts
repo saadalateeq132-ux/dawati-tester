@@ -14,12 +14,18 @@ export interface Config {
   testEmail: string;
 
   // Multiple test phone numbers for different scenarios
-  testPhoneNewCustomer: string;
-  testPhoneExistingCustomer: string;
-  testPhoneNewVendor: string;
-  testPhoneExistingVendor: string;
-  testEmailNew: string;
-  testEmailExisting: string;
+  testUsers: {
+    phone: {
+      newCustomer: string;
+      existingCustomer: string;
+      newVendor: string;
+      existingVendor: string;
+    };
+    email: {
+      new: string;
+      existing: string;
+    };
+  };
 
   // Browser settings
   headless: boolean;
@@ -69,12 +75,18 @@ function validateConfig(): Config {
     testPhone: process.env.TEST_PHONE || '+966501234567',
     testEmail: process.env.TEST_EMAIL || 'test@dawati.app',
     // Multiple test phone numbers for different scenarios
-    testPhoneNewCustomer: process.env.TEST_PHONE_NEW_CUSTOMER || '+966501111111',
-    testPhoneExistingCustomer: process.env.TEST_PHONE_EXISTING_CUSTOMER || '+966502222222',
-    testPhoneNewVendor: process.env.TEST_PHONE_NEW_VENDOR || '+966503333333',
-    testPhoneExistingVendor: process.env.TEST_PHONE_EXISTING_VENDOR || '+966504444444',
-    testEmailNew: process.env.TEST_EMAIL_NEW || 'newuser@dawati.app',
-    testEmailExisting: process.env.TEST_EMAIL_EXISTING || 'existing@dawati.app',
+    testUsers: {
+      phone: {
+        newCustomer: process.env.TEST_PHONE_NEW_CUSTOMER || '+966501111111',
+        existingCustomer: process.env.TEST_PHONE_EXISTING_CUSTOMER || '+966502222222',
+        newVendor: process.env.TEST_PHONE_NEW_VENDOR || '+966503333333',
+        existingVendor: process.env.TEST_PHONE_EXISTING_VENDOR || '+966504444444',
+      },
+      email: {
+        new: process.env.TEST_EMAIL_NEW || 'newuser@dawati.app',
+        existing: process.env.TEST_EMAIL_EXISTING || 'existing@dawati.app',
+      },
+    },
     headless: process.env.HEADLESS !== 'false',
     slowMo: parseInt(process.env.SLOW_MO || '0', 10),
     viewportWidth: parseInt(process.env.VIEWPORT_WIDTH || '1280', 10),
