@@ -252,7 +252,7 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
-  for (const user of TEST_USERS) {
+  await Promise.all(TEST_USERS.map(async (user) => {
     try {
       // Step 1: Create auth user
       const userId = await createAuthUserSQL(user);
@@ -273,7 +273,7 @@ async function main() {
       console.error(`   ❌ Failed: ${error.message}`);
       failCount++;
     }
-  }
+  }));
 
   console.log('\n' + '='.repeat(60));
   console.log(`✅ Success: ${successCount}/${TEST_USERS.length}`);

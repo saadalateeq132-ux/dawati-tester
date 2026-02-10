@@ -236,9 +236,9 @@ export async function captureScrollSequence(
   return capturedScreenshots;
 }
 
-export function saveScreenshotIndex(): void {
+export async function saveScreenshotIndex(): Promise<void> {
   const indexPath = path.join(currentRunDir, 'screenshots', 'index.json');
-  fs.writeFileSync(indexPath, JSON.stringify(screenshots, null, 2));
+  await fs.promises.writeFile(indexPath, JSON.stringify(screenshots, null, 2));
   log.info({ count: screenshots.length }, 'Screenshot index saved');
 }
 
