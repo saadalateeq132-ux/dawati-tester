@@ -1,810 +1,1143 @@
-# Domain Pitfalls: Autonomous AI-Powered Testing Systems
+# Domain Pitfalls: v1.1 Production Hardening
 
-**Domain:** AI-Powered Autonomous Web Testing (React Native/Expo, Playwright, Gemini AI)
-**Researched:** 2026-02-08
-**Confidence:** MEDIUM-HIGH (verified via multiple 2026 sources)
+**Domain:** Adding Production Features to Working Test Systems (Visual Regression, PII Masking, CI/CD, Performance Testing, Tightening Scoring)
+**Milestone:** v1.1 Hardening & Full Coverage
+**Researched:** 2026-02-10
+**Confidence:** HIGH (based on existing system analysis + Playwright best practices)
 
 ## Executive Summary
 
-Building autonomous testing systems with AI introduces complexity across five critical dimensions: AI reliability (hallucinations, inconsistent performance), automation stability (flaky tests, timeout management), authentication flows (OAuth token management), visual verification (screenshot consistency), and system integration (rate limits, reporting). The most dangerous pitfall is **treating AI-generated test assertions as ground truth without validation**—autonomous systems can confidently assert incorrect behaviors, creating false confidence in broken features.
+The most dangerous phase in test system evolution is **hardening an existing working system**. Unlike greenfield development where failures are expected, teams have 63/63 passing phases and must preserve that success while adding production features. The critical mistake is **tightening thresholds without baseline measurement**, causing immediate mass failures that demoralize teams and create pressure to revert changes. Secondary pitfalls include **visual regression baseline pollution** (bad screenshots become "truth"), **PII masking breaking AI analysis** (masked data loses context), and **CI/CD flakiness from timing assumptions** that worked locally.
 
 ---
 
-## Critical Pitfalls
+## CRITICAL PITFALLS - Production Hardening Specific
 
-Mistakes that cause rewrites, production incidents, or fundamental system failures.
+### Pitfall 1: Tightening Scoring Without Baseline Measurement
 
-### Pitfall 1: AI Hallucination in Test Assertions
-
-**What goes wrong:** AI models confidently generate test assertions that are factually incorrect, leading to false positives (tests pass when features are broken) or false negatives (tests fail when features work correctly). Gemini and other LLMs produce hallucinations as a core behavior—not a bug that can be patched.
-
-**Why it happens:** LLMs are trained to generate plausible-sounding text, not to verify facts. When analyzing screenshots or application state, they may "see" UI elements that don't exist or misinterpret user flows based on learned patterns rather than actual observation.
-
-**Consequences:**
-- **False confidence in broken features**: Tests pass while critical bugs ship to production
-- **Test suite becomes noise**: Developers stop trusting automated test results
-- **Wasted debugging time**: Teams chase phantom issues reported by hallucinating AI
-- **Regulatory/compliance risk**: For financial or healthcare apps, false test results create audit trails of non-existent validation
-
-**Prevention:**
-1. **Multi-layer verification**: Never rely on a single AI inference
-   ```typescript
-   // BAD: Single AI call determines pass/fail
-   const result = await gemini.analyze(screenshot);
-   expect(result.passed).toBe(true);
-
-   // GOOD: Multiple verification layers
-   const aiAnalysis = await gemini.analyze(screenshot);
-   const domState = await page.evaluate(() => document.readyState);
-   const expectedElements = await page.locator('[data-testid="success"]').count();
-
-   if (aiAnalysis.passed && domState === 'complete' && expectedElements > 0) {
-     // Higher confidence in pass
-   }
-   ```
-
-2. **Hallucination rate monitoring**: Track how often AI assertions contradict deterministic checks
-   - Measure **precision** (how many detected issues are real) and **recall** (how many real issues are detected)
-   - Set alert thresholds: >10% hallucination rate = investigation required
-   - Use metrics: accuracy, intent recognition, hallucination detection with configurable thresholds
-
-3. **Confidence scoring**: Require AI to provide confidence scores, reject low-confidence assertions
-   ```typescript
-   if (aiAnalysis.confidence < 0.85) {
-     logger.warn('Low confidence AI result, falling back to deterministic check');
-     return performTraditionalAssertion();
-   }
-   ```
-
-4. **Human-in-the-loop for critical paths**: OAuth flows, payment processing, data deletion—always require human review of AI-generated test results
-
-**Detection:**
-- Tests that pass consistently in CI but fail in production
-- AI assertions that contradict Playwright's deterministic DOM queries
-- Developers manually verifying "passed" tests and finding failures
-
-**Sources:**
-- [AI Hallucinations Testing | TestFort](https://testfort.com/blog/ai-hallucination-testing-guide)
-- [What are AI Hallucinations? - testRigor](https://testrigor.com/blog/ai-hallucinations/)
-- [TestMu AI Recognized in Forrester Wave on Autonomous Testing Q4 2025](https://www.financialcontent.com/article/bizwire-2026-2-2-testmu-ai-formerly-lambdatest-recognized-in-independent-research-on-autonomous-testing-platforms-q4-2025)
-
----
-
-### Pitfall 2: Gemini API Rate Limit Chaos
-
-**What goes wrong:** Tests fail randomly in CI/CD with 429 errors (rate limit exceeded), but the root cause varies: per-minute limits, daily quotas, or project-level exhaustion across multiple API keys. Teams waste hours debugging "flaky tests" that are actually quota issues.
+**What goes wrong:** Team changes scoring from "everything passes" to strict thresholds, causing 63/63 PASS to become 5/63 PASS overnight. Panic ensues, management questions the test system's value, team reverts to lenient scoring, and hardening initiative dies.
 
 **Why it happens:**
-- **December 2025 quota cuts**: Google slashed free tier limits by 50-92%. Gemini 2.5 Flash dropped from 250 RPD to 20-50 RPD; Gemini 2.5 Pro dropped from 50 RPD to 25 RPD, and RPM limits fell from 15 to 5 for Pro models
-- **Misunderstanding rate limit scopes**: Developers assume rate limits are per API key, but they're actually **per Google Cloud project**—creating 3 API keys doesn't triple your quota
-- **Conflating different 429 types**: RPM limits (reset in 60 seconds) vs RPD limits (reset at midnight PT) require different handling strategies
+- Current system has **advisory-only AI decisions** (line 99-103 in response-parser.ts: `return 'PASS'` always)
+- Execution errors are treated as PASS with warning
+- RTL/Color/Code Quality thresholds are lenient or bypassed
+- No one measured "what would fail if we enforced real thresholds" before enabling enforcement
 
 **Consequences:**
-- Test suites that work fine with 5 tests fail when scaled to 50 tests
-- CI/CD pipelines randomly fail, forcing manual reruns
-- Emergency quota upgrade requests during critical releases
-- Burning through paid quota unexpectedly
+- **Immediate regression**: 63/63 → 5/63 in one commit
+- **Loss of trust**: "The test system was working fine, why did you break it?"
+- **Revert pressure**: Management demands rollback to "working" state
+- **Feature abandonment**: Team loses confidence in hardening initiative
+- **False positive hell**: Real issues buried under hundreds of new "failures"
 
 **Prevention:**
-1. **Distinguish between limit types in error handling**
-   ```typescript
-   try {
-     const response = await gemini.analyze(screenshot);
-   } catch (error) {
-     if (error.code === 429) {
-       const limitType = error.details?.limitType; // RPM vs RPD
 
-       if (limitType === 'REQUESTS_PER_MINUTE') {
-         // Wait 60 seconds and retry
-         await sleep(60000);
-         return retry();
-       } else if (limitType === 'REQUESTS_PER_DAY') {
-         // Can't recover until midnight PT
-         throw new FatalTestError('Daily quota exhausted, cannot continue');
-       }
+1. **Measure before enforcing** - Run shadow mode first
+   ```typescript
+   // PHASE 1: Shadow mode (collect data, don't fail tests)
+   const rtlScore = await rtlChecker.check();
+   const wouldFailUnderStrictRules = rtlScore < 8.0;
+
+   logger.info(`RTL Score: ${rtlScore}/10 (strict threshold: 8.0)`);
+   logger.info(`Would fail under strict rules: ${wouldFailUnderStrictRules}`);
+
+   // DON'T fail the test yet - just log
+   if (wouldFailUnderStrictRules) {
+     metrics.recordShadowFailure('rtl', phase.id, rtlScore);
+   }
+
+   // STILL PASS for now
+   return { status: 'passed', metadata: { shadowMode: true } };
+   ```
+
+2. **Gradual threshold tightening** - Not binary flip
+   ```typescript
+   // BAD: Binary flip
+   const PASSING_THRESHOLD = 8.0; // Changed from 5.0 overnight
+
+   // GOOD: Gradual progression over 4 weeks
+   const THRESHOLDS = {
+     week1: 5.0,  // Baseline (current lenient)
+     week2: 6.0,  // 20% stricter
+     week3: 7.0,  // 40% stricter
+     week4: 8.0,  // Target strict threshold
+   };
+
+   const currentWeek = getCurrentDeploymentWeek();
+   const threshold = THRESHOLDS[`week${currentWeek}`];
+   ```
+
+3. **Category-based rollout** - Not all-at-once
+   ```typescript
+   // Week 1: Only enforce RTL scoring (most mature)
+   if (config.enforcement.rtl) {
+     enforceRTLThreshold(rtlScore);
+   }
+
+   // Week 2: Add Color scoring
+   if (config.enforcement.color) {
+     enforceColorThreshold(colorScore);
+   }
+
+   // Week 3: Add Code Quality
+   if (config.enforcement.codeQuality) {
+     enforceCodeQualityThreshold(cqScore);
+   }
+
+   // Week 4: Add AI scoring (most subjective, last)
+   if (config.enforcement.ai) {
+     enforceAIThreshold(aiScore);
+   }
+   ```
+
+4. **Exemption mechanism for known issues**
+   ```typescript
+   // Allow phases to declare "known issues" during transition
+   const phase: TestPhase = {
+     id: 'vendor-dashboard',
+     name: 'Vendor Dashboard',
+     exemptions: {
+       rtl: { reason: 'Currency icon migration in progress', until: '2026-03-01' },
+       color: { reason: 'Design system v2 rollout', until: '2026-02-20' },
+     },
+   };
+
+   // Scorer checks exemptions before failing
+   if (phase.exemptions?.rtl && isBeforeDate(phase.exemptions.rtl.until)) {
+     logger.warn(`RTL exemption: ${phase.exemptions.rtl.reason}`);
+     return 'PASS'; // Temporary exemption
+   }
+   ```
+
+**Detection:**
+- Sudden drop from 63/63 PASS to <20/63 PASS after threshold change
+- Developers say "tests are too strict now, everything fails"
+- Managers ask "why is the test system broken?"
+- Team creates tickets to "fix tests" instead of "fix app"
+
+**Warning signs:**
+- No baseline metrics before starting hardening work
+- Thresholds set based on "this seems right" not data
+- All enforcement enabled in single PR
+- No exemption mechanism for gradual migration
+
+---
+
+### Pitfall 2: Visual Regression Baseline Pollution (Garbage In, Garbage Out)
+
+**What goes wrong:** Team enables visual regression with `updateBaselines: true`, captures screenshots while the app has bugs, and those buggy screenshots become the "truth." Future regressions (fixes!) are flagged as failures because they differ from buggy baselines.
+
+**Why it happens:**
+- BaselineManager auto-creates baselines if they don't exist (lines 31-43 in baseline-manager.ts)
+- Teams run baseline capture during active development, not on known-good build
+- No review process for new baselines
+- Baselines committed to git without visual review
+
+**Consequences:**
+- **Bugs become features**: Visual regression prevents fixing UI bugs because fixes "don't match baseline"
+- **False positives on fixes**: Team fixes alignment issue, visual regression fails, fix gets reverted
+- **Baseline drift**: Small bugs accumulate in baselines over time
+- **Loss of trust**: "Visual regression blocks all UI changes, it's useless"
+
+**Prevention:**
+
+1. **Never auto-create baselines in CI/CD**
+   ```typescript
+   // BAD: CI can create new baselines
+   if (!fs.existsSync(baselinePath) && config.visualRegression.updateBaselines) {
+     console.log('Creating new baseline');
+     fs.copyFileSync(screenshotPath, baselinePath);
+   }
+
+   // GOOD: CI fails if baseline missing, only local/manual creates baselines
+   if (!fs.existsSync(baselinePath)) {
+     if (process.env.CI === 'true') {
+       throw new Error(`Baseline missing: ${baselineName}. Run 'npm run test:baseline' locally.`);
+     }
+
+     if (config.visualRegression.updateBaselines) {
+       console.warn('Creating baseline - MANUAL REVIEW REQUIRED');
+       fs.copyFileSync(screenshotPath, baselinePath);
+       recordBaselineForReview(baselineName, screenshotPath);
      }
    }
    ```
 
-2. **Implement exponential backoff with jitter**
+2. **Baseline review checklist**
+   ```markdown
+   ## New Baseline Review Checklist (before committing)
+
+   For each new baseline in `baselines/`:
+
+   - [ ] Screenshot shows CORRECT app state (no bugs, no errors)
+   - [ ] Screenshot is stable (no loading spinners, no animations mid-frame)
+   - [ ] Screenshot is at expected viewport size (1280x720 default)
+   - [ ] Screenshot doesn't contain PII or test data that will change
+   - [ ] Screenshot taken with consistent browser version (Playwright Chromium 1.51.0)
+   - [ ] Screenshot reviewed by 2+ team members
+
+   If ANY checkbox fails, DELETE baseline and fix app before recapturing.
+   ```
+
+3. **Baseline version control with metadata**
    ```typescript
-   async function callGeminiWithBackoff(request, maxRetries = 3) {
-     for (let i = 0; i < maxRetries; i++) {
+   // baselines/metadata.json
+   {
+     "vendor-dashboard-summary.png": {
+       "createdBy": "user@example.com",
+       "createdAt": "2026-02-10T10:30:00Z",
+       "appVersion": "v1.0.0",
+       "reviewedBy": ["reviewer1@example.com", "reviewer2@example.com"],
+       "notes": "Baseline captured after READY-TO-TEST milestone",
+       "testId": "vendor-dashboard",
+       "phaseId": "vendor-summary"
+     }
+   }
+
+   // Script to validate baselines
+   async function validateBaseline(baselineName: string) {
+     const metadata = loadMetadata(baselineName);
+
+     if (!metadata.reviewedBy || metadata.reviewedBy.length < 2) {
+       throw new Error(`Baseline ${baselineName} not reviewed by 2+ people`);
+     }
+
+     const ageInDays = daysSince(metadata.createdAt);
+     if (ageInDays > 90) {
+       console.warn(`Baseline ${baselineName} is ${ageInDays} days old - consider refresh`);
+     }
+   }
+   ```
+
+4. **Progressive baseline approval**
+   ```bash
+   # Step 1: Capture baselines locally (not committed)
+   npm run test:capture-baselines
+
+   # Step 2: Manual review in browser
+   npm run test:review-baselines
+   # Opens HTML page showing all new baselines side-by-side with app screenshots
+
+   # Step 3: Approve baselines (creates metadata.json entries)
+   npm run test:approve-baselines
+
+   # Step 4: Commit approved baselines
+   git add baselines/
+   git commit -m "chore: add visual regression baselines (reviewed)"
+   ```
+
+**Detection:**
+- Visual regression fails when you FIX a UI bug
+- Baselines show loading spinners, error states, or alignment bugs
+- No metadata.json in baselines/ directory
+- Baselines committed without PR review
+- High visual regression failure rate (>30% of runs)
+
+**Warning signs:**
+- `updateBaselines: true` left enabled in config after initial capture
+- Baselines captured during active feature development
+- No baseline review process documented
+- Team members don't know what baselines represent
+
+---
+
+### Pitfall 3: PII Masking Breaking AI Context (Over-Redaction)
+
+**What goes wrong:** PII masker aggressively masks phone numbers, emails, and IDs before sending HTML to Gemini. AI analysis becomes useless because masked data removes critical context: "Phone input shows 05XXXXXXXX" tells AI nothing about validation bugs, and "user@example.com everywhere" prevents detection of email formatting issues.
+
+**Why it happens:**
+- PIIMasker uses regex-based blanket masking (lines 32-60 in pii-masker.ts)
+- Masks are context-unaware: phone number in input field vs in error message both become XXXXXXXXX
+- Team prioritizes PII safety over test effectiveness, masking too much
+- Screenshot PII can't be masked automatically (line 88-92 warning only)
+
+**Consequences:**
+- **Blind AI analysis**: "I see XXXXXXXXX, looks fine" when actual value is malformed
+- **Lost bug detection**: Email validation bugs invisible because all emails are "user@example.com"
+- **Phone number validation bugs**: Can't detect "05" vs "+966" formatting issues when both are masked
+- **False confidence**: Tests pass because AI can't see actual data to validate
+
+**Prevention:**
+
+1. **Contextual masking** - Preserve structure, mask identity
+   ```typescript
+   // BAD: Destroys all context
+   masked = masked.replace(/05[0-9]{8}/g, '05XXXXXXXX');
+
+   // GOOD: Preserves structure, masks identity
+   masked = masked.replace(/05([0-9]{8})/g, (match, digits) => {
+     // Keep first 2 digits for format detection, mask rest
+     return `05${digits.substring(0, 2)}XXXX${digits.substring(6, 8)}`;
+   });
+   // Result: 0512XXXX34 (can still detect "05" prefix and length)
+   ```
+
+2. **Test data substitution** - Not blanking
+   ```typescript
+   // BETTER: Use realistic test data instead of XXXXX
+   const TEST_PHONE_NUMBERS = [
+     '+966501234567',  // Valid Saudi mobile
+     '+966551234567',  // Valid Saudi mobile (different carrier)
+     '+966123456789',  // Invalid (wrong prefix)
+   ];
+
+   function maskPhoneWithTestData(html: string): string {
+     const phones = extractPhoneNumbers(html);
+
+     phones.forEach((phone, index) => {
+       const testPhone = TEST_PHONE_NUMBERS[index % TEST_PHONE_NUMBERS.length];
+       html = html.replace(phone, testPhone);
+     });
+
+     return html;
+   }
+
+   // AI can now validate: "Phone shows +966501234567 (valid format)"
+   ```
+
+3. **Selective masking** - Don't mask test accounts
+   ```typescript
+   const TEST_ACCOUNTS = [
+     'test.customer@dawati-test.com',
+     'test.vendor@dawati-test.com',
+     '+966500000001',  // Test customer phone
+   ];
+
+   function shouldMaskValue(value: string): boolean {
+     // Don't mask known test accounts
+     if (TEST_ACCOUNTS.some(testValue => value.includes(testValue))) {
+       return false;
+     }
+
+     // Don't mask synthetic data patterns
+     if (value.match(/test-user-\d+@example\.com/)) {
+       return false;
+     }
+
+     // Mask everything else
+     return true;
+   }
+   ```
+
+4. **Screenshot masking via bounding boxes** - Not OCR
+   ```typescript
+   // Don't try to OCR + redact screenshots (slow, error-prone)
+   // Instead: Use consistent test accounts + bounding box redaction
+
+   async function maskScreenshotPII(screenshotPath: string): Promise<string> {
+     const page = await browser.newPage();
+
+     // Redact known PII elements with black boxes BEFORE screenshot
+     await page.evaluate(() => {
+       const piiSelectors = [
+         '[data-testid="user-phone"]',
+         '[data-testid="user-email"]',
+         '.user-profile-photo',
+       ];
+
+       piiSelectors.forEach(selector => {
+         const elements = document.querySelectorAll(selector);
+         elements.forEach(el => {
+           (el as HTMLElement).textContent = '████████';
+         });
+       });
+     });
+
+     await page.screenshot({ path: screenshotPath });
+   }
+   ```
+
+5. **PII masking levels** - Progressive privacy
+   ```typescript
+   enum PIIMaskingLevel {
+     NONE = 0,           // No masking (local dev only)
+     MINIMAL = 1,        // Mask real user data, preserve test accounts
+     MODERATE = 2,       // Mask all PII but preserve structure
+     AGGRESSIVE = 3,     // Mask everything (breaks AI analysis)
+   }
+
+   const maskingLevel = process.env.CI === 'true'
+     ? PIIMaskingLevel.MODERATE  // CI: mask but keep structure
+     : PIIMaskingLevel.MINIMAL;  // Local: only mask real users
+   ```
+
+**Detection:**
+- AI analysis says "looks correct" but screenshots show validation bugs
+- Test reports say "phone number format correct" when it's clearly wrong in screenshot
+- All emails in analysis appear as "user@example.com"
+- Team manually reviews screenshots because AI analysis is useless
+
+**Warning signs:**
+- All regex patterns end with `/g` (global replace, no context preservation)
+- No test account exemptions in masking logic
+- Screenshot masking uses OCR (slow, brittle)
+- Masking enabled equally in local dev and CI
+
+---
+
+### Pitfall 4: CI/CD Flakiness from Local Timing Assumptions
+
+**What goes wrong:** Tests pass 100% locally (fast M1 Mac, localhost, no network latency) but fail 40% in CI (slower runners, network round-trips, resource contention). Team adds `.wait(5000)` everywhere, tests become slow, still flaky.
+
+**Why it happens:**
+- Local dev: Expo dev server on localhost, instant responses
+- CI: Expo prod build on Vercel, 100-500ms RTT per request
+- Local: 8-core M1 Mac, dedicated resources
+- CI: Shared 2-core runner, competing with other jobs
+- Tests use hardcoded waits instead of dynamic conditions
+
+**Consequences:**
+- **30-60% flaky test rate in CI** (industry average: 15% flaky is "normal" but bad)
+- **Slow tests**: Defensive `wait(10000)` everywhere, 2-hour test suite becomes 6 hours
+- **Retry hell**: Tests rerun 3x on failure, wasting CI minutes
+- **Developer friction**: "Tests are flaky, ignore CI failures"
+
+**Prevention:**
+
+1. **Dynamic waits with reasonable timeouts**
+   ```typescript
+   // BAD: Hardcoded wait
+   await page.click('[data-testid="submit"]');
+   await page.waitForTimeout(5000); // Maybe enough? Maybe not?
+
+   // GOOD: Wait for condition with timeout
+   await page.click('[data-testid="submit"]');
+   await page.waitForSelector('[data-testid="success-message"]', {
+     state: 'visible',
+     timeout: 10000, // Max wait, but returns immediately when visible
+   });
+   ```
+
+2. **Network wait for Expo/Vercel deploys**
+   ```typescript
+   // Before test suite, verify app is responsive
+   async function waitForAppReady(url: string, maxAttempts = 30) {
+     for (let i = 0; i < maxAttempts; i++) {
        try {
-         return await gemini.call(request);
-       } catch (error) {
-         if (error.code === 429 && i < maxRetries - 1) {
-           const backoff = Math.pow(2, i) * 1000; // 1s, 2s, 4s
-           const jitter = Math.random() * 1000;   // Random 0-1s
-           await sleep(backoff + jitter);
-         } else {
-           throw error;
+         const response = await fetch(url);
+         if (response.ok) {
+           console.log(`App ready after ${i + 1} attempts`);
+           return;
          }
+       } catch (error) {
+         console.log(`App not ready, attempt ${i + 1}/${maxAttempts}`);
+         await sleep(2000);
        }
+     }
+     throw new Error('App did not become ready in time');
+   }
+
+   // In CI, Vercel deploy takes 30-60s to become responsive
+   if (process.env.CI === 'true') {
+     await waitForAppReady(config.baseUrl);
+   }
+   ```
+
+3. **Viewport-aware waits** (CI runners may have slower rendering)
+   ```typescript
+   // Wait for network + rendering + paint
+   await page.goto(url, { waitUntil: 'networkidle' }); // Network settled
+   await page.waitForLoadState('domcontentloaded');    // DOM ready
+   await page.evaluate(() => document.fonts.ready);    // Fonts loaded
+
+   // For React Native Web / Expo, also wait for hydration
+   await page.waitForFunction(() => {
+     return window.__REACT_HYDRATED__ === true;
+   }, { timeout: 5000 });
+   ```
+
+4. **Resource contention detection**
+   ```typescript
+   // Detect if CI runner is under heavy load
+   async function isRunnerOverloaded(): Promise<boolean> {
+     const start = Date.now();
+
+     // CPU-bound task: should take ~50ms on normal runner
+     let sum = 0;
+     for (let i = 0; i < 1000000; i++) {
+       sum += Math.sqrt(i);
+     }
+
+     const duration = Date.now() - start;
+
+     if (duration > 200) {
+       console.warn(`Runner appears overloaded (CPU test took ${duration}ms, expected <100ms)`);
+       return true;
+     }
+
+     return false;
+   }
+
+   // If overloaded, extend timeouts by 2x
+   if (await isRunnerOverloaded()) {
+     config.timeout *= 2;
+   }
+   ```
+
+5. **Explicit CI/Local config split**
+   ```typescript
+   // config/default-config.ts
+   export function loadConfig(): TestConfig {
+     const isCI = process.env.CI === 'true';
+
+     return {
+       timeout: isCI ? 30000 : 10000,          // 3x longer in CI
+       navigationTimeout: isCI ? 60000 : 20000, // Network waits
+       screenshotDelay: isCI ? 1000 : 500,      // Let rendering settle
+       retries: isCI ? 2 : 0,                   // Retry in CI only
+       workers: isCI ? 1 : 4,                   // Parallel local, serial CI
+     };
+   }
+   ```
+
+**Detection:**
+- Tests pass 100% locally, fail 30-60% in CI
+- CI logs show "TimeoutError: Waiting for selector"
+- Test durations vary wildly in CI (same test: 5s, 45s, 12s)
+- Rerunning failed tests passes (timing-dependent failure)
+
+**Warning signs:**
+- Config has identical timeouts for local and CI
+- Many `waitForTimeout(5000)` hardcoded waits
+- No network readiness check before tests
+- Test suite uses `.only()` or `.skip()` to work around flaky tests
+
+---
+
+### Pitfall 5: Performance Testing on Inconsistent Environments
+
+**What goes wrong:** Team adds performance tests (LCP, FCP, TTI), tests pass locally (<1s LCP) but fail in CI (>5s LCP). Team either disables performance tests or sets thresholds so high (LCP <10s) they're meaningless.
+
+**Why it happens:**
+- Local: M1 Mac, Chrome/Chromium with hardware acceleration, localhost network
+- CI: 2-core Linux runner, Chromium with `--disable-gpu`, public Vercel URL with CDN latency
+- Performance budgets set based on local measurements
+- No baseline for "acceptable CI performance" vs "acceptable user performance"
+
+**Consequences:**
+- **Useless performance tests**: Thresholds so high they never fail
+- **Disabled performance tests**: "Too flaky, just skip them"
+- **Missed regressions**: Real performance issues (5s → 8s LCP) go undetected because baseline is 10s
+- **False failures**: Transient network spikes fail tests
+
+**Prevention:**
+
+1. **Separate performance budgets for CI vs Real Users**
+   ```typescript
+   const PERFORMANCE_BUDGETS = {
+     // Real user targets (from field data)
+     realUsers: {
+       lcp: 2500,  // "Good" per Core Web Vitals
+       fcp: 1800,
+       tti: 3800,
+     },
+
+     // CI targets (higher due to slow runners, but still catch regressions)
+     ci: {
+       lcp: 5000,  // 2x real user target
+       fcp: 3500,
+       tti: 7500,
+     },
+
+     // Local dev (lower for fast feedback)
+     local: {
+       lcp: 1500,
+       fcp: 1000,
+       tti: 2500,
+     },
+   };
+
+   const budgets = process.env.CI === 'true'
+     ? PERFORMANCE_BUDGETS.ci
+     : PERFORMANCE_BUDGETS.local;
+   ```
+
+2. **Percentile-based thresholds** - Not single-run
+   ```typescript
+   // BAD: Single measurement (flaky)
+   const lcp = await measureLCP();
+   expect(lcp).toBeLessThan(2500);
+
+   // GOOD: P95 over multiple runs
+   async function measureLCPP95(runs = 5): Promise<number> {
+     const measurements: number[] = [];
+
+     for (let i = 0; i < runs; i++) {
+       await page.reload();
+       const lcp = await measureLCP();
+       measurements.push(lcp);
+     }
+
+     measurements.sort((a, b) => a - b);
+     const p95Index = Math.floor(measurements.length * 0.95);
+
+     return measurements[p95Index];
+   }
+
+   const p95LCP = await measureLCPP95();
+   expect(p95LCP).toBeLessThan(budgets.lcp);
+   ```
+
+3. **Network throttling for consistency**
+   ```typescript
+   // Emulate "Fast 3G" for consistent CI measurements
+   await page.context().route('**/*', route => {
+     setTimeout(() => route.continue(), 50); // 50ms delay
+   });
+
+   // Or use Playwright's network emulation
+   await page.route('**/*', route => {
+     route.continue({
+       // Simulate 1.5 Mbps download, 750 Kbps upload
+       // (Fast 3G profile from Chrome DevTools)
+     });
+   });
+   ```
+
+4. **Relative performance tests** - Not absolute
+   ```typescript
+   // Instead of "LCP must be <2.5s", measure "LCP must not regress >20%"
+
+   interface PerformanceBaseline {
+     lcp: number;
+     fcp: number;
+     measuredAt: string;
+     gitCommit: string;
+   }
+
+   async function checkForRegression(current: number, baseline: number, metric: string) {
+     const regressionPercent = ((current - baseline) / baseline) * 100;
+
+     if (regressionPercent > 20) {
+       throw new Error(
+         `Performance regression: ${metric} increased ${regressionPercent.toFixed(1)}% ` +
+         `(baseline: ${baseline}ms, current: ${current}ms)`
+       );
      }
    }
    ```
 
-3. **Monitor quota consumption proactively**
-   - Track RPM/RPD usage per test run
-   - Alert when approaching 80% of daily quota
-   - Consider upgrading to paid tier early (free tier is insufficient for CI/CD)
+5. **CI-specific performance test suite**
+   ```typescript
+   // Don't run performance tests on every CI run (too flaky)
+   // Run them on:
+   // 1. Scheduled nightly builds (stable conditions)
+   // 2. Release branches only
+   // 3. Manual trigger with "performance" label
 
-4. **Batch and cache intelligently**
-   - Cache AI analysis results for identical screenshots (15-minute cache)
-   - Batch multiple screenshot analyses into single API call when possible
-   - Skip AI analysis for obviously passing states (e.g., HTTP 200 + expected URL)
+   const shouldRunPerformanceTests =
+     process.env.CI_SCHEDULE === 'nightly' ||
+     process.env.GITHUB_REF?.startsWith('refs/heads/release/') ||
+     process.env.RUN_PERFORMANCE_TESTS === 'true';
+
+   if (!shouldRunPerformanceTests) {
+     console.log('Skipping performance tests (not in nightly/release)');
+     return;
+   }
+   ```
 
 **Detection:**
-- Sporadic 429 errors in CI logs
-- Tests that pass early in the day but fail later (hitting daily quota)
-- Multiple API keys showing same rate limit errors (project-level limits)
+- Performance test pass rate <70% in CI
+- Performance metrics vary wildly between runs (LCP: 2s, 8s, 3s, 12s)
+- Team disables performance tests or uses `test.skip()`
+- Thresholds >5s for LCP (meaningless, Core Web Vitals "poor" threshold is 4s)
 
-**Sources:**
-- [Gemini API Rate Limits Official Docs](https://ai.google.dev/gemini-api/docs/rate-limits)
-- [Google AI Studio Quota Issues – 2026 Guide](https://help.apiyi.com/en/google-ai-studio-rate-limit-solution-guide-en.html)
-- [Gemini API Free Tier: Complete Guide 2026](https://www.aifreeapi.com/en/posts/google-gemini-api-free-tier)
-- [Fix Gemini 2.5 Pro Rate Limit Errors](https://www.arsturn.com/blog/gemini-2-5-pro-rate-limit-exceeded-a-practical-guide-to-fixing-it)
+**Warning signs:**
+- Performance budgets set based on local dev measurements
+- Single-run measurements (no averaging or percentiles)
+- No network throttling in CI
+- Performance tests run on every PR (should be nightly/release only)
 
 ---
 
-### Pitfall 3: OAuth Testing Without Token Refresh Strategy
+## MODERATE PITFALLS - Integration Issues
 
-**What goes wrong:** Tests authenticate successfully at the start, but fail 30 minutes later when access tokens expire. Teams implement workarounds like "re-authenticate before every test," which works locally but creates race conditions in parallel CI execution.
+### Pitfall 6: Security Testing Without Authenticated Contexts
+
+**What goes wrong:** Team adds security tests (SQL injection, XSS, CSRF) but runs them unauthenticated. Tests miss critical vulnerabilities in authenticated-only endpoints (account settings, payment forms, admin panel).
 
 **Why it happens:**
-- OAuth best practices mandate short-lived access tokens (15-30 minutes)
-- Tests assume authentication is one-time setup, not ongoing session management
-- Refresh token rotation (security best practice) invalidates old refresh tokens, breaking naive retry logic
+- Security test examples online show unauthenticated attacks (login page injection)
+- Setting up authenticated contexts for security tests is tricky
+- OWASP ZAP / vulnerability scanners default to unauthenticated scans
+- Team treats security testing as separate from functional testing
 
 **Consequences:**
-- Tests pass locally (run in <15 minutes) but fail in CI (queued, taking 45+ minutes)
-- Parallel test execution causes token conflicts (one test invalidates another's tokens)
-- Flaky authentication that's nearly impossible to reproduce consistently
-- Security team rejects test approach due to insecure token storage
+- **False confidence**: "Security tests pass" but only tested public pages
+- **Missed critical bugs**: XSS in account settings, CSRF on payment form, SQL injection in admin panel—all untested
+- **Audit failures**: Compliance audits reveal massive security gaps in authenticated flows
+- **Production incidents**: Real attacks exploit authenticated endpoints
 
 **Prevention:**
-1. **Implement centralized token manager with refresh logic**
+
+1. **Authenticated security test contexts**
    ```typescript
-   class OAuthTokenManager {
-     private accessToken: string;
-     private refreshToken: string;
-     private expiresAt: number;
+   // Reuse authentication from functional tests
+   import { authenticate } from './helpers/auth';
 
-     async getValidToken(): Promise<string> {
-       if (Date.now() >= this.expiresAt - 60000) { // Refresh 1 min early
-         await this.refreshAccessToken();
-       }
-       return this.accessToken;
-     }
+   describe('Security Tests - Authenticated', () => {
+     let authContext: BrowserContext;
 
-     private async refreshAccessToken() {
-       const response = await fetch('/oauth/token', {
-         method: 'POST',
-         body: JSON.stringify({
-           grant_type: 'refresh_token',
-           refresh_token: this.refreshToken
-         })
+     beforeAll(async () => {
+       authContext = await browser.newContext();
+       const page = await authContext.newPage();
+       await authenticate(page, 'test.user@example.com');
+     });
+
+     test('XSS prevention in account settings', async () => {
+       const page = await authContext.newPage();
+       await page.goto('/account/edit-profile');
+
+       // Try XSS in profile name field
+       await page.fill('[name="displayName"]', '<script>alert("XSS")</script>');
+       await page.click('[type="submit"]');
+
+       // Verify script is escaped, not executed
+       const displayName = await page.textContent('[data-testid="display-name"]');
+       expect(displayName).toBe('<script>alert("XSS")</script>'); // Literal text, not executed
+     });
+   });
+   ```
+
+2. **Role-based security testing**
+   ```typescript
+   // Test with multiple auth levels: customer, vendor, admin
+   const SECURITY_ROLES = [
+     { role: 'customer', email: 'test.customer@example.com' },
+     { role: 'vendor', email: 'test.vendor@example.com' },
+     { role: 'admin', email: 'test.admin@example.com' },
+   ];
+
+   for (const { role, email } of SECURITY_ROLES) {
+     describe(`Security Tests - ${role}`, () => {
+       let context: BrowserContext;
+
+       beforeAll(async () => {
+         context = await browser.newContext();
+         const page = await context.newPage();
+         await authenticate(page, email);
        });
 
-       const data = await response.json();
-       this.accessToken = data.access_token;
-       this.refreshToken = data.refresh_token; // Handle rotation
-       this.expiresAt = Date.now() + (data.expires_in * 1000);
-     }
-   }
-   ```
-
-2. **Use OAuth mock servers for test environments**
-   - Tools like [oauth2-mock-server](https://github.com/axa-group/oauth2-mock-server) provide controllable OAuth flows
-   - Configure token expiration times for test scenarios (e.g., 5 minutes for expiry tests)
-   - Avoid hitting production OAuth providers in CI
-
-3. **Test token refresh explicitly**
-   ```typescript
-   test('handles token expiration gracefully', async () => {
-     // Set token to expire in 10 seconds
-     await mockOAuthServer.setTokenExpiry(10);
-
-     await page.goto('/dashboard'); // Uses valid token
-     await sleep(15000);             // Wait for expiration
-     await page.click('[data-testid="load-data"]'); // Should auto-refresh
-
-     // Verify app didn't error, auto-refreshed token
-     await expect(page.locator('[data-testid="data-loaded"]')).toBeVisible();
-   });
-   ```
-
-4. **Secure token storage in tests**
-   - Never commit OAuth tokens to git
-   - Use environment variables or secure secret management (e.g., GitHub Secrets)
-   - Implement automated checks to reject hardcoded tokens in code
-
-**Detection:**
-- Tests that fail after X minutes with "401 Unauthorized" errors
-- Different behavior between local runs and CI runs
-- Authentication errors in parallel test execution
-
-**Sources:**
-- [How to Test OAuth Authentication - Testim](https://www.testim.io/blog/how-to-test-oauth-authentication/)
-- [OAuth Refresh Token Explained | Curity](https://curity.io/resources/learn/oauth-refresh/)
-- [Refresh Token Rotation Best Practices 2026](https://www.serverion.com/uncategorized/refresh-token-rotation-best-practices-for-developers/)
-- [Testing for OAuth Weaknesses - OWASP](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/05-Testing_for_OAuth_Weaknesses)
-
----
-
-### Pitfall 4: Screenshot Test Flakiness Cascade
-
-**What goes wrong:** Screenshot comparison tests that pass 95% of the time suddenly fail with "1,247 pixels differ" errors. Engineers spend hours investigating, only to discover the culprit is font rendering differences, animation timing, or a blinking cursor captured mid-frame.
-
-**Why it happens:**
-- **OS-dependent font rendering**: Each OS (Windows, macOS, Linux) renders fonts differently; even OS updates change font smoothing
-- **Animation and dynamic content**: Dates, times, spinners, and CSS animations introduce non-deterministic visual states
-- **Race conditions**: Screenshots captured before lazy-loaded images fully render
-- **Mouse/focus states**: Blinking text cursors or hover states captured at different moments
-
-**Consequences:**
-- Teams lose trust in visual regression tests ("it's always flaky")
-- Engineers waste hours on false positive investigations
-- Real visual regressions get ignored in the noise
-- Screenshot tests disabled or removed from CI pipeline
-
-**Prevention:**
-1. **Standardize execution environment**
-   ```dockerfile
-   # Run tests in Docker for consistent OS/font rendering
-   FROM mcr.microsoft.com/playwright:v1.40.0-focal
-
-   # Install specific font versions
-   RUN apt-get update && apt-get install -y \
-       fonts-liberation \
-       fonts-roboto
-
-   # Run tests
-   CMD ["npx", "playwright", "test"]
-   ```
-
-2. **Hide dynamic content before screenshots**
-   ```typescript
-   await page.addStyleTag({
-     content: `
-       /* Hide dynamic elements */
-       [data-testid="timestamp"],
-       [data-testid="loading-spinner"],
-       .blinking-cursor {
-         visibility: hidden !important;
-       }
-
-       /* Disable animations */
-       * {
-         animation: none !important;
-         transition: none !important;
-       }
-     `
-   });
-
-   await page.screenshot({ path: 'stable-screenshot.png' });
-   ```
-
-3. **Wait for stability before capture**
-   ```typescript
-   // Wait for lazy-loaded images
-   await page.waitForLoadState('networkidle');
-
-   // Wait for specific element to be stable
-   await page.locator('[data-testid="dashboard"]').waitFor({
-     state: 'visible',
-     timeout: 5000
-   });
-
-   // Additional stability wait
-   await page.waitForTimeout(500); // Allow animations to settle
-
-   await page.screenshot({ path: 'screenshot.png' });
-   ```
-
-4. **Use element-level screenshots, not full-page**
-   ```typescript
-   // BAD: Full page includes dynamic headers, footers, ads
-   await page.screenshot({ path: 'full-page.png', fullPage: true });
-
-   // GOOD: Capture specific stable component
-   const element = page.locator('[data-testid="product-card"]');
-   await element.screenshot({ path: 'product-card.png' });
-   ```
-
-5. **Set reasonable pixel difference thresholds**
-   ```typescript
-   await expect(page).toHaveScreenshot('expected.png', {
-     maxDiffPixels: 100,           // Allow small differences
-     maxDiffPixelRatio: 0.01,      // 1% of pixels can differ
-     threshold: 0.2                // Per-pixel color difference tolerance
-   });
-   ```
-
-6. **Run screenshot tests in CI, not locally**
-   - Local environments vary too much (different GPUs, monitors, OS versions)
-   - CI provides consistent environment for baseline screenshots
-   - Update baselines only through CI process
-
-**Detection:**
-- Screenshot diffs showing only font rendering or color shift differences
-- Tests that pass/fail seemingly randomly with same code
-- Pixel differences always in same UI regions (dates, animations)
-
-**Sources:**
-- [Why Screenshot Image Comparison Tools Fail - Applitools](https://applitools.com/blog/why-screenshot-image-comparison-tools-fail/)
-- [Stabilize Flaky Tests for Visual Testing - Argos](https://argos-ci.com/blog/screenshot-stabilization)
-- [Flaky Visual Regression Tests - Shakacode](https://www.shakacode.com/blog/flaky-visual-regression-tests-and-what-to-do-about-them/)
-- [Operating System Independent Screenshot Testing with Playwright and Docker](https://adequatica.medium.com/operating-system-independent-screenshot-testing-with-playwright-and-docker-6e2251a9eb32)
-
----
-
-## Moderate Pitfalls
-
-Mistakes that cause delays, technical debt, or maintainability issues.
-
-### Pitfall 5: Fragile Playwright Selectors
-
-**What goes wrong:** Tests break frequently when UI changes, even minor CSS class renames. Teams spend 40% of maintenance time updating selectors.
-
-**Why it happens:** Using CSS selectors that depend on implementation details (class names, DOM structure) rather than semantic meaning.
-
-**Prevention:**
-```typescript
-// BAD: Fragile selectors
-await page.click('.btn.btn-primary.submit-button');
-await page.fill('div > form > div:nth-child(2) > input');
-
-// GOOD: Semantic selectors
-await page.getByRole('button', { name: 'Submit' }).click();
-await page.getByLabel('Email address').fill('test@example.com');
-await page.getByTestId('checkout-button').click();
-```
-
-**Best practices:**
-1. Prefer `getByRole` (uses accessibility tree, survives layout changes)
-2. Use `data-testid` attributes for non-semantic elements
-3. Avoid CSS selectors with multiple parent-child levels
-4. Never use `nth-child()` or positional selectors
-
-**Sources:**
-- [15 Playwright Selector Best Practices 2026](https://www.browserstack.com/guide/playwright-selectors-best-practices)
-- [Playwright Best Practices 2026](https://www.browserstack.com/guide/playwright-best-practices)
-
----
-
-### Pitfall 6: Misusing Playwright's Auto-Wait
-
-**What goes wrong:** Developers add explicit `page.waitForTimeout(5000)` calls, defeating Playwright's intelligent auto-waiting and making tests slower and more brittle.
-
-**Why it happens:** Misunderstanding how Playwright's auto-wait mechanism works. Coming from Selenium background where explicit waits are required.
-
-**Prevention:**
-```typescript
-// BAD: Fixed waits
-await page.click('[data-testid="submit"]');
-await page.waitForTimeout(5000); // Hope data loads in 5 seconds
-await expect(page.locator('[data-testid="result"]')).toBeVisible();
-
-// GOOD: Let Playwright auto-wait
-await page.click('[data-testid="submit"]');
-// Playwright automatically waits up to 30s for element to be visible
-await expect(page.locator('[data-testid="result"]')).toBeVisible();
-
-// GOOD: Wait for specific network condition
-await page.click('[data-testid="submit"]');
-await page.waitForResponse(resp =>
-  resp.url().includes('/api/submit') && resp.status() === 200
-);
-```
-
-**Key concepts:**
-- Playwright auto-waits for elements to be **actionable** (visible, enabled, stable)
-- Timeouts are upper bounds, not fixed delays
-- Use `waitForResponse`, `waitForLoadState('networkidle')` for specific conditions
-- Avoid `waitForTimeout` except for debugging
-
-**Sources:**
-- [Dealing with Waits and Timeouts in Playwright - Checkly](https://www.checklyhq.com/docs/learn/playwright/waits-and-timeouts/)
-- [Understanding Playwright Timeout 2026](https://www.browserstack.com/guide/playwright-timeout)
-
----
-
-### Pitfall 7: Insufficient Test Isolation
-
-**What goes wrong:** Tests pass when run individually but fail when run in parallel. Shared state (cookies, localStorage, database records) leaks between tests.
-
-**Why it happens:** Not using fresh browser contexts for each test. Sharing global state across tests.
-
-**Prevention:**
-```typescript
-// GOOD: Each test gets fresh context
-test.beforeEach(async ({ browser }) => {
-  const context = await browser.newContext({
-    // Isolated storage
-    storageState: undefined,
-  });
-  const page = await context.newPage();
-  return { page, context };
-});
-
-test.afterEach(async ({ context }) => {
-  await context.close(); // Clean up
-});
-
-// GOOD: Database isolation
-test.beforeEach(async () => {
-  await db.beginTransaction(); // Start transaction
-});
-
-test.afterEach(async () => {
-  await db.rollback(); // Rollback changes
-});
-```
-
-**Sources:**
-- [Playwright Best Practices 2026](https://www.browserstack.com/guide/playwright-best-practices)
-
----
-
-### Pitfall 8: AI System Integration Blindness
-
-**What goes wrong:** Teams integrate Gemini AI into existing CI/CD without considering tool compatibility. Tests can't run because Gemini API isn't accessible from CI environment, or results don't integrate with existing test reporting tools.
-
-**Why it happens:** AI testing tools are often self-contained solutions. Legacy CI/CD systems don't have native AI integration.
-
-**Prevention:**
-1. **Plan integration architecture early**
-   - How will CI/CD authenticate to Gemini API?
-   - Where will API keys be stored securely?
-   - How will AI analysis results feed into existing reports (JUnit XML, Allure)?
-
-2. **Create abstraction layer for AI calls**
-   ```typescript
-   interface TestAnalyzer {
-     analyze(screenshot: Buffer): Promise<AnalysisResult>;
-   }
-
-   class GeminiAnalyzer implements TestAnalyzer {
-     async analyze(screenshot: Buffer): Promise<AnalysisResult> {
-       // Gemini-specific implementation
-     }
-   }
-
-   // Easy to swap or mock for testing
-   const analyzer: TestAnalyzer = new GeminiAnalyzer();
-   ```
-
-3. **Test the testing system**
-   - Write tests that verify AI integration works in CI environment
-   - Mock Gemini responses for fast feedback loop
-   - Have fallback to deterministic tests if AI unavailable
-
-**Sources:**
-- [Top 5 Challenges in AI-Based Testing](https://medium.com/@jignect/top-5-challenges-in-ai-based-testing-how-to-overcome-them-2d273ebe1ccf)
-- [Top Challenges in AI-Driven Quality Assurance](https://testrigor.com/blog/top-challenges-in-ai-driven-quality-assurance/)
-
----
-
-### Pitfall 9: Playwright Can't Test Native Mobile
-
-**What goes wrong:** Teams assume Playwright can test React Native apps on iOS/Android. They invest weeks building tests only to discover Playwright strictly tests **web** applications—not native mobile apps.
-
-**Why it happens:** React Native's name confusion (it's not React for the web). Marketing materials emphasize "React Native Web" without clarifying limitations.
-
-**Prevention:**
-1. **Understand what Playwright can/cannot test:**
-   - ✅ React Native Web (Expo web builds running in browser)
-   - ✅ Mobile web views in browser (emulated mobile viewports)
-   - ❌ Native iOS/Android apps (.ipa, .apk files)
-   - ❌ Native mobile components (platform-specific UI)
-
-2. **For native mobile testing, use:**
-   - **Detox**: React Native's official E2E testing framework for native apps
-   - **Appium**: Cross-platform native mobile testing
-   - **Maestro**: Modern mobile UI testing
-
-3. **Hybrid approach for universal apps:**
-   ```typescript
-   // For web builds (Playwright)
-   if (process.env.PLATFORM === 'web') {
-     await page.goto('http://localhost:19006');
-   }
-
-   // For native builds (Detox)
-   if (process.env.PLATFORM === 'native') {
-     await device.launchApp();
-   }
-   ```
-
-**Sources:**
-- [Universal E2E Testing with Detox and Playwright](https://ignitecookbook.com/docs/recipes/UniversalE2ETesting/)
-- [Best Mobile E2E Testing Frameworks 2026](https://www.qawolf.com/blog/best-mobile-app-testing-frameworks-2026)
-- [Master Mobile Web Testing with Playwright](https://dev.to/artshllaku/master-mobile-web-testing-with-playwright-a-beginners-guide-2a9d)
-
----
-
-## Minor Pitfalls
-
-Mistakes that cause annoyance but are fixable with small changes.
-
-### Pitfall 10: Not Reporting Test Results
-
-**What goes wrong:** Tests run in CI, but results aren't captured in readable format. Teams have to read console logs to understand what failed.
-
-**Prevention:**
-```typescript
-// playwright.config.ts
-export default defineConfig({
-  reporter: [
-    ['html'],                           // HTML report for human review
-    ['junit', { outputFile: 'results.xml' }], // For CI integration
-    ['json', { outputFile: 'results.json' }]  // For custom dashboards
-  ]
-});
-```
-
-**Best practices:**
-- Generate reports that integrate with existing CI (GitHub Actions, Jenkins, etc.)
-- Include screenshots/videos of failures in reports
-- Track metrics: pass rate, execution time, flakiness rate
-
-**Sources:**
-- [5 Common Mistakes in Playwright Automation](https://thumbtube.com/blog/5-common-mistakes-to-avoid-in-playwright-automation-testing/)
-- [Test Automation Reporting: Features, Tools, and Best Practices](https://testomat.io/blog/test-automation-reporting/)
-
----
-
-### Pitfall 11: Timeout Errors in CI vs Local
-
-**What goes wrong:** Tests pass locally but timeout in CI with "Timeout 30000ms exceeded" errors.
-
-**Why it happens:** CI environments have slower network, CPU, different browser versions.
-
-**Prevention:**
-1. **Increase timeouts for CI**
-   ```typescript
-   // playwright.config.ts
-   export default defineConfig({
-     timeout: process.env.CI ? 60000 : 30000, // 60s in CI, 30s locally
-     expect: {
-       timeout: process.env.CI ? 10000 : 5000,
-     }
-   });
-   ```
-
-2. **Use retries strategically**
-   ```typescript
-   export default defineConfig({
-     retries: process.env.CI ? 2 : 0, // Retry flaky tests in CI
-   });
-   ```
-
-3. **Avoid `networkidle` in CI**
-   ```typescript
-   // BAD: Can hang in CI
-   await page.goto(url, { waitUntil: 'networkidle' });
-
-   // GOOD: More reliable
-   await page.goto(url, { waitUntil: 'domcontentloaded' });
-   await page.waitForSelector('[data-testid="main-content"]');
-   ```
-
-**Sources:**
-- [Debugging Playwright Timeouts: A Practical Checklist](https://currents.dev/posts/debugging-playwright-timeouts)
-- [How to Fix Playwright Timeout Error](https://medium.com/@dinusha-s/how-to-fix-playwright-timeout-error-a1676350df9a)
-
----
-
-### Pitfall 12: Ignoring AI Data Quality Requirements
-
-**What goes wrong:** AI-powered test analysis provides inconsistent or low-quality results because it was trained/tuned on insufficient or low-quality test data.
-
-**Why it happens:** Teams treat AI as magic—expecting it to work without proper training data, historical test results, or feedback loops.
-
-**Prevention:**
-1. **Collect quality training data:**
-   - Historical test screenshots (labeled with pass/fail)
-   - Edge cases and failure scenarios
-   - Domain-specific UI patterns (your app's design system)
-
-2. **Implement feedback loop:**
-   ```typescript
-   // After AI analysis
-   const aiResult = await gemini.analyze(screenshot);
-
-   // Get human validation for low-confidence results
-   if (aiResult.confidence < 0.7) {
-     const humanReview = await requestHumanReview(screenshot, aiResult);
-
-     // Use validated result to improve AI
-     await trainingDataStore.save({
-       screenshot,
-       aiPrediction: aiResult,
-       actualResult: humanReview,
-       confidence: aiResult.confidence
+       test('IDOR prevention', async () => {
+         const page = await context.newPage();
+
+         // Try accessing another user's data
+         await page.goto('/api/user/12345/orders'); // Not this user's ID
+
+         const response = await page.waitForResponse('/api/user/12345/orders');
+         expect(response.status()).toBe(403); // Forbidden
+       });
      });
    }
    ```
 
-3. **Monitor AI performance metrics:**
-   - Accuracy (% of correct predictions)
-   - Precision (true positives / all positives)
-   - Recall (true positives / all actual positives)
-   - Hallucination rate (false assertions / total assertions)
+3. **CSRF token validation**
+   ```typescript
+   test('CSRF protection on payment form', async () => {
+     const page = await authContext.newPage();
+     await page.goto('/checkout');
 
-**Sources:**
-- [Top 5 Challenges in AI-Based Testing](https://medium.com/@jignect/top-5-challenges-in-ai-based-testing-how-to-overcome-them-2d273ebe1ccf)
-- [AI Is Disrupting Test Automation](https://www.virtuosoqa.com/post/ai-test-automation-future)
+     // Extract CSRF token from form
+     const csrfToken = await page.getAttribute('[name="_csrf"]', 'value');
+
+     // Try submitting WITHOUT token (direct API call)
+     const response = await page.request.post('/api/payment/process', {
+       data: { amount: 1000, cardToken: 'tok_test' },
+       // Missing CSRF token
+     });
+
+     expect(response.status()).toBe(403); // Should reject
+
+     // Try with token - should succeed
+     const validResponse = await page.request.post('/api/payment/process', {
+       data: {
+         amount: 1000,
+         cardToken: 'tok_test',
+         _csrf: csrfToken,
+       },
+     });
+
+     expect(validResponse.status()).toBe(200);
+   });
+   ```
+
+**Detection:**
+- Security test suite only tests login/signup pages
+- No tests for admin panel security
+- Tests don't authenticate before making requests
+- Security scan reports only cover public pages
 
 ---
 
-## Phase-Specific Warnings
+### Pitfall 7: Click Validation Expansion Breaking Existing Tests
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| **Initial Setup** | Using latest Gemini API without checking quota limits | Start with paid tier or implement robust rate limit handling from day 1 |
-| **OAuth Implementation** | Testing only "happy path" login, not token refresh | Test token expiration, refresh flow, and rotation explicitly |
-| **Screenshot Capture** | Not standardizing environment, leading to flaky comparisons | Use Docker for consistent OS/font rendering; hide dynamic content |
-| **AI Integration** | Treating AI assertions as ground truth | Always validate AI results with deterministic checks (multi-layer verification) |
-| **CI/CD Integration** | Tests work locally but fail in CI due to timeouts | Configure CI-specific timeouts; use retries; avoid `networkidle` |
-| **Report Generation** | No structured reporting, relying on console logs | Implement multiple report formats (HTML, JUnit, JSON) from start |
-| **Scaling Tests** | Parallel execution breaks due to shared state | Ensure test isolation with fresh contexts; use transactions for DB tests |
+**What goes wrong:** Team adds `expectAfterClick` validation to all 15 test files. Tests that previously passed (click happened, page moved on) now fail because "expected element not found" after click. Team realizes 40% of clicks don't actually work, but fixes would be huge scope creep.
 
----
+**Why it happens:**
+- Current system: Click happens, test continues (no validation)
+- New system: Click must produce expected result (validation added)
+- Many clicks are "navigation away" - can't validate element on new page
+- Some clicks have race conditions (element appears then disappears)
 
-## React Native/Expo Specific Pitfalls
-
-### Pitfall 13: Web vs Native Build Confusion
-
-**What goes wrong:** Tests written for Expo web build don't work on native builds (or vice versa), creating maintenance burden of separate test suites.
+**Consequences:**
+- **Mass test failures**: 63/63 → 30/63 when click validation added
+- **Scope explosion**: "Just add validation" becomes "fix 100 broken interactions"
+- **Revert pressure**: "Tests were passing before, this is too much work"
+- **Half-implemented**: Click validation only in 3/15 files, inconsistent coverage
 
 **Prevention:**
-- **Clarify scope early**: Is this for web builds only, native only, or both?
-- **If web-only**: Use Playwright, optimize for browser testing
-- **If native-only**: Use Detox or Appium, not Playwright
-- **If universal**: Maintain separate test suites with shared test scenarios
 
-```typescript
-// Shared test scenarios
-const testScenarios = [
-  { name: 'Login flow', steps: [...] },
-  { name: 'OAuth redirect', steps: [...] }
-];
+1. **Phased rollout by test file**
+   ```typescript
+   // Don't enable expectAfterClick everywhere at once
+   // Phase 1: Add to 3 highest-value test files
+   //   - auth-flow.test.ts (critical path)
+   //   - marketplace-booking.test.ts (revenue critical)
+   //   - account-settings.test.ts (data integrity)
 
-// Platform-specific implementations
-// tests/web/auth.spec.ts (Playwright)
-testScenarios.forEach(scenario => {
-  test(scenario.name, async ({ page }) => {
-    // Playwright implementation
-  });
-});
+   // Phase 2: Add to 5 more files (week 2)
+   // Phase 3: Add to remaining 7 files (week 3)
 
-// tests/native/auth.e2e.ts (Detox)
-testScenarios.forEach(scenario => {
-  test(scenario.name, async () => {
-    // Detox implementation
-  });
-});
-```
+   // Track in config
+   const CLICK_VALIDATION_ENABLED = {
+     'auth-flow': true,           // Phase 1
+     'marketplace-booking': true, // Phase 1
+     'account-settings': true,    // Phase 1
+     'vendor-dashboard': false,   // Phase 2
+     'events-flow': false,        // Phase 2
+     // ...
+   };
+   ```
 
-**Sources:**
-- [Universal E2E Testing with Detox and Playwright](https://ignitecookbook.com/docs/recipes/UniversalE2ETesting/)
+2. **Soft assertions during rollout**
+   ```typescript
+   // Don't fail tests immediately - log issues first
+   async function expectAfterClick(
+     selector: string,
+     expectedSelector: string,
+     mode: 'strict' | 'soft' = 'soft'
+   ) {
+     await page.click(selector);
 
----
+     const elementFound = await page.locator(expectedSelector).count() > 0;
 
-## Playwright Gotchas Summary
+     if (!elementFound) {
+       if (mode === 'strict') {
+         throw new Error(`Expected element not found: ${expectedSelector}`);
+       } else {
+         // Soft mode: Log warning but don't fail
+         logger.warn(`Click validation failed: ${expectedSelector} not found after clicking ${selector}`);
+         metrics.recordClickValidationFailure(selector, expectedSelector);
+       }
+     }
+   }
 
-| Gotcha | Why It Happens | Quick Fix |
-|--------|---------------|-----------|
-| **Tests fail with "element not found"** | Using legacy `.click()` instead of auto-waiting locators | Use `page.getByRole()`, `page.getByTestId()` |
-| **Flaky tests in CI** | Different environment (network, CPU, browser version) | Increase timeouts for CI; use retries; standardize with Docker |
-| **`networkidle` hangs** | Page continuously polls APIs | Use `domcontentloaded` + explicit element waits |
-| **Selectors break on UI changes** | CSS selectors tied to implementation | Use semantic selectors (role, label, testid) |
-| **Tests pollute each other** | Shared browser context | Fresh context per test with `browser.newContext()` |
-| **Screenshots differ by 1px** | Font rendering differences across OS | Run in Docker; set `maxDiffPixels` threshold |
-| **TimeoutError: 30000ms exceeded** | Auto-wait timeout too short for slow operation | Configure per-action timeout or global timeout |
+   // Gradually convert from 'soft' to 'strict' mode
+   ```
 
----
+3. **Click validation exemptions**
+   ```typescript
+   // Some clicks legitimately can't be validated (navigation away)
+   const CLICK_VALIDATION_EXEMPTIONS = {
+     '[data-testid="logout-button"]': {
+       reason: 'Navigates to welcome page, element not on new page',
+       validate: 'url-change',
+     },
+     '[data-testid="external-link"]': {
+       reason: 'Opens external site in new tab',
+       validate: 'new-tab',
+     },
+   };
 
-## Gemini API Gotchas Summary
+   async function expectAfterClickSmart(selector: string, expectedSelector: string) {
+     const exemption = CLICK_VALIDATION_EXEMPTIONS[selector];
 
-| Gotcha | Why It Happens | Quick Fix |
-|--------|---------------|-----------|
-| **Random 429 errors** | Hit rate limit (RPM or RPD) | Implement exponential backoff with jitter |
-| **Multiple API keys don't increase quota** | Rate limits are per project, not per key | Use single key; upgrade to paid tier for more quota |
-| **Tests pass early, fail later** | Hit daily quota (RPD) after X requests | Monitor quota usage; implement early warning alerts |
-| **Can't distinguish recoverable vs fatal 429** | All 429s look the same without parsing details | Check `limitType` in error details; handle RPM vs RPD differently |
-| **Free tier insufficient for CI** | December 2025 cuts reduced free quota by 50-92% | Budget for paid tier from day 1 |
+     if (exemption) {
+       if (exemption.validate === 'url-change') {
+         const oldUrl = page.url();
+         await page.click(selector);
+         await page.waitForURL(url => url !== oldUrl);
+       } else if (exemption.validate === 'new-tab') {
+         const [newPage] = await Promise.all([
+           context.waitForEvent('page'),
+           page.click(selector),
+         ]);
+         expect(newPage.url()).toContain('external');
+       }
+     } else {
+       await expectAfterClick(selector, expectedSelector);
+     }
+   }
+   ```
 
----
-
-## OAuth Testing Gotchas Summary
-
-| Gotcha | Why It Happens | Quick Fix |
-|--------|---------------|-----------|
-| **Tests fail after 30 min** | Access token expired | Implement token refresh manager |
-| **Parallel tests break auth** | Refresh token rotation invalidates shared tokens | Each test gets own OAuth session |
-| **Can't test error conditions** | Production OAuth doesn't allow controlled failures | Use OAuth mock server for tests |
-| **Tokens leak to git** | Hardcoded for "temporary" testing | Environment variables + git pre-commit hooks to block tokens |
-| **Different behavior local vs CI** | CI environment restrictions on OAuth callback URLs | Configure OAuth provider with CI-specific redirect URLs |
-
----
-
-## Key Takeaways
-
-1. **AI is a tool, not a replacement for verification**: Always validate AI assertions with deterministic checks. Track hallucination rates.
-
-2. **Gemini API rate limits will bite you**: Budget for paid tier. Implement proper error handling and backoff strategies from day 1.
-
-3. **OAuth testing requires session management**: Token refresh is not optional. Test token expiration explicitly.
-
-4. **Screenshot testing is fragile by nature**: Standardize environment (Docker), hide dynamic content, set pixel difference thresholds.
-
-5. **Playwright is not magic**: Auto-wait is powerful but not universal. Understand its limitations. Use semantic selectors.
-
-6. **Test isolation prevents 90% of flakiness**: Fresh contexts, database transactions, no shared global state.
-
-7. **CI is not the same as local**: Different timeouts, retries, network conditions. Configure specifically for CI.
-
-8. **React Native Web ≠ React Native Native**: Playwright can't test native mobile apps. Plan your testing strategy accordingly.
-
-9. **Trust is earned through validation**: 67% of engineers want human review of AI-generated tests. Build verification into your workflow.
-
-10. **Report or regret**: Structured reporting (HTML, JUnit, JSON) saves hours of debugging. Implement from day 1.
+**Detection:**
+- PR adding click validation causes 30+ test failures
+- Team creates "fix click validation" umbrella ticket with 50 subtasks
+- Click validation only present in 1-2 test files after 2 weeks
+- Tests revert to no validation after failures
 
 ---
 
-## Sources Referenced
+## MINOR PITFALLS - Common Mistakes
 
-### AI Testing and Autonomous Systems
-- [Testing Can't Keep Up with AI Systems - Computerworld](https://www.computerworld.com/article/4127206/testing-cant-keep-up-with-rapidly-advancing-ai-systems-ai-safety-report.html)
-- [Top 5 Challenges in AI-Based Testing - JigNect on Medium](https://medium.com/@jignect/top-5-challenges-in-ai-based-testing-how-to-overcome-them-2d273ebe1ccf)
-- [Common AI Agent Development Mistakes](https://www.wildnetedge.com/blogs/common-ai-agent-development-mistakes-and-how-to-avoid-them)
-- [Top Challenges in AI-Driven Quality Assurance - testRigor](https://testrigor.com/blog/top-challenges-in-ai-driven-quality-assurance/)
-- [AI Hallucinations Testing Guide - TestFort](https://testfort.com/blog/ai-hallucination-testing-guide)
-- [What are AI Hallucinations - testRigor](https://testrigor.com/blog/ai-hallucinations/)
-- [TestMu AI Recognized in Forrester Wave Q4 2025](https://www.financialcontent.com/article/bizwire-2026-2-2-testmu-ai-formerly-lambdatest-recognized-in-independent-research-on-autonomous-testing-platforms-q4-2025)
-- [Autonomous Quality Engineering: AI Testing in 2026](https://fintech.global/2026/01/27/autonomous-quality-engineering-ai-testing-in-2026/)
+### Pitfall 8: Hardcoded Pattern Expansion Without Priority
 
-### Playwright Best Practices and Gotchas
-- [15 Playwright Selector Best Practices 2026 - BrowserStack](https://www.browserstack.com/guide/playwright-selectors-best-practices)
-- [15 Best Practices for Playwright Testing 2026 - BrowserStack](https://www.browserstack.com/guide/playwright-best-practices)
-- [Why Playwright Sucks for End-to-End Tests - testRigor](https://testrigor.com/blog/why-playwright-sucks-for-end-to-end-tests/)
-- [5 Common Mistakes to Avoid in Playwright Automation](https://thumbtube.com/blog/5-common-mistakes-to-avoid-in-playwright-automation-testing/)
-- [Understanding Playwright Timeout 2026 - BrowserStack](https://www.browserstack.com/guide/playwright-timeout)
-- [Dealing with Waits and Timeouts in Playwright - Checkly](https://www.checklyhq.com/docs/learn/playwright/waits-and-timeouts/)
-- [Debugging Playwright Timeouts - Currents](https://currents.dev/posts/debugging-playwright-timeouts)
-- [How to Fix Playwright Timeout Error - Medium](https://medium.com/@dinusha-s/how-to-fix-playwright-timeout-error-a1676350df9a)
+**What goes wrong:** Team expands RTL checker from 30 patterns to 300 patterns in one commit. Test runs become 10x slower (regex matching 300 patterns per DOM snapshot), and 90% of new patterns never match (Arabic medical terms in an event planning app).
 
-### Gemini API Rate Limits
-- [Gemini API Rate Limits Official Documentation](https://ai.google.dev/gemini-api/docs/rate-limits)
-- [Google AI Studio Quota Issues – 2026 Complete Guide](https://help.apiyi.com/en/google-ai-studio-rate-limit-solution-guide-en.html)
-- [Gemini API Free Tier: Complete Guide 2026](https://www.aifreeapi.com/en/posts/google-gemini-api-free-tier)
-- [Gemini API Rate Limits Explained: Complete 2026 Guide](https://www.aifreeapi.com/en/posts/gemini-api-rate-limit-explained)
-- [Fix Gemini 2.5 Pro Rate Limit Errors](https://www.arsturn.com/blog/gemini-2-5-pro-rate-limit-exceeded-a-practical-guide-to-fixing-it)
+**Why it happens:**
+- Documentation claimed "300+ patterns" but only 30 exist
+- Team adds every possible Arabic/English word pair from dictionary
+- No analysis of which patterns actually matter for this app
+- No performance testing of pattern matching
 
-### OAuth Testing
-- [How to Test OAuth Authentication - Testim](https://www.testim.io/blog/how-to-test-oauth-authentication/)
-- [Testing for OAuth Weaknesses - OWASP](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/05-Testing_for_OAuth_Weaknesses)
-- [Run Automated Integration Tests - Microsoft Identity Platform](https://learn.microsoft.com/en-us/entra/identity-platform/test-automate-integration-testing)
-- [OAuth Refresh Token Explained - Curity](https://curity.io/resources/learn/oauth-refresh/)
-- [Refresh Token Rotation: Best Practices for Developers](https://www.serverion.com/uncategorized/refresh-token-rotation-best-practices-for-developers/)
-- [OAuth2 Mock Server - GitHub](https://github.com/axa-group/oauth2-mock-server)
+**Consequences:**
+- **10x slower RTL checks**: 200ms → 2000ms per phase
+- **False positives**: Medical/legal terms flagged in app that doesn't use them
+- **Maintenance burden**: 270 unused patterns to maintain
+- **Diminishing returns**: 30 patterns caught 95% of issues, 300 patterns catches 96%
 
-### Screenshot Testing
-- [Why Screenshot Image Comparison Tools Fail - Applitools](https://applitools.com/blog/why-screenshot-image-comparison-tools-fail/)
-- [Stabilize Flaky Tests for Visual Testing - Argos](https://argos-ci.com/blog/screenshot-stabilization)
-- [Flaky Visual Regression Tests - Shakacode](https://www.shakacode.com/blog/flaky-visual-regression-tests-and-what-to-do-about-them/)
-- [Operating System Independent Screenshot Testing with Playwright and Docker](https://adequatica.medium.com/operating-system-independent-screenshot-testing-with-playwright-and-docker-6e2251a9eb32)
+**Prevention:**
 
-### React Native / Expo Testing
-- [Universal E2E Testing with Detox and Playwright - Ignite Cookbook](https://ignitecookbook.com/docs/recipes/UniversalE2ETesting/)
-- [Best Mobile E2E Testing Frameworks in 2026 - QA Wolf](https://www.qawolf.com/blog/best-mobile-app-testing-frameworks-2026)
-- [Master Mobile Web Testing with Playwright - DEV Community](https://dev.to/artshllaku/master-mobile-web-testing-with-playwright-a-beginners-guide-2a9d)
+1. **Analyze existing issues before expanding**
+   ```bash
+   # Before adding 270 patterns, check what issues actually occurred
+   grep -r "hardcoded English" test-reports/*.json
 
-### Test Reporting
-- [Test Automation Reporting: Features, Tools, and Best Practices](https://testomat.io/blog/test-automation-reporting/)
-- [How to Report On Test Automation - TestRail](https://www.testrail.com/blog/report-test-automation/)
-- [Allure Report Official Site](https://allurereport.org/)
+   # Results show:
+   # - "Loading" (5 occurrences)
+   # - "Submit" (3 occurrences)
+   # - "Error" (2 occurrences)
+   # - Medical terms: 0 occurrences
+
+   # Conclusion: Add 10 high-value patterns, not 270 low-value ones
+   ```
+
+2. **Tiered pattern matching**
+   ```typescript
+   const RTL_PATTERNS = {
+     critical: [
+       // P0: Always check (fast, high-value)
+       'Loading', 'Error', 'Submit', 'Cancel', 'Delete',
+       'Home', 'Profile', 'Settings',
+     ],
+
+     standard: [
+       // P1: Check on full suite runs (medium-value)
+       'Welcome', 'Thank You', 'Confirm', 'Save',
+       // ... 50 more
+     ],
+
+     comprehensive: [
+       // P2: Check on nightly builds only (low-value, slow)
+       'Anesthesia', 'Litigation', 'Hematology',
+       // ... 240 more domain-specific terms
+     ],
+   };
+
+   const patternsToCheck = process.env.RTL_CHECK_LEVEL === 'comprehensive'
+     ? [...RTL_PATTERNS.critical, ...RTL_PATTERNS.standard, ...RTL_PATTERNS.comprehensive]
+     : process.env.CI === 'true'
+     ? [...RTL_PATTERNS.critical, ...RTL_PATTERNS.standard]
+     : RTL_PATTERNS.critical; // Local dev: fast feedback
+   ```
+
+3. **Pattern usage metrics**
+   ```typescript
+   // Track which patterns actually match
+   const patternStats = new Map<string, number>();
+
+   function checkPattern(html: string, pattern: string): boolean {
+     const regex = new RegExp(pattern, 'gi');
+     const matches = html.match(regex);
+
+     if (matches && matches.length > 0) {
+       patternStats.set(pattern, (patternStats.get(pattern) || 0) + matches.length);
+       return true;
+     }
+
+     return false;
+   }
+
+   // After test suite: Report unused patterns
+   function reportPatternUsage() {
+     const unusedPatterns = RTL_PATTERNS.comprehensive.filter(p => !patternStats.has(p));
+
+     if (unusedPatterns.length > 50) {
+       console.warn(`${unusedPatterns.length} patterns never matched - consider removing`);
+     }
+   }
+   ```
+
+**Detection:**
+- RTL check duration increases from 200ms to 2000ms after pattern expansion
+- Pattern stats show 90% of patterns never match
+- Test suite reports issues with medical/legal terms in event planning app
+
+---
+
+### Pitfall 9: CI/CD Pipeline Without Manual Trigger
+
+**What goes wrong:** Team sets up CI/CD to run full test suite on every PR commit. Developers push 5 commits debugging a feature, each triggering 2-hour test run. CI queue backs up, PRs wait 6 hours for test results, team disables automated testing.
+
+**Why it happens:**
+- GitHub Actions defaults: `on: [push, pull_request]` runs on every commit
+- Full test suite (15 test files, 63 phases) takes 90-120 minutes
+- No distinction between "quick smoke test" and "full regression suite"
+- Expensive AI API calls on every run
+
+**Consequences:**
+- **CI queue congestion**: 10 PRs × 5 commits each × 2 hours = 100 hours of CI time
+- **Cost explosion**: Gemini API costs 10x expected (running on every commit)
+- **Developer friction**: "CI is too slow, I'll merge without waiting"
+- **Disabled automation**: Team turns off automated runs, loses value
+
+**Prevention:**
+
+1. **Tiered CI strategy**
+   ```yaml
+   # .github/workflows/test-quick.yml
+   name: Quick Tests (Smoke)
+   on:
+     push:
+       branches: [main, develop]
+     pull_request:
+
+   jobs:
+     smoke-test:
+       runs-on: ubuntu-latest
+       steps:
+         - name: Run smoke tests (3 critical suites only)
+           run: |
+             npm run test:smoke  # auth-flow, marketplace-flow, account-settings
+             # ~15 minutes, catches 80% of regressions
+
+   ---
+   # .github/workflows/test-full.yml
+   name: Full Test Suite
+   on:
+     schedule:
+       - cron: '0 2 * * *'  # Nightly at 2 AM
+     workflow_dispatch:      # Manual trigger
+     push:
+       branches: [release/*] # Only on release branches
+
+   jobs:
+     full-test:
+       runs-on: ubuntu-latest
+       steps:
+         - name: Run all 15 test suites
+           run: npm run test:all
+           # ~120 minutes, full coverage
+   ```
+
+2. **Cost budgets per run type**
+   ```typescript
+   const CI_BUDGETS = {
+     smoke: {
+       maxCost: 0.50,      // $0.50 per smoke run
+       maxDuration: 900,   // 15 minutes
+       suites: ['auth-flow', 'marketplace-flow', 'account-settings'],
+     },
+
+     full: {
+       maxCost: 5.00,      // $5.00 per full run
+       maxDuration: 7200,  // 2 hours
+       suites: 'all',
+     },
+   };
+
+   async function enforceRunBudget(runType: 'smoke' | 'full') {
+     const budget = CI_BUDGETS[runType];
+
+     orchestrator.on('phaseComplete', (result) => {
+       totalCost += result.cost;
+
+       if (totalCost > budget.maxCost) {
+         throw new Error(`Budget exceeded: $${totalCost} > $${budget.maxCost}`);
+       }
+     });
+   }
+   ```
+
+3. **Smart triggering based on file changes**
+   ```yaml
+   # Only run visual regression if UI files changed
+   - name: Check for UI changes
+     id: ui-changes
+     run: |
+       if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '\.(tsx|css|scss)$'; then
+         echo "ui_changed=true" >> $GITHUB_OUTPUT
+       fi
+
+   - name: Run visual regression
+     if: steps.ui-changes.outputs.ui_changed == 'true'
+     run: npm run test:visual-regression
+
+   # Only run performance tests if critical files changed
+   - name: Run performance tests
+     if: |
+       contains(github.event.pull_request.labels.*.name, 'performance') ||
+       contains(github.event.head_commit.message, '[perf]')
+     run: npm run test:performance
+   ```
+
+**Detection:**
+- CI queue shows 20+ pending jobs
+- API costs 10x projected ($50/day instead of $5/day)
+- PRs labeled "ci: skip" to avoid triggering tests
+- Developers merge without waiting for CI
+
+---
+
+## Phase-Specific Research Flags
+
+| Phase Topic | Likely Pitfall | Needs Deep Research |
+|-------------|---------------|---------------------|
+| Visual Regression Baseline Creation | Baseline pollution (Pitfall 2) | HIGH - Research: baseline review workflows, approval processes |
+| PII Masking Implementation | Over-redaction breaking AI (Pitfall 3) | MEDIUM - Research: selective masking strategies |
+| CI/CD Integration | Timing assumptions (Pitfall 4) | MEDIUM - Research: CI-specific config patterns |
+| Performance Testing | Inconsistent environments (Pitfall 5) | HIGH - Research: percentile-based budgets, network throttling |
+| Security Testing | Unauthenticated contexts (Pitfall 6) | MEDIUM - Research: role-based security test patterns |
+| Click Validation Expansion | Mass test failures (Pitfall 7) | LOW - Use phased rollout from existing click-validation-example.test.ts |
+| Scoring Threshold Tightening | Immediate regression (Pitfall 1) | CRITICAL - Shadow mode implementation required |
+| Pattern Expansion | Performance degradation (Pitfall 8) | LOW - Pattern usage metrics simple to add |
+| CI Automation Strategy | Cost/queue congestion (Pitfall 9) | MEDIUM - Research: tiered CI workflows |
+
+---
+
+## Success Metrics for Hardening
+
+Hardening is successful when:
+
+1. **63/63 PASS maintained** - No regression from current state
+2. **Scoring enforced gradually** - 4-week rollout with shadow mode first
+3. **Visual regression baselines reviewed** - 100% of baselines have metadata + 2 reviewers
+4. **PII masking preserves context** - AI analysis still catches validation bugs
+5. **CI flakiness <15%** - Industry-standard acceptable flakiness rate
+6. **Performance tests run nightly** - Not on every PR (too flaky)
+7. **Security tests cover authenticated flows** - All 3 roles (customer, vendor, admin)
+8. **Click validation in 15/15 files** - Phased rollout over 3 weeks
+9. **CI costs within budget** - <$10/day for full suite, <$2/day for smoke tests
+10. **Team confidence high** - Developers trust test results, don't skip CI
+
+---
+
+## Sources
+
+**Existing System Analysis:**
+- `dawati-tester/vertex-ai-testing/src/orchestrator/test-orchestrator.ts` (lines 110-121: overallStatus calculation)
+- `dawati-tester/vertex-ai-testing/src/decision-engine/response-parser.ts` (lines 98-104: AI always returns PASS)
+- `dawati-tester/vertex-ai-testing/src/visual-regression/baseline-manager.ts` (lines 31-43: auto-create baselines)
+- `dawati-tester/vertex-ai-testing/src/artifact-manager/pii-masker.ts` (lines 32-60: regex-based masking)
+- `dawati-tester/src/checklist-validator.ts` (scoring calculation)
+
+**Playwright Best Practices:**
+- Playwright official documentation on CI/CD (handling flakiness, timeouts)
+- Playwright visual regression with pixelmatch library
+- Network emulation and throttling for consistent performance testing
+
+**Domain Knowledge:**
+- Production hardening patterns for existing working systems
+- Gradual threshold tightening strategies
+- Baseline management and review processes (inspired by VRT tooling like Percy, Chromatic)
+- PII masking strategies that preserve test effectiveness

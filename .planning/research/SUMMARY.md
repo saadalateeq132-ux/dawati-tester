@@ -1,427 +1,474 @@
-# Research Summary: Dawati Autonomous Testing System
+# Research Summary: v1.1 Hardening & Full Coverage
 
-**Project:** Dawati Autonomous AI-Powered Web Testing
-**Completed:** 2026-02-08
-**Overall Confidence:** MEDIUM-HIGH
+**Project:** Dawati Autonomous Testing System
+**Milestone:** v1.1 - Production Hardening & Full Coverage
+**Synthesized:** 2026-02-10
+**Overall Confidence:** HIGH
 
 ---
 
 ## Executive Summary
 
-This research synthesizes findings across technology stack, feature landscape, architecture patterns, and domain pitfalls for building an autonomous testing system targeting React Native/Expo web applications with AI-powered screenshot analysis.
+The v1.1 milestone transforms a working proof-of-concept (63/63 phases PASS at 32% coverage) into a production-ready testing system. The research reveals that **hardening an existing working system is more dangerous than building from scratch**—teams must balance adding critical features (visual regression, PII masking, security testing, performance testing) while preserving the current success rate.
 
-**The recommended approach:** Build a modular, event-driven testing system using Playwright for browser automation, Gemini 2.0 Flash for AI-powered screenshot analysis, and Allure for comprehensive reporting. The architecture follows agentic patterns where AI components orchestrate test lifecycle activities while maintaining human oversight for critical validations. The system prioritizes OAuth flow testing (Phone/Apple/Google), navigation path coverage, and visual regression detection as core capabilities.
+**The Core Challenge:** The system currently achieves 63/63 PASS through lenient advisory-only scoring (AI never fails tests, execution errors return PASS). v1.1 must tighten thresholds and enforce quality gates WITHOUT causing mass test failures that demoralize the team and trigger revert pressure from management.
 
-**Key risks and mitigation:** The most critical risk is AI hallucination in test assertions—Gemini can confidently assert incorrect behaviors, creating false confidence in broken features. Mitigate with multi-layer verification (never rely on single AI inference), hallucination rate monitoring (alert when >10% of assertions contradict deterministic checks), and human-in-the-loop validation for critical paths. Secondary risks include Gemini API rate limit exhaustion (mitigated via exponential backoff and paid tier budget), OAuth token refresh failures (mitigated via centralized token manager), and screenshot test flakiness (mitigated via Docker-based standardized environments and semantic comparison).
+**The Recommended Approach:** Graduated enforcement over 4 weeks with shadow mode measurement BEFORE any failing thresholds are enabled. Add new testing dimensions (visual regression, security, performance) as parallel checkers that integrate into the existing orchestrator pattern. Prioritize PII masking and visual regression (legal/quality blockers) over performance optimization (monitoring-first, budgets-later).
 
-The technology choices are battle-tested for 2026: Playwright dominates browser automation (20% faster than Selenium, cross-browser support), Gemini 3 Flash provides agentic vision capabilities for UI analysis, and Node.js 24 LTS ensures long-term stability. The feature set balances table stakes requirements (self-healing locators, CI/CD integration, parallel execution) with differentiators (autonomous test generation, multi-modal AI analysis, defect prediction).
+**Key Risks:**
+1. **Baseline pollution** (buggy screenshots become "truth" for visual regression)
+2. **Over-masking PII** (removing context breaks AI analysis effectiveness)
+3. **CI/CD timing assumptions** (100% local success, 40% CI flakiness due to network/resource differences)
+4. **Premature threshold enforcement** (63/63 → 5/63 overnight regression destroys team trust)
 
 ---
 
 ## Key Findings
 
-### From STACK.md: Technology Recommendations
+### From STACK Research (STACK.md + STACK-v1.1.md)
 
-**Core Stack (HIGH CONFIDENCE):**
-- **Node.js 24.x LTS (Krypton)** — Active LTS through April 2028, recommended for production
-- **TypeScript 5.x with strict mode** — Type safety essential for autonomous systems
-- **Playwright 1.58.x** — Clear winner over Puppeteer (cross-browser) and Selenium (20% faster, better debugging)
-- **Google Gemini SDK (@google/genai)** — Official GA SDK for Gemini 2.0+, replaces deprecated @google/generative-ai
-- **Pino 9.x for logging** — 5-10x faster than Winston, async by default, critical for test performance
-- **Allure Reporter 3.x** — Essential for production testing with historical tracking, flakiness detection, trend analysis
+**Base Stack (Already Solid):**
+- **Playwright 1.48-1.50**: Cross-browser, 20% faster than Selenium, built-in trace viewer
+- **Gemini 2.0 Flash via Vertex AI**: Multimodal AI for screenshot analysis
+- **TypeScript + ts-node**: Type-safe test definitions
+- **Pino logging**: 5-10x faster than Winston for high-performance test runs
+- **Allure Reporter**: Essential for production systems (historical tracking, flakiness detection)
 
-**Why these choices:**
-- Playwright's auto-wait mechanisms, built-in trace viewer, and native screenshot comparison eliminate entire classes of flaky tests
-- Gemini 2.0 Flash provides multimodal image+text analysis with agentic vision (step-by-step investigation vs single-pass)
-- Pino's async logging ensures test execution isn't blocked by I/O operations
-- Allure tracks trends across test runs, automatically identifies flaky tests, provides step-level execution details
+**v1.1 Stack Additions (2-3 new dependencies):**
+- **pixelmatch + pngjs**: ALREADY INSTALLED for visual regression (just needs enhancement)
+- **sharp ^0.33.x**: NEW - High-performance image masking for PII (Windows-compatible)
+- **web-vitals ^4.x**: NEW - Official Google library for Core Web Vitals measurement
+- **lighthouse ^12.x**: OPTIONAL - Comprehensive performance audits (heavy, 50MB+)
 
-**Alternatives rejected:**
-- Puppeteer (Chrome-only, lacks cross-browser support)
-- Selenium (20% slower, requires WebDriver setup, weaker debugging)
-- Winston logging (5-10x slower than Pino despite popularity)
-- Built-in Playwright HTML reporter (lacks historical tracking, flakiness detection)
+**Stack Confidence:**
+- HIGH: Visual regression (dependencies installed), PII masking DOM approach (Playwright built-in), CI/CD (GitHub Actions standard)
+- MEDIUM: sharp version (should verify Windows pre-built binaries), Lighthouse integration with Playwright
+- LOW: OWASP ZAP integration (complex proxy setup, high false-positive rate)
 
-**Version requirements:**
-- Node.js 24.11.0 (Active LTS) or 22.x (Maintenance LTS)
-- Playwright: Update monthly (frequent releases with fixes)
-- Gemini SDK: Update quarterly (check for Gemini 2.x features)
-
-### From FEATURES.md: What to Build
-
-**Table Stakes (Must-Have for MVP):**
-1. **Self-Healing Test Locators** — Must use intent-based locators with semantic understanding, not simple fallback chains
-2. **Visual Regression Testing** — AI-powered comparison that understands context (ignore timestamps/animations), not pixel-perfect matching
-3. **CI/CD Integration** — GitHub Actions/GitLab CI support with clear pass/fail signals
-4. **Screenshot Capture** — Automatic at failure points + on-demand
-5. **Test Reports & Dashboards** — Real-time visibility with historical tracking
-6. **Parallel Test Execution** — 2-10x faster feedback via matrix builds
-7. **Flaky Test Detection** — Track patterns, auto-rerun random failures, quarantine chronic offenders
-8. **OAuth Flow Testing** — Phone/Apple/Google authentication with deep link handling (critical for Expo apps)
-9. **Navigation Path Testing** — All routes/screens reachable, detect broken links
-
-**Differentiators (Competitive Advantage):**
-1. **Multi-Modal AI Analysis (Gemini)** — Understand UI semantically, identify usability issues pixel comparison misses
-2. **Autonomous Test Generation** — LLM-powered test creation from natural language (2026 trend: ReAct pattern)
-3. **Defect Prediction** — ML models predict failure points with 85% accuracy (requires training data)
-4. **Intelligent Test Prioritization** — Run high-risk tests first based on code changes
-5. **Accessibility Testing** — Automated WCAG 2.2 compliance checks (60-70% coverage vs manual)
-
-**Explicit Anti-Features (Don't Build):**
-- Complete AI testing platform (niche tools win; integrate, don't replace)
-- Manual regression testing (automate all regression tests)
-- Hard-coded test data (use generators, fixtures, database seeding)
-- Procedure-driven BDD (behavior-driven, not step-by-step instructions)
-- Zero human oversight (design for human-in-the-loop validation)
-
-**React Native/Expo Considerations:**
-- OAuth deep links require custom URI scheme handling (critical for Phase 1)
-- Cannot test OAuth in Expo Go (must use Development Builds)
-- Screenshot comparison more valuable than DOM inspection for native components
-- React Navigation/Expo Router compatibility essential
-
-**Feature Adoption Context:**
-- Your Gemini AI analysis places you in "Early Adoption" tier (ahead of basic tools, grounded in proven tech)
-- 90%+ of commercial tools have table stakes features
-- Only 20-30% have autonomous test generation or multi-modal AI analysis
-
-### From ARCHITECTURE.md: How to Structure It
-
-**Recommended Architecture: Agentic, Event-Driven, Modular**
-
-**Layer 1: Orchestration Layer**
-- Test Planner (converts goals into executable plans, prioritizes test cases)
-- Scheduler (queue management, on-demand triggering, retry logic)
-- Workflow Controller (state management, event routing, error handling)
-- Pattern: Observer Pattern for event propagation, Strategy Pattern for adaptive test selection
-
-**Layer 2: Execution Engine**
-- Playwright Controller (browser automation, test execution)
-- Screenshot Capture (full page, element-level, viewport management)
-- Browser Manager (launch/close, context isolation, parallel execution)
-- Pattern: Page Object Model for UI abstraction, Repository Pattern for test data
-
-**Layer 3: AI Analysis Layer**
-- Gemini Vision API (agentic investigation: multi-step analysis, screen understanding, code execution)
-- Analysis Validator (compare vs baselines, detect visual regressions, ignore insignificant diffs)
-- Pattern: Agentic Vision (Gemini 3 Flash treats vision as active investigation, not single-pass)
-
-**Layer 4: Reporting System**
-- Result Aggregator (collect execution data, calculate metrics, track trends)
-- Report Generator (HTML for humans, JSON for systems, screenshot galleries)
-- Notification Hub (email, Slack, webhooks for failure alerts)
-- Pattern: Observer Pattern for flexible reporting without modifying core logic
-
-**Layer 5: Storage Layer**
-- File-based for MVP (simple, debuggable, no database overhead)
-- Organized hierarchy: `data/plans/`, `data/screenshots/`, `data/baselines/`, `data/results/`, `data/reports/`
-- Pattern: Repository Pattern for data access abstraction
-
-**Data Flow:**
-```
-User Trigger → Orchestration (plan/schedule) → Execution (Playwright) →
-Screenshot Capture → AI Analysis (Gemini) → Validation → Storage →
-Result Aggregation → Report Generation → Notification
-```
-
-**Event-Driven Communication:**
-- Central Event Bus for loose coupling
-- Events: test.started, step.executing, screenshot.captured, analysis.complete, test.completed, test.failed
-- Benefits: Components testable in isolation, easy to add new listeners, built-in audit trail
-
-**Key Architectural Decisions:**
-- **Agentic orchestration:** AI decides what to do next; orchestration controls whether it should happen
-- **Test isolation:** Each test runs with isolated context (storage, session, cookies)
-- **Robust selectors:** Prioritize user-facing attributes (text, aria-label) over CSS/XPath
-- **Self-healing:** Track selector changes, adapt automatically
-- **Multi-layer verification:** Never rely on single AI inference for test assertions
-
-**Patterns to Follow:**
-1. Event-Driven Architecture (loose coupling, extensibility)
-2. Page Object Model (maintainability, reusability)
-3. Repository Pattern (swap storage implementations without changing consumers)
-4. Strategy Pattern (adaptive behaviors like test prioritization)
-5. Observer Pattern (multiple observers react to test results)
-
-**Patterns to Avoid:**
-1. Tight coupling between layers (use Event Bus or Dependency Injection)
-2. Fragile selectors (use semantic selectors: getByRole, getByLabel, getByTestId)
-3. Testing too much in one test (break into focused, atomic tests)
-4. No test isolation (each test sets up its own state)
-5. Hardcoded waits (use Playwright's auto-wait, explicit conditions)
-6. Pixel-perfect visual comparison (use AI semantic comparison)
-7. Ignoring flaky tests (track, investigate, fix)
-
-**Scalability Path:**
-- 100 tests: Single-process, file storage, sequential execution (~1 hour runtime)
-- 1,000 tests: Job queue, parallel workers, cloud storage (~2-3 hours with parallelization)
-- 10,000+ tests: Distributed workers (Kubernetes), database metadata, AI-driven prioritization (~3-4 hours with smart selection)
-
-**React Native/Expo Specifics:**
-- Playwright tests web builds (`expo start --web` on `localhost:19006`)
-- Playwright does NOT support native iOS/Android apps (would need Detox or Appium)
-- React Native New Architecture (SDK 55+): 60fps, 40% faster startup, 20-30% less memory → better screenshot stability, reduced flakiness
-
-### From PITFALLS.md: What Can Go Wrong
-
-**Critical Pitfalls (Cause Rewrites, Production Incidents):**
-
-1. **AI Hallucination in Test Assertions** (CRITICAL)
-   - Problem: Gemini confidently generates incorrect assertions → false positives (broken features ship) or false negatives (working features flagged)
-   - Root cause: LLMs generate plausible text, don't verify facts
-   - Prevention: Multi-layer verification (AI + DOM state + expected elements), hallucination rate monitoring (alert >10%), confidence scoring (reject <0.85), human-in-the-loop for critical paths
-   - Detection: Tests pass in CI but fail in production, AI contradicts Playwright DOM queries
-
-2. **Gemini API Rate Limit Chaos** (CRITICAL)
-   - Problem: Random 429 errors in CI; tests work with 5 tests, fail with 50 tests
-   - Root cause: December 2025 quota cuts (50-92% reduction), misunderstanding project-level limits (not per API key), conflating RPM vs RPD limits
-   - Prevention: Distinguish limit types in error handling (RPM: wait 60s; RPD: fatal), exponential backoff with jitter, monitor quota proactively, batch/cache intelligently
-   - Detection: Sporadic 429s in CI, tests pass early in day but fail later
-
-3. **OAuth Testing Without Token Refresh** (CRITICAL)
-   - Problem: Tests authenticate successfully, fail 30 min later when tokens expire
-   - Root cause: OAuth tokens are short-lived (15-30 min), tests assume one-time setup
-   - Prevention: Centralized token manager with refresh logic, OAuth mock servers for tests, test token expiration explicitly, secure token storage
-   - Detection: Tests pass locally (<15 min) but fail in CI (queued 45+ min), parallel execution causes token conflicts
-
-4. **Screenshot Test Flakiness Cascade** (CRITICAL)
-   - Problem: Screenshots differ by pixels due to font rendering, animations, blinking cursors
-   - Root cause: OS-dependent fonts, dynamic content (dates, spinners), race conditions, mouse/focus states
-   - Prevention: Standardize environment (Docker), hide dynamic content before screenshots, wait for stability, element-level screenshots (not full-page), set pixel difference thresholds, run in CI (not local)
-   - Detection: Diffs showing only font/color shifts, tests pass/fail randomly, pixel differences in same UI regions
-
-**Moderate Pitfalls (Delays, Technical Debt):**
-
-5. **Fragile Playwright Selectors** — Use semantic selectors (getByRole, getByLabel, getByTestId), not CSS chains
-6. **Misusing Playwright Auto-Wait** — Let Playwright auto-wait; avoid fixed timeouts (waitForTimeout)
-7. **Insufficient Test Isolation** — Each test gets fresh context, no shared state
-8. **AI System Integration Blindness** — Plan integration architecture early, create abstraction layer, test the testing system
-9. **Playwright Can't Test Native Mobile** — Playwright tests web only; use Detox/Appium for native iOS/Android
-
-**Minor Pitfalls (Annoyances, Quick Fixes):**
-
-10. **Not Reporting Test Results** — Implement HTML, JUnit, JSON reports from day 1
-11. **Timeout Errors in CI vs Local** — Configure CI-specific timeouts, use retries, avoid `networkidle`
-12. **Ignoring AI Data Quality** — Collect training data, implement feedback loop, monitor AI performance metrics
-
-**Phase-Specific Warnings:**
-- Initial Setup: Budget for paid Gemini tier from day 1 (free tier insufficient post-Dec 2025 cuts)
-- OAuth Implementation: Test token refresh flow explicitly, not just happy path
-- Screenshot Capture: Use Docker for consistent rendering; hide dynamic content
-- AI Integration: Multi-layer verification (never trust AI alone)
-- CI/CD: Configure CI-specific timeouts; avoid `networkidle` wait condition
-- Scaling: Ensure test isolation with fresh contexts, use transactions for DB tests
-
-**Key Takeaway:** AI is a tool, not a replacement for verification. Always validate AI assertions with deterministic checks. Track hallucination rates. Budget for Gemini paid tier. Implement token refresh for OAuth. Standardize screenshot environments. Playwright auto-wait is powerful but not universal. Test isolation prevents 90% of flakiness. CI differs from local (configure accordingly). React Native Web ≠ Native (Playwright can't test native apps).
+**Critical Stack Decision:** Use DOM-based PII masking (Playwright selectors) as primary approach, sharp image masking as fallback. DOM approach is faster (no OCR), more reliable, and doesn't add latency to test execution.
 
 ---
 
-## Implications for Roadmap
+### From FEATURES Research (FEATURES.md)
 
-### Suggested Phase Structure
+**Table Stakes (Must-Have for v1.1):**
 
-Based on combined research, the roadmap should follow dependency order and risk mitigation:
+1. **Visual Regression Testing** (0% → 100%)
+   - Current: Takes screenshots but never compares them (50% value loss)
+   - Target: Baselines for 15 critical screens, pixel-diff with threshold, ignore regions for dynamic content
+   - Complexity: MEDIUM | Effort: 5 days
+   - **Blocker Risk:** Baseline pollution (Pitfall 2) - must implement review workflow FIRST
 
-**Phase 1: Core Testing Foundation (Weeks 1-4)**
-- **Deliverables:** Basic Playwright execution, OAuth flow testing, screenshot capture, simple reporting
-- **Features:** Authentication testing (Phone/Apple/Google OAuth), navigation path testing, screenshot capture at key points, basic CLI runner
-- **Rationale:** These are stated requirements and represent core functional testing. OAuth is critical for Expo apps and has complex pitfalls (token refresh, deep links), so tackle early. Establishes foundation for AI integration.
-- **Pitfalls to avoid:** OAuth without token refresh strategy (Pitfall 3), fragile selectors (Pitfall 5), insufficient test isolation (Pitfall 7)
-- **Research needs:** Standard patterns well-documented; skip `/gsd:research-phase`
+2. **PII Masking** (0% → 100%)
+   - Current: HTML masking only, screenshots sent to Gemini with visible PII
+   - Target: Mask phone numbers, emails, names BEFORE AI analysis (PDPL compliance requirement)
+   - Complexity: MEDIUM | Effort: 3 days
+   - **Blocker Risk:** Over-redaction (Pitfall 3) - must preserve structure for AI context
 
-**Phase 2: Intelligence Layer (Weeks 5-8)**
-- **Deliverables:** Gemini vision analysis, self-healing locators, visual regression testing, flaky test detection
-- **Features:** AI-powered screenshot analysis, intent-based locators with semantic understanding, AI-powered visual comparison (ignore timestamps/animations), hallucination rate monitoring
-- **Rationale:** Adds intelligence that separates you from basic test runners. Gemini integration is your differentiator. Self-healing reduces maintenance burden. Flaky test detection prevents trust erosion.
-- **Pitfalls to avoid:** AI hallucination without verification (Pitfall 1), Gemini rate limit chaos (Pitfall 2), screenshot flakiness (Pitfall 4)
-- **Research needs:** Likely needs `/gsd:research-phase` for Gemini integration patterns, hallucination mitigation strategies
+3. **Security Testing** (10% → 90%)
+   - Current: 2/20 OWASP tests implemented
+   - Target: XSS payload injection, CSRF token validation, SQL injection tests, security headers
+   - Complexity: HIGH | Effort: 5 days
+   - **Critical Gap:** No authenticated security testing (Pitfall 6) - must test vendor/admin panels
 
-**Phase 3: Scale & Integration (Weeks 9-12)**
-- **Deliverables:** CI/CD integration, parallel execution, enhanced reporting, test prioritization
-- **Features:** GitHub Actions/GitLab CI support, matrix builds (browsers/devices), Allure reports with historical tracking, risk-based test prioritization
-- **Rationale:** Makes tool production-ready for teams. Scales to larger test suites. Reporting provides visibility stakeholders need.
-- **Pitfalls to avoid:** AI system integration blindness (Pitfall 8), timeout errors in CI vs local (Pitfall 11), not reporting results (Pitfall 10)
-- **Research needs:** Standard CI/CD patterns; skip `/gsd:research-phase`
+4. **Core Web Vitals** (30% → 90%)
+   - Current: 3/10 performance metrics tracked
+   - Target: FCP, LCP, TTI, CLS, FID, INP measurement with performance budgets
+   - Complexity: MEDIUM | Effort: 3 days
+   - **Warning:** Don't fail builds on performance initially (Pitfall 5) - monitor first, enforce later
 
-**Phase 4: Advanced Features (Post-MVP)**
-- **Deliverables:** Autonomous test generation, defect prediction, API testing, performance monitoring
-- **Features:** LLM-powered test creation from natural language, ML-based failure prediction (85% accuracy), REST/GraphQL endpoint validation, load time tracking
-- **Rationale:** High complexity, lower priority for v1. Manual test creation sufficient for MVP. Requires historical data for defect prediction.
-- **Pitfalls to avoid:** Ignoring AI data quality (Pitfall 12), over-automation (anti-feature)
-- **Research needs:** Likely needs `/gsd:research-phase` for autonomous test generation patterns, defect prediction models
+5. **Pattern Library Expansion** (30 → 300+ patterns)
+   - Current: Documentation claims "300+ patterns" but only ~30 exist (false advertising)
+   - Target: 150+ English, 150+ Arabic hardcoded string patterns
+   - Complexity: LOW | Effort: 2 days
+   - **Warning:** Don't add every dictionary word (Pitfall 8) - prioritize app-relevant patterns
 
-**Defer to Post-MVP:**
-- Cross-browser testing (React Native uses native components; focus on iOS/Android device testing instead)
-- Security scanning (important but not differentiating)
-- Complete AI testing platform (anti-feature: niche tools win)
+**Should-Have (High Value):**
 
-### Roadmap Implications by Research Dimension
+6. **Vendor Dashboard Coverage** (0% → 85%)
+   - Critical gap: 0/33 features tested in vendor dashboard
+   - Target: 28/33 phases covering calendar, bookings, analytics
+   - Complexity: MEDIUM | Effort: 5 days
+   - **Uses existing framework:** Reuses orchestrator + AI + RTL validation patterns
 
-**From STACK.md:**
-- Phase 1 must install Playwright, Gemini SDK, Pino, dotenv, TypeScript with strict mode
-- Phase 2 requires Allure reporter setup for historical tracking
-- All phases: Use Node.js 24 LTS, update Playwright monthly, Gemini SDK quarterly
+7. **AI Consultant Coverage** (0% → 85%)
+   - Critical gap: 0/18 AI consultant features tested
+   - Target: 15/18 phases covering AI recommendations, chat, suggestions
+   - Complexity: MEDIUM | Effort: 3 days
 
-**From FEATURES.md:**
-- Phase 1: OAuth flow testing (Phone/Apple/Google), navigation path testing, screenshot capture (table stakes)
-- Phase 2: Self-healing locators, visual regression, AI analysis (differentiators), flaky test detection (table stakes)
-- Phase 3: CI/CD integration, parallel execution (table stakes), test prioritization (differentiator)
-- Phase 4: Autonomous test generation, defect prediction (differentiators)
+**Defer to Post-v1.1:**
+- Admin panel coverage (0% → 50%) - Need admin credentials + approval
+- AI visual defect detection enhancements - Color consistency checker already exists as differentiator
+- Multi-language test generation - Can expand manually for now
+- Performance budgets in CI/CD - Monitor trends first, enforce thresholds in v1.2
 
-**From ARCHITECTURE.md:**
-- Phase 1: Build Storage Layer, Execution Engine (basic), simple CLI
-- Phase 2: Build AI Analysis Layer, Orchestration Layer (basic), Event Bus
-- Phase 3: Build Reporting System, Orchestration Layer (advanced), Notification Hub
-- Phase 4: Refine Orchestration with agentic capabilities, API Layer (optional)
+**Complexity vs Value Matrix:**
+- **HIGH ROI (Do First):** Visual regression, PII masking, Core Web Vitals, pattern expansion
+- **MEDIUM ROI:** Security testing (high effort, critical value), vendor coverage
+- **LOW ROI (Defer):** Admin coverage, AI enhancements, multi-lang generation
 
-**From PITFALLS.md:**
-- Phase 1: Implement centralized OAuth token manager, use semantic selectors, fresh contexts per test
-- Phase 2: Multi-layer AI verification from day 1, exponential backoff for Gemini API, Docker for screenshots
-- Phase 3: CI-specific timeouts, multiple report formats, monitoring/alerting
-- Phase 4: AI data quality feedback loop, hallucination rate tracking
+---
 
-### Research Flags for Planning
+### From ARCHITECTURE Research (ARCHITECTURE.md)
 
-**Phases needing `/gsd:research-phase` during planning:**
-- **Phase 2:** Gemini integration patterns, hallucination mitigation strategies, agentic vision implementation
-- **Phase 4:** Autonomous test generation patterns (ReAct architecture), defect prediction model training
+**Current Architecture Pattern:** Pipeline orchestration with parallel checkers
+- **Orchestrator** coordinates sequential phase execution
+- **Checkers** (RTL, Color, Code Quality, AI) run independently and report scores
+- **Threshold enforcement** happens centrally in orchestrator (lines 110-121)
+- **Advisory-only AI** (response-parser.ts lines 98-104: always returns PASS)
 
-**Phases with well-documented patterns (skip research):**
-- **Phase 1:** Playwright basics, OAuth testing, file-based storage
-- **Phase 3:** CI/CD integration (GitHub Actions, GitLab CI), Allure reporting
+**v1.1 Integration Architecture:**
 
-**Rationale:** Gemini agentic vision is cutting-edge (2026); research confirmed capability but implementation patterns are emerging. Autonomous test generation requires ReAct pattern understanding. Standard Playwright, CI/CD, and reporting are mature with extensive documentation.
+```
+TestOrchestrator (enhanced)
+├── BrowserManager (ENHANCED: add hidePIIElements())
+├── GeminiClient (no changes)
+├── RTLIntegration (no changes)
+├── CodeQualityChecker (no changes)
+├── ChecklistValidator (no changes)
+├── BaselineManager (ENHANCED: region masking, multi-device baselines)
+├── PIIMasker (ENHANCED: DOMElementMasker, ScreenshotMasker)
+├── SecurityScanner (NEW: 4 sub-checkers)
+├── PerformanceTester (NEW: Lighthouse + custom metrics)
+└── HTMLReporter (ENHANCED: security + performance sections)
+```
+
+**Integration as Parallel Checkers:**
+- Security and performance scanners run alongside existing checks
+- Results feed into unified scoring system
+- Threshold enforcement remains in orchestrator (single source of truth)
+- All features configurable (can disable individually)
+
+**Data Flow Enhancement (Per Phase):**
+1. BrowserManager executes actions → **hidePIIElements()** before screenshot
+2. Capture screenshot (PII-masked) + HTML snapshot
+3. **BaselineManager compares** with baseline (if enabled, parallel)
+4. **SecurityScanner runs** checks (if enabled, parallel)
+5. **PerformanceTester measures** CWV (if enabled, parallel)
+6. GeminiClient analyzes screenshot → AIIssue[] (advisory)
+7. RTLIntegration runs 18 DOM checks → RTLCheckResult[]
+8. CodeQualityChecker analyzes source → violations[]
+9. ChecklistValidator maps to coverage → score
+10. **Orchestrator enforces thresholds** (RTL <6.0, Color <5.0, CQ <5.0, **Security <7.0, Perf <50**)
+11. HTMLReporter generates report with 7 score dimensions (was 3)
+
+**Build Order Recommendation:**
+1. **Phase 1 (Weeks 1-2):** PII masking DOM-based + Visual regression ignore regions
+2. **Phase 2 (Weeks 3-4):** CI/CD pipeline (test execution, artifact collection, PR feedback)
+3. **Phase 3 (Weeks 5-6):** Security testing (headers, dependencies, auth testing)
+4. **Phase 4 (Weeks 7-8):** Performance testing (custom metrics, CWV, Lighthouse)
+5. **Phase 5 (Weeks 9-10):** Advanced features (multi-device baselines, approval workflow)
+
+**Architectural Risks:**
+- **LOW:** Visual regression enhancements, PII DOM masking, network analyzer
+- **MEDIUM:** CI/CD GCP credentials management, Lighthouse integration (slow, 5-10s/page)
+- **HIGH:** OWASP ZAP integration (complex setup, proxy config, false positives)
+
+**Performance Impact:**
+- Current: ~10-15 seconds per phase
+- v1.1 with all features: +6-8 seconds per phase
+  - Visual regression: +0.5s (pixelmatch)
+  - PII masking DOM: +0.2s
+  - Security headers: +0s (uses existing logs)
+  - Performance custom: +0.5s
+  - Lighthouse: +5-10s (OPTIONAL, per-page only)
+- **Mitigation:** Run expensive checks (Lighthouse, OWASP) only on key pages or in nightly CI
+
+---
+
+### From PITFALLS Research (PITFALLS.md)
+
+**CRITICAL PITFALLS (Production-Hardening Specific):**
+
+**#1: Tightening Scoring Without Baseline Measurement** 🔴 CRITICAL
+- **What happens:** 63/63 PASS → 5/63 PASS overnight when strict thresholds enabled
+- **Why critical:** Destroys team trust, triggers revert pressure, kills hardening initiative
+- **Prevention:**
+  1. **Shadow mode first** (4 weeks): Measure what WOULD fail, don't fail tests yet
+  2. **Gradual threshold progression**: 5.0 → 6.0 → 7.0 → 8.0 over 4 weeks
+  3. **Category-based rollout**: RTL week 1, Color week 2, Code Quality week 3, AI week 4
+  4. **Exemption mechanism**: Allow phases to declare "known issues" with expiry dates
+- **Success metric:** No more than 10% regression from current 63/63 PASS rate per week
+
+**#2: Visual Regression Baseline Pollution** 🔴 CRITICAL
+- **What happens:** Capture baselines while app has bugs, buggy screenshots become "truth"
+- **Why critical:** Future fixes flagged as failures because they differ from buggy baselines
+- **Prevention:**
+  1. **Never auto-create baselines in CI/CD** (require manual local capture)
+  2. **Baseline review checklist** (2+ reviewers, metadata.json tracking)
+  3. **Baseline approval workflow** (capture → review → approve → commit)
+  4. **Progressive baseline approval** script-driven process
+- **Success metric:** 100% of baselines have metadata with 2+ reviewer approval
+
+**#3: PII Masking Breaking AI Context** 🟡 MODERATE
+- **What happens:** Aggressive masking (05XXXXXXXX) removes structure, AI can't validate format bugs
+- **Why important:** AI analysis becomes useless, validation bugs slip through
+- **Prevention:**
+  1. **Contextual masking**: Preserve structure (0512XXXX34), mask identity
+  2. **Test data substitution**: Use realistic test values (+966501234567) not blanking
+  3. **Selective masking**: Don't mask known test accounts
+  4. **Screenshot bounding boxes**: Redact before screenshot, not OCR after
+  5. **PII masking levels**: MINIMAL (local) → MODERATE (CI) → AGGRESSIVE (never)
+- **Success metric:** AI still catches validation bugs with PII-masked data
+
+**#4: CI/CD Flakiness from Timing Assumptions** 🟡 MODERATE
+- **What happens:** 100% pass locally, 40% flaky in CI due to slow runners/network
+- **Why important:** Developer friction, retry waste, "ignore CI" culture
+- **Prevention:**
+  1. **Dynamic waits**: `waitForSelector()` not `waitForTimeout(5000)`
+  2. **Network wait for Vercel**: Verify app responsive before tests (30-60s deploy time)
+  3. **Viewport-aware waits**: Wait for networkidle + DOMContentLoaded + fonts
+  4. **Resource contention detection**: Extend timeouts if runner overloaded
+  5. **Explicit CI/Local split**: 3x longer timeouts in CI
+- **Success metric:** <15% flakiness rate in CI (industry standard)
+
+**#5: Performance Testing on Inconsistent Environments** 🟡 MODERATE
+- **What happens:** LCP <2s locally, >5s in CI, team sets threshold to 10s (meaningless)
+- **Why important:** Performance budgets too loose or tests disabled
+- **Prevention:**
+  1. **Separate budgets**: CI (5s LCP) vs Real Users (2.5s LCP) vs Local (1.5s LCP)
+  2. **Percentile-based**: P95 over 5 runs, not single measurement
+  3. **Network throttling**: Fast 3G emulation for consistency
+  4. **Relative tests**: "LCP must not regress >20%" not "LCP <2.5s"
+  5. **Nightly/release only**: Don't run performance tests on every PR
+- **Success metric:** Performance tests run nightly with <20% variance
+
+**MODERATE PITFALLS:**
+
+**#6: Security Testing Without Authenticated Contexts**
+- Missing: XSS in account settings, CSRF on payment forms, SQL injection in admin panel
+- Prevention: Test with 3 roles (customer, vendor, admin), reuse auth from functional tests
+
+**#7: Click Validation Expansion Breaking Tests**
+- 63/63 → 30/63 when `expectAfterClick` validation added (40% of clicks don't work)
+- Prevention: Phased rollout by file (3 files week 1, 5 files week 2, 7 files week 3), soft assertions first
+
+**MINOR PITFALLS:**
+
+**#8: Pattern Expansion Without Priority**
+- 30 → 300 patterns in one commit, 10x slower RTL checks, 90% patterns never match
+- Prevention: Tiered matching (critical/standard/comprehensive), pattern usage metrics
+
+**#9: CI Pipeline Without Manual Trigger**
+- Full suite on every commit = CI queue congestion, cost explosion ($50/day), disabled automation
+- Prevention: Tiered CI (smoke tests 15min on PR, full suite nightly/manual)
+
+---
+
+## Implications for v1.1 Roadmap
+
+### Phase Structure Recommendation
+
+The roadmap should follow the **4-phase graduated enforcement pattern** to avoid destroying the current 63/63 PASS success:
+
+**Phase 1: Measurement & Foundation (Weeks 1-2)**
+- **Goal:** Add features WITHOUT enforcing thresholds (shadow mode)
+- **Deliverables:**
+  - PII masking (DOM-based) operational but not blocking tests
+  - Visual regression baselines created with review workflow
+  - Shadow mode logging (what WOULD fail under strict rules)
+  - Pattern library expansion to 300+ (research app-relevant patterns)
+- **Threshold Changes:** NONE (everything still passes)
+- **Success Metric:** 63/63 PASS maintained, shadow metrics collected
+
+**Phase 2: CI/CD & Observability (Weeks 3-4)**
+- **Goal:** Automate test execution, collect production-like data
+- **Deliverables:**
+  - GitHub Actions workflows (smoke tests on PR, full suite nightly)
+  - Artifact storage and PR feedback
+  - Security testing (headers, dependencies) - observability only
+  - Performance testing (CWV measurement) - logging only
+- **Threshold Changes:** NONE (still advisory-only)
+- **Success Metric:** CI runs reliably with <15% flakiness, costs <$10/day
+
+**Phase 3: Graduated Enforcement (Weeks 5-8)**
+- **Goal:** Enable enforcement category-by-category with graduated thresholds
+- **Week 5:** RTL threshold 5.0 → 6.0 (expected failures: ~10%)
+- **Week 6:** Color threshold 4.0 → 5.0 (expected failures: ~5%)
+- **Week 7:** Code Quality threshold 4.0 → 5.0 (expected failures: ~8%)
+- **Week 8:** Security threshold 0 → 7.0 (NEW enforcement)
+- **Deliverables:**
+  - Exemption mechanism for known issues with expiry dates
+  - Weekly reports showing pass rate and issues fixed
+- **Success Metric:** No more than 10% regression per week, team confidence maintained
+
+**Phase 4: Coverage Expansion (Weeks 9-12)**
+- **Goal:** Expand test coverage from 32% to 75%
+- **Deliverables:**
+  - Vendor Dashboard: 0% → 85% (28/33 tests)
+  - AI Consultant: 0% → 85% (15/18 tests)
+  - Security: 10% → 90% (18/20 tests)
+  - Performance: 30% → 90% (9/10 tests)
+- **Threshold Changes:** Performance threshold 0 → 50 (Lighthouse score)
+- **Success Metric:** Overall coverage 75%+, all P0/P1 features tested
+
+### Roadmap Dependency Map
+
+```
+CRITICAL PATH (must do in order):
+1. PII Masking (DOM-based)
+   ↓ blocks
+2. Visual Regression with Review Workflow
+   ↓ blocks
+3. Shadow Mode Enforcement (4 weeks measurement)
+   ↓ blocks
+4. Graduated Threshold Enablement (4 weeks rollout)
+
+PARALLEL TRACKS (can do concurrently after Phase 1):
+Track A: Security Hardening
+  - Security headers checker
+  - Dependency auditor
+  - Authenticated security tests (XSS, CSRF, SQL injection)
+
+Track B: Performance Monitoring
+  - Custom metrics collector (browser APIs)
+  - Network analyzer (existing logs)
+  - Lighthouse integration (optional, per-page)
+
+Track C: Coverage Expansion
+  - Vendor Dashboard tests (reuse framework)
+  - AI Consultant tests
+  - Click validation expansion (phased rollout)
+```
+
+### Research Flags for Each Phase
+
+| Phase | Needs Deep Research? | Topic | Priority |
+|-------|---------------------|-------|----------|
+| **PII Masking** | MEDIUM | Selective masking strategies (preserve context) | P0 |
+| **Visual Regression** | HIGH | Baseline approval workflows, review processes | P0 |
+| **CI/CD Integration** | MEDIUM | CI-specific config patterns (timeout/retry logic) | P1 |
+| **Performance Testing** | HIGH | Percentile-based budgets, network throttling configs | P1 |
+| **Security Testing** | MEDIUM | Role-based test patterns (customer/vendor/admin) | P1 |
+| **Threshold Enforcement** | CRITICAL | Shadow mode implementation, exemption mechanism | P0 |
+| **Click Validation** | LOW | Use existing click-validation-example.test.ts pattern | P2 |
+| **Pattern Expansion** | LOW | Pattern usage metrics, tiered matching | P2 |
+
+### Stack Choices Impact on Roadmap
+
+**Immediate Dependencies (Install Before Phase 1):**
+```bash
+cd dawati-tester/vertex-ai-testing
+
+# PII masking
+npm install sharp
+npm install --save-dev @types/sharp
+
+# Performance testing
+npm install --save-dev web-vitals
+
+# Optional: Lighthouse (defer if time-constrained)
+# npm install --save-dev lighthouse
+```
+
+**CI/CD Prerequisites:**
+- GitHub Secrets: `GCP_SERVICE_ACCOUNT_KEY` (Vertex AI credentials)
+- Repository Settings: Enable GitHub Actions, artifact storage
+- Branch Protection: Require status checks (smoke tests only, not full suite)
+
+**Docker Considerations (Optional for v1.1):**
+- Can defer to v1.2 if local + GitHub Actions sufficient
+- Priority: Get tests running reliably in cloud CI first, containerize later
 
 ---
 
 ## Confidence Assessment
 
-| Area | Confidence | Source Quality | Notes |
-|------|------------|---------------|-------|
-| **Stack** | HIGH | Official documentation (Node.js, Playwright, Gemini), industry comparisons (BrowserStack, BetterStack) | All technologies verified via official docs. Version numbers current as of 2026-02-08. Playwright advantages confirmed across multiple sources. |
-| **Features** | MEDIUM | Industry analysis (multiple 2026 sources), vendor documentation (mabl, Percy, Applitools) | Table stakes vs differentiators validated across 7+ industry sources. MVP recommendations based on project context. React Native/Expo considerations verified via official Expo docs. |
-| **Architecture** | MEDIUM | WebSearch findings (2026 autonomous testing patterns), official Playwright docs, Google Gemini blog | General patterns well-documented. Gemini agentic vision confirmed via Google Developer Blog (Feb 2026). Some specifics (exact API usage) would benefit from hands-on verification. |
-| **Pitfalls** | HIGH | Multiple 2026 sources, official documentation (Gemini rate limits, OAuth best practices), Playwright gotchas verified | Critical pitfalls verified across multiple independent sources. Gemini rate limit details confirmed via official Google docs. OAuth patterns validated via OWASP, Curity, Microsoft. Screenshot flakiness solutions confirmed via Applitools, Argos. |
+| Dimension | Confidence Level | Evidence Source | Gaps/Concerns |
+|-----------|-----------------|-----------------|---------------|
+| **Stack Additions** | HIGH | Dependencies verified in package.json (pixelmatch installed), training data for versions | sharp Windows binaries should be verified, Lighthouse Playwright compatibility unknown |
+| **Feature Scope** | HIGH | MASTER-TEST-CHECKLIST.md shows explicit gaps (0% vendor, 10% security), READY-TO-TEST.md documents claims vs reality | Admin panel access may be blocked (need credentials) |
+| **Architecture** | HIGH | Existing orchestrator pattern well-defined (test-orchestrator.ts), integration points clear | OWASP ZAP integration complexity high (may defer) |
+| **Pitfalls** | HIGH | Analysis of existing code (response-parser.ts advisory-only, baseline-manager.ts auto-create) + industry patterns | Performance budgets need field data baseline (currently estimated) |
+| **Timeline** | MEDIUM | Effort estimates based on existing codebase complexity, single developer full-time assumed | Vendor/admin access blockers unknown, team size unclear |
 
-**Overall Confidence: MEDIUM-HIGH**
+**Overall Confidence:** HIGH (75%+)
 
-**Strengths:**
-- Stack recommendations verified via official documentation and 2026 industry consensus
-- Pitfalls validated across multiple independent sources with concrete mitigation strategies
-- Architecture patterns grounded in established software engineering principles
-- Feature landscape reflects current market state (2026 trends, adoption stages)
+**Primary Uncertainty:** Whether shadow mode + graduated rollout will maintain 63/63 PASS success. This depends on:
+1. Current test quality (are they passing due to leniency or actual quality?)
+2. App maturity (how many real issues exist vs. false positives?)
+3. Team capacity to fix issues uncovered during shadow mode measurement
 
-**Gaps to Address:**
+**Recommended Pre-Work:** Run 1-week shadow mode measurement BEFORE committing to v1.1 timeline to validate assumptions about failure rates under strict thresholds.
 
-1. **Gemini API Practical Costs:** Research confirmed rate limits but actual cost per test execution with Gemini 2.0 Flash at scale is unclear. Budget planning needs hands-on validation.
+---
 
-2. **Gemini Vision Accuracy on Mobile Screenshots:** No benchmarks found for Gemini's UI analysis accuracy specifically on mobile app screenshots. Empirical testing required to establish acceptable hallucination thresholds.
+## Gaps to Address During Planning
 
-3. **React Native Self-Healing Effectiveness:** Most self-healing research focuses on web DOM. React Native's component hierarchy may behave differently. Validation needed during Phase 2 implementation.
+1. **Performance Baseline Unknown**
+   - Need: Run Lighthouse on 5 key pages to establish realistic CI budgets
+   - Risk: Setting thresholds based on guesses leads to disabled tests (Pitfall 5)
+   - Action: Week 0 pre-work before Phase 1 kickoff
 
-4. **Expo Development Build OAuth Testing:** Practical challenges of testing OAuth in Development Builds vs Expo Go remain under-documented. Hands-on validation required in Phase 1.
+2. **Admin/Vendor Test Credentials**
+   - Need: Test accounts with vendor dashboard access + admin panel access
+   - Risk: Can't test 33 vendor features or 30 admin features without credentials
+   - Action: Escalate to product team for test account creation
 
-5. **Screenshot Stability at Scale:** What constitutes acceptable pixel difference thresholds for your specific UI? Requires empirical testing with actual Dawati app screenshots.
+3. **Shadow Mode Implementation Details**
+   - Need: Specific exemption mechanism design (how to declare "known issue"?)
+   - Risk: Without exemptions, forced to fix 20+ issues simultaneously or revert
+   - Action: Design exemption config schema before Phase 3
 
-6. **Performance Baselines:** What is "fast" for autonomous test execution on Expo web apps? No industry consensus found. Needs benchmarking during Phase 1.
+4. **Pattern Library Research**
+   - Need: Analyze competitor apps (Eventbrite, Luma) for common i18n patterns
+   - Risk: Adding 270 generic patterns (medical terms) instead of 150 app-relevant ones
+   - Action: 2-day research sprint for domain-specific patterns
 
-7. **Agentic AI Production Maturity:** Industry sources claim agentic AI is "conference demo magic" in some contexts. Verify which Gemini agentic vision capabilities are production-ready vs experimental during Phase 2.
+5. **CI Performance Benchmarking**
+   - Need: Run test suite in GitHub Actions to measure actual CI timing
+   - Risk: Local timing assumptions (10-15s/phase) may be 3x slower in CI
+   - Action: Prototype CI workflow in Week 0
 
-**Validation Strategy:**
-- Phase 1: Validate OAuth token refresh patterns, Expo Development Build testing, performance baselines
-- Phase 2: Empirically test Gemini hallucination rates, establish pixel difference thresholds, validate self-healing effectiveness
-- Phase 3: Measure actual Gemini API costs at scale, validate agentic vision production readiness
-- All phases: Track metrics (pass rate, execution time, flakiness rate, hallucination rate) to validate research assumptions
+6. **Visual Regression Review Workflow**
+   - Need: Define who reviews baselines, approval process, metadata requirements
+   - Risk: Baseline pollution (Pitfall 2) if auto-created without review
+   - Action: Design approval workflow before any baseline creation
 
 ---
 
 ## Sources
 
-This synthesis drew from 100+ sources across 4 research dimensions:
+### High Confidence (Direct Codebase Analysis)
+- c:\Users\pc\Desktop\new\.planning\research\STACK-v1.1.md (v1.1 stack additions research)
+- c:\Users\pc\Desktop\new\.planning\research\STACK.md (base stack research)
+- c:\Users\pc\Desktop\new\.planning\research\FEATURES.md (feature landscape research)
+- c:\Users\pc\Desktop\new\.planning\research\ARCHITECTURE.md (integration architecture research)
+- c:\Users\pc\Desktop\new\.planning\research\PITFALLS.md (production hardening pitfalls research)
+- c:\Users\pc\Desktop\new\.planning\MASTER-TEST-CHECKLIST.md (coverage gaps, 32% overall)
+- c:\Users\pc\Desktop\new\dawati-tester\vertex-ai-testing\READY-TO-TEST.md (current system status)
+- c:\Users\pc\Desktop\new\dawati-tester\vertex-ai-testing\src\orchestrator\test-orchestrator.ts (threshold enforcement logic)
+- c:\Users\pc\Desktop\new\dawati-tester\vertex-ai-testing\src\decision-engine\response-parser.ts (AI advisory-only mode)
 
-### Technology Stack (STACK.md)
-**High Confidence:**
-- [Node.js Releases](https://nodejs.org/en/about/previous-releases) — LTS versions and EOL dates
-- [Playwright Documentation](https://playwright.dev/docs/intro) — Official Playwright docs
-- [Google Gemini API Libraries](https://ai.google.dev/gemini-api/docs/libraries) — Official SDK docs
-- [TypeScript Strict Mode](https://www.typescriptlang.org/tsconfig/strict.html) — Official TypeScript config
+### Medium Confidence (Industry Standards)
+- Playwright documentation (CI/CD patterns, visual regression, network emulation)
+- OWASP Testing Methodology (security test patterns, authenticated testing)
+- Google Core Web Vitals (performance thresholds: LCP <2.5s, CLS <0.1, FID <100ms)
+- GitHub Actions documentation (workflow patterns, artifact management, secrets)
 
-**Medium Confidence:**
-- [Playwright vs Puppeteer vs Selenium (2025)](https://www.browserbase.com/blog/recommending-playwright) — Browser automation comparison
-- [Pino vs Winston Comparison](https://betterstack.com/community/comparisons/pino-vs-winston/) — Logging library comparison
-- [Allure Report Documentation](https://allurereport.org/docs/playwright/) — Allure Playwright integration
-
-### Feature Landscape (FEATURES.md)
-**High Confidence:**
-- [Expo Authentication Documentation](https://docs.expo.dev/develop/authentication/) — Expo auth patterns
-- [Playwright Test Generator](https://playwright.dev/docs/codegen) — Test recording patterns
-
-**Medium Confidence:**
-- [Autonomous Quality Engineering: AI Testing in 2026](https://fintech.global/2026/01/27/autonomous-quality-engineering-ai-testing-in-2026/)
-- [12 AI Test Automation Tools QA Teams Actually Use in 2026](https://testguild.com/7-innovative-ai-test-automation-tools-future-third-wave/)
-- [Agentic AI in Testing: The 2026 Blueprint](https://medium.com/the-qa-space/agentic-ai-in-testing-the-2026-blueprint-for-autonomous-qa-786412ab2644)
-- [14 Best AI Testing Tools & Platforms in 2026](https://www.virtuosoqa.com/post/best-ai-testing-tools)
-- [mabl GenAI Test Automation with Self-Healing](https://www.mabl.com/auto-healing-tests)
-- [Percy Visual Testing Engine](https://www.browserstack.com/percy/visual-regression-testing)
-
-### Architecture Patterns (ARCHITECTURE.md)
-**High Confidence:**
-- [Best Practices | Playwright](https://playwright.dev/docs/best-practices) — Official best practices
-- [15 Best Practices for Playwright testing in 2026](https://www.browserstack.com/guide/playwright-best-practices)
-- [React Native's New Architecture - Expo Documentation](https://docs.expo.dev/guides/new-architecture/)
-
-**Medium Confidence:**
-- [Introducing Agentic Vision in Gemini 3 Flash](https://blog.google/innovation-and-ai/technology/developers-tools/agentic-vision-gemini-3-flash/) — Google Developer Blog
-- [Building a Future-Proof Test Automation Architecture](https://www.accelq.com/blog/test-automation-architecture/)
-- [Enterprise Agentic AI Architecture Guide 2026](https://www.kellton.com/kellton-tech-blog/enterprise-agentic-ai-architecture)
-- [Software Testing Basics for 2026](https://momentic.ai/blog/software-testing-basics)
-
-### Domain Pitfalls (PITFALLS.md)
-**High Confidence:**
-- [Gemini API Rate Limits Official Docs](https://ai.google.dev/gemini-api/docs/rate-limits)
-- [Testing for OAuth Weaknesses - OWASP](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/05-Testing_for_OAuth_Weaknesses)
-- [15 Playwright Selector Best Practices 2026 - BrowserStack](https://www.browserstack.com/guide/playwright-selectors-best-practices)
-- [Dealing with Waits and Timeouts in Playwright - Checkly](https://www.checklyhq.com/docs/learn/playwright/waits-and-timeouts/)
-
-**Medium Confidence:**
-- [AI Hallucinations Testing Guide - TestFort](https://testfort.com/blog/ai-hallucination-testing-guide)
-- [Google AI Studio Quota Issues – 2026 Guide](https://help.apiyi.com/en/google-ai-studio-rate-limit-solution-guide-en.html)
-- [Gemini API Free Tier: Complete Guide 2026](https://www.aifreeapi.com/en/posts/google-gemini-api-free-tier)
-- [How to Test OAuth Authentication - Testim](https://www.testim.io/blog/how-to-test-oauth-authentication/)
-- [OAuth Refresh Token Rotation Best Practices 2026](https://www.serverion.com/uncategorized/refresh-token-rotation-best-practices-for-developers/)
-- [Why Screenshot Image Comparison Tools Fail - Applitools](https://applitools.com/blog/why-screenshot-image-comparison-tools-fail/)
-- [Stabilize Flaky Tests for Visual Testing - Argos](https://argos-ci.com/blog/screenshot-stabilization)
-- [Operating System Independent Screenshot Testing with Playwright and Docker](https://adequatica.medium.com/operating-system-independent-screenshot-testing-with-playwright-and-docker-6e2251a9eb32)
-- [Universal E2E Testing with Detox and Playwright](https://ignitecookbook.com/docs/recipes/UniversalE2ETesting/)
-
-**Complete source lists available in individual research files (STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md).**
+### Research Confidence by Area
+- **Stack/Dependencies:** HIGH (verified in package.json, versions from training data)
+- **Feature Gaps:** HIGH (explicit checklist tracking, documented in MASTER-TEST-CHECKLIST.md)
+- **Architecture:** HIGH (existing patterns analyzed from source code)
+- **Pitfalls:** HIGH (identified from existing system weaknesses + industry anti-patterns)
+- **Timeline:** MEDIUM (estimates based on complexity, single developer assumed)
 
 ---
 
-## Ready for Roadmap Creation
+## Ready for Requirements Definition
 
-This synthesis provides the foundation for structured roadmap planning:
+This research synthesis provides the foundation for roadmap creation. The gsd-roadmapper agent can now:
 
-**For gsd-roadmapper agent:**
-- **Executive Summary** provides domain understanding
-- **Key Findings** inform technology and feature decisions
-- **Implications for Roadmap** suggest 4-phase structure with clear rationale
-- **Research Flags** identify which phases need deeper research (Phase 2, Phase 4)
-- **Confidence Assessment** highlights gaps requiring validation during implementation
-- **Pitfalls** provide phase-specific warnings to avoid common mistakes
+1. **Structure phases** based on the 4-phase graduated enforcement pattern (measurement → CI/CD → enforcement → coverage)
+2. **Sequence work** using the dependency map (PII masking blocks visual regression, shadow mode blocks threshold enforcement)
+3. **Estimate effort** using complexity assessments and build order recommendations
+4. **Avoid pitfalls** by incorporating preventions into phase definitions (baseline review workflows, shadow mode, CI/CD timing configs)
+5. **Set success metrics** per phase (maintain 63/63 PASS, <15% CI flakiness, 75% coverage target)
 
-**Recommended next steps:**
-1. Use Phase 1-4 structure as roadmap skeleton
-2. Expand each phase with specific tickets based on Key Findings
-3. Flag Phase 2 and Phase 4 for potential `/gsd:research-phase` (Gemini integration, autonomous test generation)
-4. Incorporate phase-specific pitfall warnings into acceptance criteria
-5. Plan validation strategy for identified gaps during implementation
+**Key insight for roadmapper:** v1.1 success is NOT about adding features—it's about preserving the current 63/63 PASS success rate while gradually increasing quality enforcement. The roadmap must prioritize measurement and graduated rollout over rapid feature addition.
 
-**Key recommendations for roadmapper:**
-- **Be opinionated:** Use Playwright (not Puppeteer/Selenium), Gemini 2.0 Flash (not GPT-4 Vision), Pino (not Winston), Allure (not basic HTML reporter)
-- **Prioritize risk mitigation:** Phase 1 must include OAuth token refresh manager, Phase 2 must include multi-layer AI verification from day 1
-- **Plan for scale:** Start with file-based storage (simple), plan migration path to database at 1,000+ tests
-- **Budget for reality:** Gemini paid tier required (free tier insufficient post-Dec 2025 cuts), budget for DevOps time (Docker setup for screenshot consistency)
-- **Avoid anti-features:** Don't build complete platform, don't attempt zero-human-oversight, don't over-automate exploratory testing
+---
 
-SUMMARY.md committed. Orchestrator can proceed to requirements definition.
+**Last Updated:** 2026-02-10
+**Synthesized From:** 4 research files (STACK + STACK-v1.1, FEATURES, ARCHITECTURE, PITFALLS)
+**Research Confidence:** HIGH (75%+)

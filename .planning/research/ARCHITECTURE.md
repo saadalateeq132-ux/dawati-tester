@@ -1,1398 +1,964 @@
-# Architecture Patterns: Autonomous Testing Systems
+# Architecture Patterns for v1.1 Hardening & Full Coverage
 
-**Domain:** AI-Powered Web Testing Automation
-**Researched:** 2026-02-08
-**Confidence:** MEDIUM (Based on 2026 industry patterns, WebSearch findings verified where possible)
+**Project:** Dawati Autonomous Testing System v1.1
+**Research Date:** 2026-02-10
+**Focus:** Integration architecture for visual regression, PII masking, CI/CD, security testing, performance testing
+
+---
 
 ## Executive Summary
 
-Autonomous testing systems in 2026 follow an **agentic architecture** where AI agents orchestrate test lifecycle activities—planning, execution, analysis, and maintenance. The architecture emphasizes **modular, event-driven components** with clear separation between orchestration (what to do), execution (how to do it), and analysis (what it means).
+The existing architecture follows a **pipeline orchestration pattern** where `TestOrchestrator` coordinates browser automation (`BrowserManager`), AI analysis (`GeminiClient`), and quality checkers (RTL, Color, Code Quality, Checklist). The v1.1 milestone adds five new capabilities that integrate as:
 
-For a React Native/Expo web app with Playwright + Gemini AI, the recommended architecture uses:
-- **Orchestration Layer**: Test planning, scheduling, and workflow coordination
-- **Execution Engine**: Playwright browser control and test execution
-- **AI Analysis Layer**: Gemini vision for screenshot understanding and validation
-- **Reporting System**: Result aggregation and report generation
-- **Storage Layer**: Test plans, screenshots, results, and historical data
+1. **Visual Regression** — Already integrated, needs enhancement (ignore regions, multi-device baselines)
+2. **PII Masking** — Already integrated, needs image masking + CI integration
+3. **CI/CD Pipeline** — New component: GitHub Actions workflow orchestration
+4. **Security Testing** — New component: parallel security scanner (OWASP checks, dependency audits)
+5. **Performance Testing** — New component: Lighthouse integration + custom metrics collector
 
-## Recommended Architecture
+**Key architectural principle:** New components integrate as **parallel checkers** that run alongside existing checks, feeding results into the unified scoring system. This preserves the current orchestrator pattern while adding new dimensions of quality measurement.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        USER INTERFACE                           │
-│                   (CLI / API / Dashboard)                       │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-┌────────────────────────────┴────────────────────────────────────┐
-│                    ORCHESTRATION LAYER                          │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────────┐ │
-│  │ Test Planner │  │  Scheduler  │  │  Workflow Controller   │ │
-│  └──────────────┘  └─────────────┘  └────────────────────────┘ │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-            ┌────────────────┼────────────────┐
-            │                │                │
-┌───────────▼──────┐  ┌──────▼──────┐  ┌─────▼────────────────┐
-│  EXECUTION       │  │   AI ANALYSIS│  │   REPORTING          │
-│  ENGINE          │  │   LAYER      │  │   SYSTEM             │
-│                  │  │              │  │                      │
-│ ┌──────────────┐ │  │ ┌──────────┐│  │ ┌──────────────────┐ │
-│ │  Playwright  │ │  │ │  Gemini  ││  │ │ Result Aggregator│ │
-│ │  Controller  │─┼──┼─│  Vision  ││  │ └──────────────────┘ │
-│ └──────────────┘ │  │ │  API     ││  │ ┌──────────────────┐ │
-│ ┌──────────────┐ │  │ └──────────┘│  │ │ Report Generator │ │
-│ │  Screenshot  │─┼──┤             │  │ └──────────────────┘ │
-│ │  Capture     │ │  │ ┌──────────┐│  │ ┌──────────────────┐ │
-│ └──────────────┘ │  │ │ Analysis ││  │ │ Notification Hub │ │
-│ ┌──────────────┐ │  │ │ Validator││  │ └──────────────────┘ │
-│ │  Browser     │ │  │ └──────────┘│  │                      │
-│ │  Manager     │ │  │             │  │                      │
-│ └──────────────┘ │  │             │  │                      │
-└──────────────────┘  └─────────────┘  └──────────────────────┘
-            │                │                │
-            └────────────────┼────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────────┐
-│                       STORAGE LAYER                             │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────────┐ │
-│  │ Test Plans   │  │ Screenshots │  │  Test Results          │ │
-│  │ (JSON/YAML)  │  │ (Images)    │  │  (JSON + Artifacts)    │ │
-│  └──────────────┘  └─────────────┘  └────────────────────────┘ │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────────┐ │
-│  │ Baselines    │  │ Reports     │  │  Configuration         │ │
-│  │ (Images)     │  │ (HTML/JSON) │  │  (YAML/ENV)            │ │
-│  └──────────────┘  └─────────────┘  └────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
+---
 
-## Component Breakdown
+## Current Architecture (v1.0)
 
-### 1. Orchestration Layer
-
-**Purpose:** Coordinates test lifecycle, decides what to test and when
-
-**Components:**
-
-| Component | Responsibility | Key Functions |
-|-----------|---------------|---------------|
-| **Test Planner** | Converts high-level goals into executable test plans | - Parse test requirements<br>- Generate test scenarios<br>- Prioritize test cases<br>- Adapt plans based on feedback |
-| **Scheduler** | Manages test execution timing and sequencing | - Queue management<br>- On-demand triggering<br>- Retry logic<br>- Resource allocation |
-| **Workflow Controller** | Orchestrates test execution workflow | - State management<br>- Event routing<br>- Error handling<br>- Progress tracking |
-
-**Design Pattern:** **Observer Pattern** for event propagation, **Strategy Pattern** for adaptive test selection
-
-**Key Decisions:**
-- **Agentic Orchestration**: In 2026, autonomous systems use the model to decide what to do next, while orchestration controls whether it should happen
-- **Dynamic Prioritization**: AI-driven test orchestration dynamically prioritizes cases, identifies flaky tests, and predicts failure points
-- **Event-Driven**: Decouple components through event bus for flexibility and scalability
-
-**Example Structure:**
-```
-orchestration/
-├── planner/
-│   ├── TestPlanner.ts          # Main planning logic
-│   ├── ScenarioGenerator.ts    # Generate test scenarios
-│   └── Prioritizer.ts          # Risk-based prioritization
-├── scheduler/
-│   ├── JobScheduler.ts         # Queue and timing management
-│   ├── RetryManager.ts         # Retry logic
-│   └── ResourcePool.ts         # Manage execution resources
-└── workflow/
-    ├── WorkflowEngine.ts       # State machine for test execution
-    ├── EventBus.ts             # Event distribution
-    └── StateManager.ts         # Track execution state
-```
-
-### 2. Execution Engine
-
-**Purpose:** Executes tests via Playwright, captures screenshots, manages browser lifecycle
-
-**Components:**
-
-| Component | Responsibility | Key Functions |
-|-----------|---------------|---------------|
-| **Playwright Controller** | Browser automation and test execution | - Execute test steps<br>- Handle interactions<br>- Manage page state<br>- Track execution metrics |
-| **Screenshot Capture** | Capture visual evidence at key points | - Full page screenshots<br>- Element screenshots<br>- Viewport management<br>- Image optimization |
-| **Browser Manager** | Manage browser instances and contexts | - Launch/close browsers<br>- Context isolation<br>- Parallel execution<br>- Resource cleanup |
-
-**Design Pattern:** **Page Object Model (POM)** for UI abstraction, **Repository Pattern** for test data management
-
-**Key Decisions:**
-- **Test Isolation**: Each test runs independently with isolated context (storage, session, cookies)
-- **Robust Selectors**: Prioritize user-facing attributes (text, aria-label) over CSS/XPath
-- **Self-Healing**: Track selector changes and adapt automatically
-- **Parallel Execution**: Support concurrent test runs with isolated browser contexts
-
-**Playwright Best Practices (2026):**
-1. **Isolation**: Complete independence between tests
-2. **User-Facing Selectors**: Text content, role, aria-label (not CSS/XPath)
-3. **Auto-Waiting**: Rely on Playwright's built-in wait mechanisms
-4. **Page Object Model**: Separate test logic from UI elements
-5. **Configuration**: Single playwright.config.ts for all settings
-
-**Example Structure:**
-```
-execution/
-├── playwright/
-│   ├── PlaywrightController.ts  # Main execution controller
-│   ├── BrowserManager.ts        # Browser lifecycle management
-│   ├── ContextManager.ts        # Isolated test contexts
-│   └── NavigationHelper.ts      # Navigation utilities
-├── capture/
-│   ├── ScreenshotCapture.ts     # Screenshot logic
-│   ├── VideoRecorder.ts         # Optional video capture
-│   └── ArtifactManager.ts       # Manage test artifacts
-├── pages/                       # Page Object Models
-│   ├── BasePage.ts              # Common page functionality
-│   ├── LoginPage.ts             # Example POM
-│   └── DashboardPage.ts         # Example POM
-└── utils/
-    ├── WaitHelpers.ts           # Custom wait utilities
-    └── ElementHelpers.ts        # Element interaction helpers
-```
-
-### 3. AI Analysis Layer
-
-**Purpose:** Use Gemini AI to understand screenshots, validate UI state, detect anomalies
-
-**Components:**
-
-| Component | Responsibility | Key Functions |
-|-----------|---------------|---------------|
-| **Gemini Vision API** | Screenshot analysis and interpretation | - Analyze screenshot content<br>- Extract UI elements<br>- Understand layout<br>- Answer visual queries |
-| **Analysis Validator** | Validate expected vs actual state | - Compare against baselines<br>- Detect visual regressions<br>- Identify meaningful changes<br>- Ignore insignificant diffs |
-
-**Design Pattern:** **Agentic Vision** (Gemini 3 Flash treats vision as active investigation)
-
-**Key Decisions:**
-- **Agentic Vision**: Gemini 3 Flash approaches vision as an agent-like investigation—planning steps, manipulating images, using code to verify details
-- **Step-by-Step Analysis**: Formulate plans to zoom in, inspect, and manipulate images rather than single-pass analysis
-- **Spatial Understanding**: Leverage Gemini's screen understanding for desktop/mobile OS screens
-- **Visual Evidence**: Ground answers in visual evidence rather than assumptions
-
-**Gemini Vision Capabilities (2026):**
-- **Agentic Investigation**: Treats image analysis as multi-step process
-- **Screen Understanding**: Specialized capability for UI/UX analysis
-- **Code Execution**: Can write and run code to verify visual details
-- **Automatic Actions**: Future roadmap includes auto-triggering zoom, rotation
-
-**Example Structure:**
-```
-ai-analysis/
-├── gemini/
-│   ├── GeminiClient.ts          # API client wrapper
-│   ├── VisionAnalyzer.ts        # Screenshot analysis
-│   ├── PromptBuilder.ts         # Construct analysis prompts
-│   └── ResponseParser.ts        # Parse AI responses
-├── validation/
-│   ├── VisualValidator.ts       # Compare expected vs actual
-│   ├── BaselineManager.ts       # Manage baseline images
-│   ├── DiffEngine.ts            # Detect visual differences
-│   └── AnomalyDetector.ts       # Identify unexpected UI changes
-└── models/
-    ├── AnalysisResult.ts        # Result schema
-    └── ValidationReport.ts      # Validation schema
-```
-
-### 4. Reporting System
-
-**Purpose:** Aggregate results, generate reports, notify stakeholders
-
-**Components:**
-
-| Component | Responsibility | Key Functions |
-|-----------|---------------|---------------|
-| **Result Aggregator** | Collect and consolidate test results | - Gather execution data<br>- Combine AI analysis<br>- Calculate metrics<br>- Track trends |
-| **Report Generator** | Create human-readable reports | - HTML reports<br>- JSON exports<br>- Screenshot galleries<br>- Trend visualizations |
-| **Notification Hub** | Alert stakeholders of results | - Email notifications<br>- Slack/webhook integration<br>- Failure alerts<br>- Summary digests |
-
-**Design Pattern:** **Observer Pattern** for test result processing (enables flexible reporting without modifying core logic)
-
-**Key Decisions:**
-- **Structured Metrics**: Emit structured data (latency, error codes, timings) into monitoring systems
-- **Multiple Formats**: HTML for humans, JSON for systems, screenshots for debugging
-- **Real-Time Updates**: Stream results as tests execute (not just final summary)
-- **Historical Tracking**: Track trends over time to identify flaky tests and degradation
-
-**Example Structure:**
-```
-reporting/
-├── aggregation/
-│   ├── ResultAggregator.ts      # Collect results
-│   ├── MetricsCalculator.ts     # Compute statistics
-│   └── TrendAnalyzer.ts         # Analyze historical trends
-├── generation/
-│   ├── HTMLReportGenerator.ts   # Generate HTML reports
-│   ├── JSONExporter.ts          # Export JSON data
-│   ├── ScreenshotGallery.ts     # Visual report gallery
-│   └── TemplateEngine.ts        # Report templates
-├── notification/
-│   ├── NotificationHub.ts       # Central notification dispatch
-│   ├── EmailNotifier.ts         # Email integration
-│   ├── SlackNotifier.ts         # Slack integration
-│   └── WebhookNotifier.ts       # Generic webhooks
-└── templates/
-    ├── report.html              # HTML report template
-    └── email.html               # Email template
-```
-
-### 5. Storage Layer
-
-**Purpose:** Persist test plans, screenshots, results, baselines, and configuration
-
-**Components:**
-
-| Component | Purpose | Format | Storage Location |
-|-----------|---------|--------|------------------|
-| **Test Plans** | Test scenarios and steps | JSON/YAML | `data/plans/` |
-| **Screenshots** | Captured images during execution | PNG/JPEG | `data/screenshots/` |
-| **Baselines** | Expected UI states | PNG/JPEG | `data/baselines/` |
-| **Test Results** | Execution outcomes and artifacts | JSON | `data/results/` |
-| **Reports** | Generated reports | HTML/JSON | `data/reports/` |
-| **Configuration** | System settings | YAML/ENV | `config/` |
-
-**Design Pattern:** **Repository Pattern** for data access abstraction
-
-**Key Decisions:**
-- **File-Based Storage**: For MVP, use filesystem (simple, debuggable, no database overhead)
-- **Organized Hierarchy**: Clear folder structure by date/run/test
-- **Retention Policy**: Auto-cleanup old results (keep last N runs)
-- **Backup Strategy**: Optional cloud sync for baselines and critical results
-
-**Example Structure:**
-```
-data/
-├── plans/
-│   ├── login-flow.yaml
-│   ├── checkout-flow.yaml
-│   └── user-registration.yaml
-├── screenshots/
-│   └── 2026-02-08/
-│       └── run-12345/
-│           ├── login-step-1.png
-│           ├── login-step-2.png
-│           └── dashboard-loaded.png
-├── baselines/
-│   ├── login-page.png
-│   ├── dashboard.png
-│   └── checkout.png
-├── results/
-│   └── 2026-02-08/
-│       └── run-12345/
-│           ├── result.json
-│           └── artifacts/
-└── reports/
-    └── 2026-02-08/
-        └── run-12345.html
-
-config/
-├── playwright.config.ts
-├── gemini.config.yaml
-└── .env
-```
-
-## Data Flow
-
-### Standard Test Execution Flow
+### Component Map
 
 ```
-1. User Trigger (CLI/API)
-   │
-   ├─> Orchestration Layer
-   │   ├─> Test Planner: Parse test plan, generate scenarios
-   │   ├─> Scheduler: Queue test for execution
-   │   └─> Workflow Controller: Initialize execution state
-   │
-   ├─> Execution Engine
-   │   ├─> Browser Manager: Launch browser context
-   │   ├─> Playwright Controller: Execute test steps
-   │   ├─> Screenshot Capture: Capture UI at checkpoints
-   │   └─> Emit events: step_complete, screenshot_captured
-   │
-   ├─> AI Analysis Layer (for each screenshot)
-   │   ├─> Gemini Vision API: Analyze screenshot
-   │   ├─> Analysis Validator: Compare vs baseline/expectations
-   │   └─> Emit events: analysis_complete, validation_result
-   │
-   ├─> Storage Layer
-   │   ├─> Save screenshots to data/screenshots/
-   │   ├─> Save analysis results to data/results/
-   │   └─> Update test execution state
-   │
-   └─> Reporting System
-       ├─> Result Aggregator: Collect all results
-       ├─> Report Generator: Create HTML/JSON reports
-       ├─> Notification Hub: Send alerts if failures
-       └─> Store report to data/reports/
-
-2. Return results to user
-```
-
-### Event-Driven Communication
-
-```
-┌──────────────┐
-│  Event Bus   │ (Central nervous system)
-└──────┬───────┘
-       │
-       ├─> test.started        → Workflow Controller
-       ├─> step.executing      → Execution Engine
-       ├─> screenshot.captured → AI Analysis Layer
-       ├─> analysis.complete   → Result Aggregator
-       ├─> test.completed      → Report Generator
-       └─> test.failed         → Notification Hub
-```
-
-**Benefits:**
-- **Loose Coupling**: Components don't directly depend on each other
-- **Extensibility**: Easy to add new listeners (e.g., metrics collector)
-- **Testability**: Can test components in isolation
-- **Debuggability**: Event log provides audit trail
-
-## File/Folder Structure
-
-### Recommended Project Structure
-
-```
-autonomous-testing-system/
+TestOrchestrator (coordinator)
 │
-├── src/
-│   ├── orchestration/          # Orchestration Layer
-│   │   ├── planner/
-│   │   ├── scheduler/
-│   │   └── workflow/
-│   │
-│   ├── execution/              # Execution Engine
-│   │   ├── playwright/
-│   │   ├── capture/
-│   │   ├── pages/              # Page Object Models
-│   │   └── utils/
-│   │
-│   ├── ai-analysis/            # AI Analysis Layer
-│   │   ├── gemini/
-│   │   ├── validation/
-│   │   └── models/
-│   │
-│   ├── reporting/              # Reporting System
-│   │   ├── aggregation/
-│   │   ├── generation/
-│   │   ├── notification/
-│   │   └── templates/
-│   │
-│   ├── storage/                # Storage Layer abstractions
-│   │   ├── repositories/
-│   │   ├── models/
-│   │   └── migrations/
-│   │
-│   ├── shared/                 # Shared utilities
-│   │   ├── events/             # Event bus
-│   │   ├── logger/             # Logging
-│   │   ├── config/             # Configuration loader
-│   │   └── types/              # Shared TypeScript types
-│   │
-│   └── api/                    # External API (optional)
-│       ├── routes/
-│       ├── controllers/
-│       └── middleware/
+├─ BrowserManager (Playwright automation)
+│  ├─ navigate/click/fill actions
+│  ├─ screenshot capture
+│  ├─ HTML snapshot
+│  └─ network/console logging
 │
-├── tests/                      # Unit and integration tests
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
+├─ GeminiClient (Vertex AI integration)
+│  ├─ Single screenshot analysis
+│  ├─ Batch analysis (5-10 screenshots)
+│  └─ Streaming responses
 │
-├── data/                       # Runtime data (gitignored)
-│   ├── plans/
-│   ├── screenshots/
-│   ├── baselines/
-│   ├── results/
-│   └── reports/
+├─ ResponseParser (advisory decision engine)
+│  ├─ Parses AI response
+│  ├─ Validates against DOM
+│  └─ Always returns PASS (advisory)
 │
-├── config/                     # Configuration files
-│   ├── playwright.config.ts
-│   ├── gemini.config.yaml
-│   └── default.yaml
+├─ RTLIntegration (18 DOM-level checks)
+│  ├─ Direction, alignment, margins
+│  ├─ Hardcoded strings (EN/AR)
+│  ├─ Currency, dates, BiDi
+│  ├─ Mobile tap targets
+│  └─ Color consistency (check #11)
 │
-├── scripts/                    # Utility scripts
-│   ├── setup.sh
-│   └── cleanup.sh
+├─ CodeQualityChecker (6-category analysis)
+│  ├─ Static analysis via typescript-eslint
+│  ├─ Maps URLs to source files
+│  └─ Scores: 0-10 per page
 │
-├── docs/                       # Documentation
-│   ├── architecture.md
-│   ├── api.md
-│   └── guides/
+├─ ChecklistValidator (coverage tracking)
+│  ├─ Parses MASTER-TEST-CHECKLIST.md
+│  ├─ Maps phases to checklist items
+│  └─ Scores: % passing vs total
 │
-├── .env.example                # Environment variables template
-├── package.json
-├── tsconfig.json
-├── .gitignore
-└── README.md
+├─ BaselineManager (visual regression - basic)
+│  ├─ Pixel-level comparison (pixelmatch)
+│  ├─ Baseline creation/update
+│  └─ Diff image generation
+│
+└─ PIIMasker (HTML masking only)
+   ├─ Phone numbers, emails, IBANs
+   ├─ Saudi National IDs, credit cards
+   └─ Saves masked HTML snapshots
 ```
 
-### Key Organizational Principles
+### Data Flow (Per Phase)
 
-1. **Layer Separation**: Each architectural layer has its own directory
-2. **Feature Grouping**: Related functionality grouped together (not by file type)
-3. **Shared Code**: Common utilities in `shared/` to avoid duplication
-4. **Data Isolation**: Runtime data separate from code
-5. **Configuration Centralization**: All configs in `config/` directory
-6. **Test Colocation**: Tests mirror source structure
+```
+1. BrowserManager executes actions (navigate, click, screenshot)
+   → captures screenshot.png + html-snapshot.html
 
-## Suggested Build Order
+2. PIIMasker creates html-masked.html (but screenshot still contains PII)
 
-### Phase 1: Foundation (Week 1)
+3. GeminiClient analyzes screenshot.png
+   → returns AIIssue[] (advisory only)
 
-**Goal:** Basic infrastructure and Playwright execution
+4. RTLIntegration runs 18 DOM checks on Page object
+   → returns RTLCheckResult[] with overall score
 
-1. **Project Setup**
-   - Initialize TypeScript project
-   - Install Playwright, core dependencies
-   - Configure TypeScript, linting, testing
+5. CodeQualityChecker analyzes source files for URL
+   → returns violations[] with score
 
-2. **Storage Layer**
-   - File system repository for test plans
-   - Basic JSON/YAML parsing
-   - Screenshot storage
+6. ChecklistValidator maps phase to checklist items
+   → returns coverage score
 
-3. **Execution Engine - Basic**
-   - Playwright controller with simple test execution
-   - Browser manager with context isolation
-   - Screenshot capture at key points
+7. BaselineManager (if enabled) compares screenshot vs baseline
+   → returns diff% and pass/fail
 
-4. **Simple Test Runner**
-   - CLI to execute a single test plan
-   - Basic logging and console output
+8. Orchestrator ENFORCES thresholds:
+   - RTL score < 6.0 → FAIL (overrides AI)
+   - Color score < 5.0 → FAIL (overrides AI)
+   - Code Quality < 5.0 → FAIL (overrides AI)
+   - AI advisory is logged but doesn't block
 
-**Deliverable:** Can execute a hardcoded test plan with Playwright, capture screenshots
+9. HTMLReporter generates report with all scores
+   → HTML + JSON output
+```
 
-### Phase 2: AI Integration (Week 2)
+### Key Architectural Decisions
 
-**Goal:** Add Gemini vision analysis
+| Decision | Rationale |
+|----------|-----------|
+| **Orchestrator as coordinator** | Single entry point, sequential phase execution, dependency management |
+| **AI advisory mode** | Prevents false positives from blocking tests; DOM checks are authoritative |
+| **Threshold enforcement in orchestrator** | Centralized pass/fail logic for all quality dimensions |
+| **Parallel checkers** | RTL, Color, Code Quality run independently, scores combined |
+| **Phase-based execution** | Each test file defines phases[], orchestrator runs sequentially |
+| **Artifact-first approach** | All evidence (screenshots, HTML, logs) saved before analysis |
 
-1. **Gemini Client**
-   - API client wrapper
-   - Authentication and rate limiting
-   - Error handling and retries
+---
 
-2. **AI Analysis Layer**
-   - Screenshot analysis with Gemini Vision
-   - Prompt engineering for UI validation
-   - Parse and structure AI responses
+## Integration Architecture for New Features
 
-3. **Basic Validation**
-   - Compare AI analysis against expected outcomes
-   - Simple pass/fail determination
+### 1. Visual Regression Enhancement
 
-**Deliverable:** Tests can capture screenshots and get AI analysis of what's visible
+**Current State:**
+- `BaselineManager` exists but is basic (pixel-level comparison, single device)
+- No ignore regions, no multi-device baselines, no approval workflow
 
-### Phase 3: Orchestration (Week 3)
+**Enhancement Architecture:**
 
-**Goal:** Intelligent test planning and execution
+```
+BaselineManager (enhanced)
+│
+├─ RegionMasker (NEW)
+│  ├─ Define ignore regions (dynamic content areas)
+│  ├─ Mask regions before comparison (black boxes)
+│  └─ Config: ignoreRegions: { selector: string, reason: string }[]
+│
+├─ MultiDeviceBaselines (NEW)
+│  ├─ Separate baselines per device (iPhone, iPad, Android)
+│  ├─ Device-specific diff thresholds
+│  └─ Storage: baselines/{device-name}/{baseline-name}.png
+│
+├─ DiffAnalyzer (ENHANCED)
+│  ├─ Pixelmatch for pixel-level diff
+│  ├─ Structural similarity (SSIM) for layout changes
+│  └─ Diff categorization: layout shift, color shift, content change
+│
+└─ ApprovalWorkflow (NEW - CI integration)
+   ├─ Save diffs to PR artifacts
+   ├─ GitHub Actions: comment on PR with diff images
+   └─ Manual approval: update baselines via git commit
+```
 
-1. **Test Planner**
-   - Parse YAML test plans
-   - Generate test scenarios
-   - Basic prioritization
+**Integration Point:**
+- Runs in orchestrator after screenshot capture (line 236-244 in test-orchestrator.ts)
+- Parallel to AI analysis (doesn't block)
+- Result stored in `PhaseResult.visualResult`
 
-2. **Workflow Controller**
-   - State machine for test execution
-   - Event bus implementation
-   - Error handling and recovery
+**Build Order:**
+1. RegionMasker (enables dynamic content filtering)
+2. MultiDeviceBaselines (prerequisite for device testing)
+3. DiffAnalyzer enhancements (better diff categorization)
+4. ApprovalWorkflow (CI integration last)
 
-3. **Scheduler**
-   - Job queue management
-   - On-demand execution
-   - Basic retry logic
+---
 
-**Deliverable:** Can execute multiple test plans with proper orchestration
+### 2. PII Masking Enhancement
 
-### Phase 4: Reporting (Week 4)
+**Current State:**
+- `PIIMasker` exists but only masks HTML (line 206-211 in test-orchestrator.ts)
+- Screenshots sent to Gemini API still contain PII (phone numbers, names, emails visible in UI)
 
-**Goal:** Comprehensive test reports and notifications
+**Enhancement Architecture:**
 
-1. **Result Aggregation**
-   - Collect execution data
-   - Calculate metrics (pass rate, duration, etc.)
-   - Store structured results
+```
+PIIMasker (enhanced)
+│
+├─ HTMLMasker (EXISTING)
+│  └─ Regex-based masking for text content
+│
+├─ ScreenshotMasker (NEW - CRITICAL)
+│  ├─ OCR via Tesseract.js (extract text from screenshot)
+│  ├─ Detect PII patterns in extracted text
+│  ├─ Redact regions using image manipulation (sharp library)
+│  └─ Generate masked-screenshot.png
+│
+├─ DOMElementMasker (NEW - ALTERNATIVE)
+│  ├─ Identify PII-containing elements via selectors
+│  ├─ Playwright: hide elements before screenshot
+│  └─ Config: piiSelectors: string[] (e.g., '[data-testid="user-phone"]')
+│
+└─ MaskingReport (NEW)
+   ├─ Log what was masked and where
+   ├─ Flag screenshots with detected PII
+   └─ CI: fail build if unmasked PII detected
+```
 
-2. **Report Generation**
-   - HTML report with screenshots
-   - JSON export for CI/CD integration
-   - Screenshot gallery
+**Integration Point:**
+- **Option A (OCR-based):** After screenshot capture, before sending to Gemini
+  - `captureScreenshot()` → `maskScreenshot()` → `analyzeSingle()`
+- **Option B (DOM-based):** Before screenshot capture
+  - `executeActions()` → `hidePIIElements()` → `captureScreenshot()` → `analyzeSingle()`
 
-3. **Notifications**
-   - Basic email/webhook notifications
-   - Failure alerts
+**Recommended:** Option B (DOM-based) — faster, more reliable, no OCR dependency
 
-**Deliverable:** Complete test reports with visual evidence and notifications
+**Build Order:**
+1. DOMElementMasker (faster, simpler)
+2. ScreenshotMasker (fallback for OCR-based masking if needed)
+3. MaskingReport (observability)
+4. CI integration (fail on unmasked PII)
 
-### Phase 5: Refinement (Week 5+)
+**Configuration Example:**
+```typescript
+piiMasking: {
+  enabled: true,
+  htmlPatterns: [...], // existing
+  domSelectors: [
+    '[data-testid="user-phone"]',
+    '[data-testid="user-email"]',
+    '.user-name',
+    '.credit-card-display'
+  ],
+  ocrFallback: false, // enable if DOM masking insufficient
+}
+```
 
-**Goal:** Production readiness
+---
 
-1. **Self-Healing**
-   - Selector adaptation
-   - Automatic retry with variations
-   - Learning from failures
+### 3. CI/CD Pipeline Architecture
 
-2. **Advanced Features**
-   - Parallel execution
-   - Visual regression baseline management
-   - Trend analysis
+**Current State:**
+- Tests run manually via `ts-node` on Windows
+- No automated execution, no PR integration, no artifact storage
 
-3. **API Layer** (optional)
-   - REST API for remote execution
-   - Dashboard for viewing results
+**CI/CD Architecture:**
 
-**Deliverable:** Production-ready autonomous testing system
+```
+GitHub Actions Workflow
+│
+├─ Test Execution Job (runs on PR, push to main)
+│  ├─ Setup: Node.js, install dependencies
+│  ├─ Authenticate: Google Cloud (Vertex AI credentials)
+│  ├─ Run: npm run test:all (execute all test suites)
+│  └─ Timeout: 30 minutes
+│
+├─ Artifact Collection Job (parallel, depends on test job)
+│  ├─ Collect: screenshots, HTML reports, JSON results
+│  ├─ Upload: GitHub Actions artifacts (90-day retention)
+│  └─ Archive: visual regression diffs, PII-masked snapshots
+│
+├─ Report Generation Job (depends on artifact job)
+│  ├─ Parse: JSON results from all suites
+│  ├─ Generate: Markdown summary (scores, failures, links)
+│  ├─ Post: GitHub PR comment with summary + artifact links
+│  └─ Status: Set GitHub status check (pass/fail)
+│
+├─ Baseline Update Job (manual trigger only)
+│  ├─ Trigger: workflow_dispatch with input baseline_name
+│  ├─ Update: copy current screenshot to baselines/
+│  ├─ Commit: push updated baseline to branch
+│  └─ Security: require approval from CODEOWNERS
+│
+└─ Scheduled Regression Job (nightly)
+   ├─ Schedule: cron '0 2 * * *' (2 AM UTC)
+   ├─ Run: full test suite against production
+   ├─ Alert: Slack/email on failure
+   └─ Trend: track score history over time
+```
 
-## Integration Points
+**Integration Points:**
+1. **Test execution:** Orchestrator already supports JSON output
+2. **Artifact storage:** BrowserManager.getArtifacts() provides paths
+3. **Reporting:** HTMLReporter output consumed by Report Generation Job
+4. **Status checks:** GitHub API called with pass/fail status
 
-### External System Integration
+**Build Order:**
+1. Test Execution Job (core CI functionality)
+2. Artifact Collection Job (prerequisite for reporting)
+3. Report Generation Job (PR feedback)
+4. Baseline Update Job (visual regression workflow)
+5. Scheduled Regression Job (ongoing monitoring)
 
-| Integration | Purpose | Protocol | Direction |
-|-------------|---------|----------|-----------|
-| **Dawati App** | Target application under test | HTTP/HTTPS | Outbound |
-| **Gemini API** | Screenshot analysis and AI vision | REST API | Outbound |
-| **CI/CD System** | Trigger tests on deployment | Webhook/API | Inbound |
-| **Notification System** | Alert on test completion/failure | SMTP/Webhook | Outbound |
-| **Monitoring** | Metrics and observability | StatsD/OpenTelemetry | Outbound |
-| **Cloud Storage** | Backup screenshots/reports (optional) | S3/GCS API | Outbound |
-
-### Internal Component Integration
-
-**1. Orchestration ↔ Execution**
-- **Protocol:** Event Bus + Direct Function Calls
-- **Data Flow:** Test plans → Execution commands → Execution events
-- **Example:**
-  ```typescript
-  // Orchestration triggers execution
-  await playwrightController.executeStep(step);
-
-  // Execution emits events
-  eventBus.emit('step.complete', { stepId, result });
-  ```
-
-**2. Execution ↔ AI Analysis**
-- **Protocol:** Async Function Calls + Event Bus
-- **Data Flow:** Screenshot → AI analysis request → Analysis result
-- **Example:**
-  ```typescript
-  // Execution captures and sends
-  const screenshot = await capture.takeScreenshot();
-  const analysis = await geminiVision.analyze(screenshot, prompt);
-
-  // Analysis emits event
-  eventBus.emit('analysis.complete', { screenshot, analysis });
-  ```
-
-**3. AI Analysis ↔ Reporting**
-- **Protocol:** Event Bus
-- **Data Flow:** Analysis results → Result aggregation → Report generation
-- **Example:**
-  ```typescript
-  // Analysis emits validation result
-  eventBus.emit('validation.complete', { passed, evidence });
-
-  // Reporting listens and aggregates
-  resultAggregator.on('validation.complete', (result) => {
-    aggregator.add(result);
-  });
-  ```
-
-**4. All Components ↔ Storage**
-- **Protocol:** Repository Pattern (abstraction layer)
-- **Data Flow:** CRUD operations via repositories
-- **Example:**
-  ```typescript
-  // Any component can use repository
-  const testPlan = await testPlanRepo.findById(planId);
-  await screenshotRepo.save(screenshot);
-  await resultRepo.create(testResult);
-  ```
-
-### Configuration Management
-
-**Environment-Based Configuration:**
-
+**Workflow File Structure:**
 ```yaml
-# config/default.yaml
-playwright:
-  headless: true
-  viewport:
-    width: 1280
-    height: 720
-  timeout: 30000
+# .github/workflows/test-suite.yml
+name: Dawati Test Suite
+on: [pull_request, push]
 
-gemini:
-  apiKey: ${GEMINI_API_KEY}
-  model: gemini-3-flash
-  maxRetries: 3
-
-storage:
-  screenshotsPath: ./data/screenshots
-  baselinesPath: ./data/baselines
-  resultsPath: ./data/results
-
-reporting:
-  formats:
-    - html
-    - json
-  notifications:
-    enabled: true
-    channels:
-      - email
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      - run: npm install
+      - run: npm run test:all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            reports/
+            artifacts/
+            baselines/
 ```
 
-**Override for different environments:**
+**Configuration Changes:**
+- Add `--ci` flag to orchestrator (disables interactive prompts, forces JSON output)
+- Add `--github-token` for API integration (post PR comments)
+- Environment variable: `VERTEX_AI_CREDENTIALS` (base64-encoded JSON key)
 
-```yaml
-# config/production.yaml
-playwright:
-  headless: true
+---
 
-gemini:
-  timeout: 60000
+### 4. Security Testing Integration
 
-storage:
-  screenshotsPath: /var/data/screenshots
-  cloudSync: true
-  cloudBucket: ${GCS_BUCKET}
-```
+**Current State:**
+- No security testing
+- Application deployed to Vercel with no security scanning
 
-## Architecture Patterns to Follow
-
-### Pattern 1: Event-Driven Architecture
-
-**What:** Components communicate via events rather than direct coupling
-
-**When:** Use throughout system for component communication
-
-**Benefits:**
-- Loose coupling between components
-- Easy to add new features (just listen to events)
-- Built-in audit trail
-- Testable in isolation
-
-**Example:**
-```typescript
-// Event emitter (execution engine)
-class PlaywrightController {
-  async executeStep(step: TestStep) {
-    this.eventBus.emit('step.started', { step });
-
-    const result = await this.execute(step);
-
-    if (result.screenshot) {
-      this.eventBus.emit('screenshot.captured', {
-        stepId: step.id,
-        screenshot: result.screenshot
-      });
-    }
-
-    this.eventBus.emit('step.complete', { step, result });
-  }
-}
-
-// Event listener (AI analysis)
-class GeminiAnalyzer {
-  constructor(eventBus: EventBus) {
-    eventBus.on('screenshot.captured', this.analyzeScreenshot.bind(this));
-  }
-
-  async analyzeScreenshot(event: ScreenshotEvent) {
-    const analysis = await this.gemini.analyze(event.screenshot);
-    this.eventBus.emit('analysis.complete', { ...event, analysis });
-  }
-}
-```
-
-### Pattern 2: Page Object Model (POM)
-
-**What:** Encapsulate page structure in classes, separate from test logic
-
-**When:** Use for all Playwright page interactions
-
-**Benefits:**
-- Maintainability (UI changes only affect POM, not tests)
-- Reusability (multiple tests use same page objects)
-- Readability (test intent clearer without locator details)
-
-**Example:**
-```typescript
-// pages/LoginPage.ts
-export class LoginPage {
-  constructor(private page: Page) {}
-
-  // Locators
-  private emailInput = () => this.page.getByLabel('Email');
-  private passwordInput = () => this.page.getByLabel('Password');
-  private submitButton = () => this.page.getByRole('button', { name: 'Sign In' });
-
-  // Actions
-  async login(email: string, password: string) {
-    await this.emailInput().fill(email);
-    await this.passwordInput().fill(password);
-    await this.submitButton().click();
-  }
-
-  // Assertions
-  async isErrorVisible() {
-    return this.page.getByRole('alert').isVisible();
-  }
-}
-
-// Test using POM
-const loginPage = new LoginPage(page);
-await loginPage.login('user@example.com', 'password123');
-```
-
-### Pattern 3: Repository Pattern
-
-**What:** Abstract data access behind interfaces
-
-**When:** Use for all storage operations
-
-**Benefits:**
-- Swap storage implementations (file → database) without changing consumers
-- Easier testing (mock repositories)
-- Consistent data access patterns
-
-**Example:**
-```typescript
-// Interface
-interface ITestPlanRepository {
-  findById(id: string): Promise<TestPlan | null>;
-  findAll(): Promise<TestPlan[]>;
-  save(plan: TestPlan): Promise<void>;
-  delete(id: string): Promise<void>;
-}
-
-// File-based implementation
-class FileTestPlanRepository implements ITestPlanRepository {
-  constructor(private basePath: string) {}
-
-  async findById(id: string): Promise<TestPlan | null> {
-    const filePath = path.join(this.basePath, `${id}.yaml`);
-    if (!fs.existsSync(filePath)) return null;
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    return YAML.parse(content);
-  }
-
-  // ... other methods
-}
-
-// Usage
-const repo: ITestPlanRepository = new FileTestPlanRepository('./data/plans');
-const plan = await repo.findById('login-flow');
-```
-
-### Pattern 4: Strategy Pattern
-
-**What:** Encapsulate interchangeable algorithms behind interface
-
-**When:** Use for adaptive behaviors (test prioritization, selector strategies)
-
-**Benefits:**
-- Easy to switch strategies at runtime
-- Easy to add new strategies
-- Testable in isolation
-
-**Example:**
-```typescript
-// Strategy interface
-interface ITestPrioritizationStrategy {
-  prioritize(tests: TestPlan[]): TestPlan[];
-}
-
-// Risk-based strategy
-class RiskBasedPrioritization implements ITestPrioritizationStrategy {
-  prioritize(tests: TestPlan[]): TestPlan[] {
-    return tests.sort((a, b) => b.riskScore - a.riskScore);
-  }
-}
-
-// Recent changes strategy
-class RecentChangesStrategy implements ITestPrioritizationStrategy {
-  prioritize(tests: TestPlan[]): TestPlan[] {
-    return tests.sort((a, b) => {
-      return b.lastModified.getTime() - a.lastModified.getTime();
-    });
-  }
-}
-
-// Usage
-class TestPlanner {
-  constructor(private strategy: ITestPrioritizationStrategy) {}
-
-  async planTests(tests: TestPlan[]): Promise<TestPlan[]> {
-    return this.strategy.prioritize(tests);
-  }
-}
-```
-
-### Pattern 5: Observer Pattern
-
-**What:** Subscribe to state changes and react
-
-**When:** Use for test result processing, notifications
-
-**Benefits:**
-- Multiple observers can react to same event
-- Add new observers without modifying subject
-- Clean separation of concerns
-
-**Example:**
-```typescript
-// Subject
-class TestExecutor {
-  private observers: TestObserver[] = [];
-
-  subscribe(observer: TestObserver) {
-    this.observers.push(observer);
-  }
-
-  async executeTest(test: TestPlan) {
-    const result = await this.run(test);
-
-    // Notify all observers
-    for (const observer of this.observers) {
-      await observer.onTestComplete(result);
-    }
-  }
-}
-
-// Observers
-class ReportGenerator implements TestObserver {
-  async onTestComplete(result: TestResult) {
-    await this.generateReport(result);
-  }
-}
-
-class NotificationSender implements TestObserver {
-  async onTestComplete(result: TestResult) {
-    if (result.failed) {
-      await this.sendAlert(result);
-    }
-  }
-}
-
-// Usage
-const executor = new TestExecutor();
-executor.subscribe(new ReportGenerator());
-executor.subscribe(new NotificationSender());
-```
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Tight Coupling Between Layers
-
-**What:** Direct dependencies between layers (e.g., Execution Engine directly calling Report Generator)
-
-**Why Bad:**
-- Changes cascade across system
-- Hard to test components in isolation
-- Difficult to swap implementations
-- Violates separation of concerns
-
-**Instead:** Use Event Bus or Dependency Injection
-
-```typescript
-// BAD: Direct coupling
-class PlaywrightController {
-  async executeStep(step: TestStep) {
-    const result = await this.run(step);
-
-    // Directly coupled to reporting
-    const reporter = new ReportGenerator();
-    await reporter.addResult(result);
-  }
-}
-
-// GOOD: Event-driven
-class PlaywrightController {
-  constructor(private eventBus: EventBus) {}
-
-  async executeStep(step: TestStep) {
-    const result = await this.run(step);
-
-    // Emit event, don't know who listens
-    this.eventBus.emit('step.complete', { result });
-  }
-}
-```
-
-### Anti-Pattern 2: Fragile Selectors
-
-**What:** Using CSS selectors or XPath that break with UI changes
-
-**Why Bad:**
-- High maintenance burden
-- Flaky tests
-- False failures
-
-**Instead:** Use semantic, user-facing selectors
-
-```typescript
-// BAD: Fragile selectors
-await page.click('#btn-submit-form-123');
-await page.locator('div > ul > li:nth-child(2) > a').click();
-await page.locator('//div[@class="container"]/button[1]').click();
-
-// GOOD: Semantic selectors
-await page.getByRole('button', { name: 'Submit' }).click();
-await page.getByLabel('Email address').fill('user@example.com');
-await page.getByText('Welcome back').isVisible();
-```
-
-### Anti-Pattern 3: Testing Too Much in One Test
-
-**What:** Single test that validates entire user journey with many assertions
-
-**Why Bad:**
-- First failure hides subsequent issues
-- Hard to debug which part failed
-- Long execution time
-- Violates test isolation
-
-**Instead:** Break into focused, atomic tests
-
-```typescript
-// BAD: Mega test
-test('complete user journey', async () => {
-  // Login
-  await loginPage.login(email, password);
-  expect(await dashboard.isVisible()).toBe(true);
-
-  // Create item
-  await dashboard.createItem('New Item');
-  expect(await dashboard.itemExists('New Item')).toBe(true);
-
-  // Edit item
-  await dashboard.editItem('New Item', 'Updated Item');
-  expect(await dashboard.itemExists('Updated Item')).toBe(true);
-
-  // Delete item
-  await dashboard.deleteItem('Updated Item');
-  expect(await dashboard.itemExists('Updated Item')).toBe(false);
-});
-
-// GOOD: Focused tests
-test('user can login', async () => {
-  await loginPage.login(email, password);
-  expect(await dashboard.isVisible()).toBe(true);
-});
-
-test('user can create item', async () => {
-  await setupLoggedInState();
-  await dashboard.createItem('New Item');
-  expect(await dashboard.itemExists('New Item')).toBe(true);
-});
-```
-
-### Anti-Pattern 4: No Test Isolation
-
-**What:** Tests depend on state from previous tests
-
-**Why Bad:**
-- Order-dependent tests (pass when run alone, fail in suite)
-- Cascading failures
-- Hard to debug
-- Can't run tests in parallel
-
-**Instead:** Each test sets up its own state
-
-```typescript
-// BAD: Shared state
-let userId: string;
-
-test('create user', async () => {
-  userId = await api.createUser({ name: 'Test User' });
-  expect(userId).toBeDefined();
-});
-
-test('update user', async () => {
-  // Depends on previous test!
-  await api.updateUser(userId, { name: 'Updated' });
-});
-
-// GOOD: Isolated tests
-test('create user', async () => {
-  const userId = await api.createUser({ name: 'Test User' });
-  expect(userId).toBeDefined();
-
-  // Cleanup
-  await api.deleteUser(userId);
-});
-
-test('update user', async () => {
-  // Creates its own user
-  const userId = await api.createUser({ name: 'Test User' });
-  await api.updateUser(userId, { name: 'Updated' });
-
-  const user = await api.getUser(userId);
-  expect(user.name).toBe('Updated');
-
-  // Cleanup
-  await api.deleteUser(userId);
-});
-```
-
-### Anti-Pattern 5: Hardcoded Waits
-
-**What:** Using fixed delays like `await page.waitForTimeout(5000)`
-
-**Why Bad:**
-- Flaky tests (sometimes too short, often too long)
-- Wastes time
-- Doesn't reflect real user experience
-- Masks underlying issues
-
-**Instead:** Use Playwright's auto-waiting and explicit waits
-
-```typescript
-// BAD: Hardcoded waits
-await page.click('button');
-await page.waitForTimeout(3000);  // Hope it's enough
-await page.locator('.result').textContent();
-
-// GOOD: Explicit waits
-await page.click('button');
-await page.waitForSelector('.result', { state: 'visible' });
-await page.locator('.result').textContent();
-
-// BETTER: Playwright auto-waits
-await page.click('button');
-// Playwright automatically waits for .result to be visible
-const text = await page.locator('.result').textContent();
-```
-
-### Anti-Pattern 6: Overfitting Baselines
-
-**What:** Visual baselines that fail on insignificant pixel differences
-
-**Why Bad:**
-- High false positive rate
-- Maintenance burden updating baselines
-- Lost trust in visual testing
-
-**Instead:** Use AI vision to understand meaningful changes
-
-```typescript
-// BAD: Pixel-perfect comparison
-const baseline = await loadBaseline('login-page.png');
-const screenshot = await page.screenshot();
-const diff = pixelCompare(baseline, screenshot);
-if (diff > 0) {
-  throw new Error('Visual regression detected');
-}
-
-// GOOD: AI-powered semantic comparison
-const screenshot = await page.screenshot();
-const analysis = await gemini.analyze(screenshot, {
-  prompt: `Compare this screenshot to the baseline login page.
-           Ignore trivial differences like timestamps or dynamic content.
-           Report only meaningful UI changes like:
-           - Missing buttons or form fields
-           - Layout shifts
-           - Color/branding changes`
-});
-
-if (analysis.hasMeaningfulChanges) {
-  throw new Error(`Visual regression: ${analysis.description}`);
-}
-```
-
-### Anti-Pattern 7: Ignoring Flaky Tests
-
-**What:** Rerunning flaky tests without investigating root cause
-
-**Why Bad:**
-- Undermines confidence in test suite
-- Wastes CI/CD time
-- Masks real issues
-- Technical debt accumulates
-
-**Instead:** Track, investigate, and fix flaky tests
-
-```typescript
-// BAD: Blind retry
-test('flaky test', async () => {
-  // Sometimes passes, sometimes fails
-  await doUnreliableThing();
-});
-
-// playwright.config.ts
-export default {
-  retries: 3,  // Just retry and hope it works
-};
-
-// GOOD: Track and fix
-test('formerly flaky test', async () => {
-  // Fixed by using proper wait
-  await page.waitForLoadState('networkidle');
-  await doReliableThing();
-});
-
-// Track flaky tests
-class FlakyTestTracker {
-  async recordTestRun(testName: string, passed: boolean) {
-    const history = await this.getHistory(testName);
-    history.push({ passed, timestamp: Date.now() });
-
-    const flakyRate = this.calculateFlakyRate(history);
-    if (flakyRate > 0.1) {
-      await this.alertTeam(`Test "${testName}" is flaky (${flakyRate * 100}% failure rate)`);
-    }
-  }
-}
-```
-
-## Scalability Considerations
-
-### At 100 Tests
-
-**Approach:** Single-process execution, file-based storage
-
-**Architecture:**
-- Simple CLI runner
-- Sequential execution
-- Local file storage
-- Manual execution
-
-**Constraints:**
-- Execution time: ~1 hour for full suite
-- Storage: ~10GB for screenshots
-- Resources: Single machine sufficient
-
-**Optimizations:**
-- Parallel execution (multiple browser contexts)
-- Playwright's built-in parallelization
-
-### At 1,000 Tests
-
-**Approach:** Parallel execution, better orchestration, cloud storage
-
-**Architecture:**
-- Job queue for test scheduling
-- Parallel worker processes
-- Cloud storage for artifacts
-- CI/CD integration
-
-**Constraints:**
-- Execution time: ~2-3 hours for full suite (with parallelization)
-- Storage: ~100GB for screenshots
-- Resources: Multi-core machine or distributed workers
-
-**Optimizations:**
-- Selective test execution (only run affected tests)
-- Smart prioritization (risk-based, recent changes)
-- Screenshot compression
-- Incremental result storage
-
-### At 10,000+ Tests
-
-**Approach:** Distributed execution, database-backed, sophisticated orchestration
-
-**Architecture:**
-- Distributed worker pool (Kubernetes, cloud functions)
-- Database for metadata (PostgreSQL, MongoDB)
-- Object storage for artifacts (S3, GCS)
-- Advanced orchestration (AI-driven prioritization)
-- Real-time monitoring and observability
-
-**Constraints:**
-- Execution time: ~3-4 hours for full suite (with smart selection)
-- Storage: ~1TB for screenshots
-- Resources: Cloud infrastructure with auto-scaling
-
-**Optimizations:**
-- Predictive test selection (ML model predicts which tests will fail)
-- Visual diffing (only analyze screenshots that changed)
-- Test impact analysis (skip tests unaffected by code changes)
-- Distributed caching
-- Progressive test execution (fast tests first, slow tests later)
-
-## Technology Stack Recommendations
-
-Based on project context (React Native/Expo web app with Playwright + Gemini):
-
-| Layer | Technology | Version | Rationale |
-|-------|-----------|---------|-----------|
-| **Runtime** | Node.js | 20.x LTS | Playwright requires Node.js, LTS for stability |
-| **Language** | TypeScript | 5.x | Type safety, better tooling, Playwright TypeScript support |
-| **Test Runner** | Playwright Test | Latest | Built-in test runner with parallelization, retries |
-| **Browser Automation** | Playwright | Latest | Best-in-class for modern web apps, cross-browser |
-| **AI Vision** | Gemini 3 Flash | Latest | Agentic vision for UI analysis, Google's newest model |
-| **Configuration** | dotenv + YAML | Latest | Environment variables + structured config |
-| **Event Bus** | EventEmitter2 | Latest | Enhanced Node.js EventEmitter with namespaces |
-| **Logging** | Winston | Latest | Structured logging, multiple transports |
-| **Report Generation** | Handlebars | Latest | Template-based HTML generation |
-| **Testing** | Jest | Latest | Unit testing for non-Playwright code |
-
-**Installation:**
-
-```bash
-# Core dependencies
-npm install playwright @playwright/test
-npm install @google/generative-ai  # Gemini SDK
-npm install typescript tsx @types/node
-
-# Configuration
-npm install dotenv yaml
-npm install eventemitter2
-
-# Logging and reporting
-npm install winston
-npm install handlebars
-
-# Testing
-npm install -D jest @types/jest ts-jest
-
-# Development
-npm install -D @typescript-eslint/eslint-plugin @typescript-eslint/parser
-npm install -D prettier
-```
-
-## React Native/Expo Specific Considerations
-
-### Web vs Native Testing
-
-**For Dawati (React Native/Expo web app):**
-
-- **Web Target**: Playwright is ideal for web builds (`expo start --web`)
-- **Native Apps**: Playwright does NOT support native iOS/Android apps
-  - For native: Would need Appium or Maestro
-  - For web: Playwright is perfect choice
-
-**Architecture Implication:**
+**Security Testing Architecture:**
 
 ```
-Dawati App
-├── Web Build (Expo web)
-│   └── Test with Playwright ✅
-│       └── Autonomous system works as designed
+SecurityScanner (NEW component)
 │
-└── Native Build (iOS/Android)
-    └── Playwright NOT compatible ❌
-        └── Would need different execution engine
+├─ OWASPChecker (passive scanning)
+│  ├─ Run: during browser automation phases
+│  ├─ ZAP Proxy: intercept traffic, detect vulnerabilities
+│  ├─ Checks: SQL injection, XSS, CSRF, insecure headers
+│  └─ Report: OWASPCheckResult with severity scores
+│
+├─ DependencyAuditor (static analysis)
+│  ├─ Run: npm audit --json (Node.js dependencies)
+│  ├─ Run: Trivy scan (Docker images if containerized)
+│  ├─ Filter: exclude false positives, prioritize HIGH/CRITICAL
+│  └─ Report: DependencyAuditResult with CVE list
+│
+├─ AuthenticationTester (active testing)
+│  ├─ Test: login flow, session management, token handling
+│  ├─ Check: password strength, rate limiting, account lockout
+│  ├─ Verify: JWT signature, token expiration, refresh flow
+│  └─ Report: AuthSecurityResult with vulnerabilities
+│
+└─ SecureHeadersChecker (passive)
+   ├─ Inspect: HTTP response headers from BrowserManager.networkLogs
+   ├─ Verify: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+   ├─ Score: security header compliance (0-10)
+   └─ Report: HeaderSecurityResult
 ```
 
-### Testing Strategy for Expo Web
+**Integration Point:**
+- **Orchestrator level:** Add optional `securityCheck` phase type
+- **Parallel execution:** Run during OR after browser automation
+- **Result storage:** `PhaseResult.securityResult?: SecurityScanResult`
 
-1. **Target the web build** (`expo start --web`)
-2. **Run Playwright against `localhost:19006`** (default Expo web port)
-3. **Test PWA version** if using Expo PWA features
-4. **Consider responsive testing** (mobile viewports in browser)
+**Build Order:**
+1. SecureHeadersChecker (simplest, uses existing network logs)
+2. DependencyAuditor (static, no runtime dependency)
+3. AuthenticationTester (requires test scenarios)
+4. OWASPChecker (most complex, requires ZAP proxy setup)
 
-**Example configuration:**
+**Integration Pattern:**
 
 ```typescript
-// playwright.config.ts
-export default {
-  use: {
-    baseURL: 'http://localhost:19006',  // Expo web default
-    viewport: { width: 375, height: 667 },  // iPhone viewport
-  },
+// In test-orchestrator.ts, after line 244 (visual regression)
 
-  webServer: {
-    command: 'npx expo start --web',
-    port: 19006,
-    reuseExistingServer: true,
-  },
-};
+if (this.config.security.enabled) {
+  console.log(`[Orchestrator] Running security checks...`);
+  const securityScanner = new SecurityScanner(this.config, this.browserManager);
+  securityResult = await securityScanner.runChecks(phase);
+
+  // ENFORCE security threshold
+  const SECURITY_THRESHOLD = 7.0;
+  if (securityResult.score < SECURITY_THRESHOLD && decision.state === 'PASS') {
+    decision.state = 'FAIL';
+    decision.reason += ` | Security Score too low: ${securityResult.score}/10`;
+  }
+}
 ```
 
-### SDK 55+ New Architecture
+**Configuration Example:**
+```typescript
+security: {
+  enabled: true,
+  checks: {
+    headers: true,        // passive, always on
+    dependencies: true,   // static, CI only
+    authentication: false, // active, manual only (avoid account lockout)
+    owasp: false,         // complex, requires ZAP setup
+  },
+  threshold: 7.0,
+  failOnCritical: true, // fail test if CRITICAL vulnerabilities found
+}
+```
 
-**Important:** React Native New Architecture (always enabled in SDK 55+) affects:
+**OWASP ZAP Integration (Advanced):**
+- Run ZAP proxy in Docker container
+- Configure Playwright to route through ZAP proxy
+- Run passive scan during normal test execution
+- Active scan: optional, separate phase (slow, intrusive)
 
-- **Performance**: Faster rendering (60fps, 40% faster startup)
-- **Memory**: 20-30% reduction
-- **Testing implications**: More stable, predictable rendering
-  - Better for screenshot consistency
-  - Faster test execution
-  - More reliable timing
+---
 
-**No architecture changes needed**, but beneficial for:
-- Reduced flakiness
-- Faster test execution
-- Better screenshot stability
+### 5. Performance Testing Integration
+
+**Current State:**
+- No performance metrics collected
+- Network logs captured but not analyzed
+
+**Performance Testing Architecture:**
+
+```
+PerformanceTester (NEW component)
+│
+├─ LighthouseRunner (Core Web Vitals)
+│  ├─ Run: Lighthouse CLI via Playwright context
+│  ├─ Metrics: LCP, FID, CLS, TTFB, FCP, TTI
+│  ├─ Scores: Performance (0-100), Accessibility, Best Practices, SEO
+│  └─ Report: LighthouseResult with detailed breakdown
+│
+├─ CustomMetricsCollector (App-specific)
+│  ├─ Page load timing: navigationStart → loadEventEnd
+│  ├─ API response times: from BrowserManager.networkLogs
+│  ├─ JavaScript execution: performance.measure() API
+│  ├─ Memory usage: performance.memory (Chrome only)
+│  └─ Report: CustomPerformanceResult
+│
+├─ NetworkAnalyzer (existing data)
+│  ├─ Parse: BrowserManager.networkLogs
+│  ├─ Detect: slow requests (>3s), failed requests (4xx/5xx)
+│  ├─ Analyze: payload sizes, caching headers
+│  └─ Report: NetworkAnalysisResult
+│
+└─ RenderMetricsCollector (DOM performance)
+   ├─ Measure: DOM content loaded, first paint, largest contentful paint
+   ├─ Detect: layout shifts (cumulative layout shift)
+   ├─ Trace: React component render times (if profiling enabled)
+   └─ Report: RenderMetricsResult
+```
+
+**Integration Point:**
+- **Per-phase:** Run after screenshot capture, before AI analysis
+- **Lighthouse:** Run once per page (expensive, ~5-10s per run)
+- **Custom metrics:** Inject performance monitoring script before navigation
+
+**Build Order:**
+1. NetworkAnalyzer (uses existing data, no new dependency)
+2. CustomMetricsCollector (lightweight, uses browser APIs)
+3. RenderMetricsCollector (DOM observation)
+4. LighthouseRunner (heavy dependency, last)
+
+**Integration Pattern:**
+
+```typescript
+// In test-orchestrator.ts, after line 244 (visual regression)
+
+if (this.config.performance.enabled) {
+  console.log(`[Orchestrator] Running performance tests...`);
+  const perfTester = new PerformanceTester(this.config, this.browserManager);
+  performanceResult = await perfTester.runTests(phase);
+
+  // ENFORCE performance threshold
+  const PERFORMANCE_THRESHOLD = 50; // Lighthouse performance score
+  if (performanceResult.lighthouse.performance < PERFORMANCE_THRESHOLD && decision.state === 'PASS') {
+    decision.state = 'FAIL';
+    decision.reason += ` | Performance Score too low: ${performanceResult.lighthouse.performance}/100`;
+  }
+}
+```
+
+**Configuration Example:**
+```typescript
+performance: {
+  enabled: true,
+  lighthouse: {
+    enabled: true,
+    throttling: 'mobile3G', // simulate slow network
+    device: 'mobile',
+    categories: ['performance', 'accessibility'], // skip SEO, best-practices for speed
+  },
+  customMetrics: {
+    enabled: true,
+    collectMemory: true,
+    traceAPIs: true, // log slow API calls
+  },
+  thresholds: {
+    performanceScore: 50, // Lighthouse score
+    lcp: 2500,            // Largest Contentful Paint (ms)
+    fid: 100,             // First Input Delay (ms)
+    cls: 0.1,             // Cumulative Layout Shift
+    ttfb: 800,            // Time to First Byte (ms)
+  },
+  failOnThreshold: true,
+}
+```
+
+**Lighthouse Integration:**
+```typescript
+import lighthouse from 'lighthouse';
+import { launch } from 'chrome-launcher';
+
+async runLighthouse(url: string): Promise<LighthouseResult> {
+  const chrome = await launch({ chromeFlags: ['--headless'] });
+  const options = {
+    logLevel: 'info',
+    output: 'json',
+    port: chrome.port,
+    onlyCategories: ['performance', 'accessibility'],
+  };
+
+  const runnerResult = await lighthouse(url, options);
+  await chrome.kill();
+
+  return {
+    performance: runnerResult.lhr.categories.performance.score * 100,
+    lcp: runnerResult.lhr.audits['largest-contentful-paint'].numericValue,
+    fid: runnerResult.lhr.audits['max-potential-fid'].numericValue,
+    cls: runnerResult.lhr.audits['cumulative-layout-shift'].numericValue,
+    ttfb: runnerResult.lhr.audits['server-response-time'].numericValue,
+  };
+}
+```
+
+---
+
+## Modified Component Diagram (v1.1)
+
+```
+TestOrchestrator (enhanced coordinator)
+│
+├─ BrowserManager (existing)
+│  └─ NEW: hidePIIElements() method for DOM masking
+│
+├─ GeminiClient (existing, no changes)
+│
+├─ ResponseParser (existing, no changes)
+│
+├─ RTLIntegration (existing, no changes)
+│
+├─ CodeQualityChecker (existing, no changes)
+│
+├─ ChecklistValidator (existing, no changes)
+│
+├─ BaselineManager (ENHANCED)
+│  ├─ RegionMasker (NEW)
+│  ├─ MultiDeviceBaselines (NEW)
+│  ├─ DiffAnalyzer (ENHANCED)
+│  └─ ApprovalWorkflow (NEW)
+│
+├─ PIIMasker (ENHANCED)
+│  ├─ HTMLMasker (existing)
+│  ├─ DOMElementMasker (NEW)
+│  ├─ ScreenshotMasker (NEW, optional)
+│  └─ MaskingReport (NEW)
+│
+├─ SecurityScanner (NEW)
+│  ├─ SecureHeadersChecker
+│  ├─ DependencyAuditor
+│  ├─ AuthenticationTester
+│  └─ OWASPChecker (optional)
+│
+├─ PerformanceTester (NEW)
+│  ├─ LighthouseRunner
+│  ├─ CustomMetricsCollector
+│  ├─ NetworkAnalyzer
+│  └─ RenderMetricsCollector
+│
+└─ HTMLReporter (ENHANCED)
+   └─ NEW sections: security scores, performance metrics, visual diffs
+```
+
+---
+
+## Data Flow (Enhanced Per Phase)
+
+```
+1. BrowserManager.executeActions()
+   → navigate, click, fill, etc.
+   → IF PII masking enabled: hidePIIElements() before screenshot
+
+2. BrowserManager.captureScreenshot()
+   → screenshot.png (PII-masked if DOM masking enabled)
+
+3. BrowserManager.captureHTML()
+   → html-snapshot.html
+
+4. PIIMasker.saveMaskedHTML()
+   → html-masked.html
+
+5. BaselineManager.compareWithBaseline() [if enabled, parallel]
+   → VisualRegressionResult (diff%, pass/fail)
+
+6. SecurityScanner.runChecks() [if enabled, parallel]
+   → SecurityScanResult (vulnerabilities[], score)
+
+7. PerformanceTester.runTests() [if enabled, parallel]
+   → PerformanceResult (Lighthouse + custom metrics)
+
+8. GeminiClient.analyzeSingle()
+   → AIIssue[] (advisory)
+
+9. RTLIntegration.runComprehensiveChecks()
+   → RTLCheckResult[] with scores
+
+10. CodeQualityChecker.analyzePageByUrl()
+    → CodeQualityResult with violations
+
+11. ChecklistValidator.getPhaseChecklistResult()
+    → PhaseChecklistResult with coverage
+
+12. Orchestrator ENFORCES thresholds:
+    - RTL score < 6.0 → FAIL
+    - Color score < 5.0 → FAIL
+    - Code Quality < 5.0 → FAIL
+    - Security score < 7.0 → FAIL (NEW)
+    - Performance score < 50 → FAIL (NEW)
+    - Visual regression diff > threshold → FAIL (NEW)
+
+13. HTMLReporter.generateReport()
+    → HTML report with 7 score dimensions (was 3)
+```
+
+---
+
+## Suggested Build Order for v1.1
+
+### Phase 1: Foundation Enhancements (Weeks 1-2)
+**Goal:** Strengthen existing components before adding new ones
+
+1. **PII Masking - DOM-based** (DOMElementMasker)
+   - Add `hidePIIElements()` to BrowserManager
+   - Configure `piiSelectors` in config
+   - Test with account pages (most PII-heavy)
+
+2. **Visual Regression - Ignore Regions** (RegionMasker)
+   - Add `ignoreRegions` to config
+   - Implement region masking before pixelmatch
+   - Test with dynamic content (timestamps, counters)
+
+3. **Network Analyzer** (uses existing data)
+   - Parse BrowserManager.networkLogs
+   - Detect slow/failed requests
+   - Add to PhaseResult
+
+**Deliverable:** Enhanced PII masking + visual regression ignore regions
+
+---
+
+### Phase 2: CI/CD Pipeline (Weeks 3-4)
+**Goal:** Automate test execution and artifact management
+
+4. **GitHub Actions - Test Execution Job**
+   - Workflow file: `.github/workflows/test-suite.yml`
+   - Authenticate with Vertex AI
+   - Run test suite on PR/push
+
+5. **GitHub Actions - Artifact Collection Job**
+   - Upload screenshots, reports, diffs
+   - 90-day retention policy
+
+6. **GitHub Actions - Report Generation Job**
+   - Parse JSON results
+   - Post PR comment with summary
+   - Set GitHub status check
+
+**Deliverable:** Automated CI/CD pipeline with PR feedback
+
+---
+
+### Phase 3: Security Testing (Weeks 5-6)
+**Goal:** Add security scanning to test suite
+
+7. **SecureHeadersChecker** (passive, uses existing network logs)
+   - Verify CSP, HSTS, X-Frame-Options
+   - Score: 0-10 per page
+
+8. **DependencyAuditor** (static, CI-only)
+   - Run `npm audit --json`
+   - Filter HIGH/CRITICAL vulnerabilities
+   - Fail build on critical findings
+
+9. **AuthenticationTester** (active, manual-only)
+   - Test login flow security
+   - Verify JWT handling
+   - Check rate limiting
+
+**Deliverable:** Security scanning with scores and vulnerability reports
+
+---
+
+### Phase 4: Performance Testing (Weeks 7-8)
+**Goal:** Measure and enforce performance standards
+
+10. **CustomMetricsCollector** (lightweight, browser APIs)
+    - Page load timing
+    - API response times
+    - Memory usage
+
+11. **RenderMetricsCollector** (DOM observation)
+    - LCP, FID, CLS measurement
+    - Layout shift detection
+
+12. **LighthouseRunner** (heavy dependency)
+    - Core Web Vitals
+    - Performance score (0-100)
+    - Accessibility score
+
+**Deliverable:** Performance testing with Core Web Vitals enforcement
+
+---
+
+### Phase 5: Advanced Features (Weeks 9-10)
+**Goal:** Polish and advanced capabilities
+
+13. **Multi-Device Baselines** (visual regression)
+    - Device-specific baselines
+    - Device-specific thresholds
+
+14. **Approval Workflow** (visual regression)
+    - PR comments with diff images
+    - Manual baseline updates via workflow_dispatch
+
+15. **OWASP ZAP Integration** (optional, complex)
+    - ZAP proxy setup
+    - Passive/active scanning
+
+16. **OCR-based PII Masking** (fallback)
+    - Tesseract.js integration
+    - Redact PII in screenshots
+
+**Deliverable:** Full v1.1 feature set with advanced capabilities
+
+---
+
+## Component Modification Summary
+
+| Component | Modification Type | Changes Required |
+|-----------|-------------------|------------------|
+| `TestOrchestrator` | **ENHANCED** | Add security, performance scanners; update threshold enforcement |
+| `BrowserManager` | **ENHANCED** | Add `hidePIIElements()` method for DOM masking |
+| `BaselineManager` | **ENHANCED** | Add region masking, multi-device baselines, approval workflow |
+| `PIIMasker` | **ENHANCED** | Add DOMElementMasker, ScreenshotMasker, MaskingReport |
+| `SecurityScanner` | **NEW** | Create from scratch with 4 sub-checkers |
+| `PerformanceTester` | **NEW** | Create from scratch with 4 sub-collectors |
+| `HTMLReporter` | **ENHANCED** | Add sections for security, performance, visual diffs |
+| `TestPhase` type | **ENHANCED** | Add optional `securityCheck`, `performanceCheck` flags |
+| `PhaseResult` type | **ENHANCED** | Add optional `securityResult`, `performanceResult` fields |
+| GitHub Actions | **NEW** | Create 5 workflow jobs (test, artifact, report, baseline, scheduled) |
+
+---
+
+## Integration Risk Assessment
+
+| Feature | Risk Level | Mitigation |
+|---------|-----------|------------|
+| **Visual Regression - Ignore Regions** | LOW | Simple image masking, no external dependencies |
+| **PII Masking - DOM-based** | LOW | Uses existing Playwright selectors, testable |
+| **CI/CD Pipeline** | MEDIUM | Requires GCP credentials management, secrets rotation |
+| **Security Testing - Headers** | LOW | Passive, uses existing network logs |
+| **Security Testing - OWASP ZAP** | HIGH | Complex setup, proxy configuration, false positives |
+| **Performance - Custom Metrics** | LOW | Uses browser APIs, no external dependencies |
+| **Performance - Lighthouse** | MEDIUM | Heavy dependency, slow execution (~10s per page) |
+| **Multi-Device Baselines** | LOW | File organization, no logic changes |
+
+---
+
+## Configuration Schema Changes
+
+### Current Config Structure
+```typescript
+interface TestConfig {
+  baseUrl: string;
+  headless: boolean;
+  timeout: number;
+  devices: Device[];
+  locale: string;
+  timezone: string;
+
+  visualRegression: {
+    enabled: boolean;
+    threshold: number; // 0.01 = 1%
+    baselinesDir: string;
+    updateBaselines: boolean;
+  };
+
+  artifacts: {
+    artifactsDir: string;
+    saveScreenshots: boolean;
+    saveHTML: boolean;
+    saveNetworkLogs: boolean;
+    saveConsoleLogs: boolean;
+    maskPII: boolean;
+    piiPatterns: string[];
+  };
+
+  rtl: { enabled: boolean };
+  vertexAI: { ... };
+  fineTuning: { ... };
+}
+```
+
+### v1.1 Config Additions
+```typescript
+interface TestConfig {
+  // ... existing fields ...
+
+  visualRegression: {
+    enabled: boolean;
+    threshold: number;
+    baselinesDir: string;
+    updateBaselines: boolean;
+    ignoreRegions: { // NEW
+      selector: string;
+      reason: string;
+    }[];
+    multiDevice: boolean; // NEW
+    approvalWorkflow: boolean; // NEW
+  };
+
+  artifacts: {
+    // ... existing fields ...
+    maskPII: boolean;
+    piiPatterns: string[];
+    piiSelectors: string[]; // NEW - DOM elements to hide
+    piiOCR: boolean; // NEW - fallback OCR masking
+  };
+
+  security: { // NEW
+    enabled: boolean;
+    checks: {
+      headers: boolean;
+      dependencies: boolean;
+      authentication: boolean;
+      owasp: boolean;
+    };
+    threshold: number; // 0-10
+    failOnCritical: boolean;
+  };
+
+  performance: { // NEW
+    enabled: boolean;
+    lighthouse: {
+      enabled: boolean;
+      throttling: 'mobile3G' | 'mobile4G' | 'desktop';
+      device: 'mobile' | 'desktop';
+      categories: string[];
+    };
+    customMetrics: {
+      enabled: boolean;
+      collectMemory: boolean;
+      traceAPIs: boolean;
+    };
+    thresholds: {
+      performanceScore: number; // 0-100
+      lcp: number; // ms
+      fid: number; // ms
+      cls: number; // 0-1
+      ttfb: number; // ms
+    };
+    failOnThreshold: boolean;
+  };
+
+  ci: { // NEW
+    enabled: boolean;
+    provider: 'github-actions' | 'gitlab-ci' | 'jenkins';
+    githubToken?: string;
+    slackWebhook?: string;
+  };
+}
+```
+
+---
+
+## Architecture Patterns Applied
+
+### 1. Pipeline Orchestration Pattern
+**Applied to:** Overall test execution flow
+**Benefits:** Clear separation of concerns, easy to add new stages
+**Tradeoff:** Sequential execution can be slow (mitigated by parallel checkers)
+
+### 2. Plugin Architecture Pattern
+**Applied to:** Security and Performance checkers
+**Benefits:** Modular, can enable/disable features via config
+**Tradeoff:** Configuration complexity increases
+
+### 3. Observer Pattern
+**Applied to:** Network logs, console logs, performance metrics
+**Benefits:** Non-invasive monitoring, minimal overhead
+**Tradeoff:** Post-execution analysis only (no real-time intervention)
+
+### 4. Strategy Pattern
+**Applied to:** PII masking (DOM-based vs OCR-based)
+**Benefits:** Flexible implementation switching based on requirements
+**Tradeoff:** Multiple implementations to maintain
+
+### 5. Facade Pattern
+**Applied to:** TestOrchestrator coordinates all components
+**Benefits:** Simple API for test execution, hides complexity
+**Tradeoff:** Orchestrator becomes large (mitigated by extracting checkers)
+
+---
+
+## Performance Considerations
+
+### Current Performance Baseline
+- Average phase execution: ~10-15 seconds
+  - Browser automation: 5-8s
+  - Screenshot capture: 1s
+  - AI analysis: 2-4s
+  - RTL checks: 1s
+  - Code quality: 1s
+
+### v1.1 Performance Impact
+
+| Feature | Overhead per Phase | Mitigation |
+|---------|-------------------|------------|
+| Visual Regression | +0.5s (pixelmatch) | Parallel with AI analysis |
+| PII Masking (DOM) | +0.2s (hide elements) | Pre-screenshot, minimal |
+| PII Masking (OCR) | +3-5s (Tesseract) | Optional, fallback only |
+| Security Headers | +0s (uses existing logs) | No overhead |
+| Security OWASP | +10-30s (ZAP scan) | Optional, CI-only |
+| Performance Custom | +0.5s (browser APIs) | Lightweight |
+| Performance Lighthouse | +5-10s (full audit) | Optional, per-page |
+
+**Total overhead (with all features enabled):** +6-8 seconds per phase
+**Mitigation strategy:** Run expensive checks (Lighthouse, OWASP) only on key pages or in CI
+
+---
 
 ## Confidence Assessment
 
-| Aspect | Confidence | Source |
-|--------|-----------|--------|
-| **General Architecture Patterns** | MEDIUM | WebSearch + industry patterns |
-| **Playwright Best Practices** | HIGH | Official Playwright docs via WebSearch |
-| **Gemini Vision Integration** | MEDIUM | Google blog posts (recent, authoritative) |
-| **Event-Driven Architecture** | HIGH | Established pattern, widely documented |
-| **Storage Patterns** | HIGH | Standard repository pattern |
-| **React Native/Expo Specifics** | MEDIUM | Official Expo docs via WebSearch |
-| **Scalability Recommendations** | MEDIUM | Industry patterns, not project-specific |
+| Area | Confidence | Reasoning |
+|------|-----------|-----------|
+| **Visual Regression Enhancement** | HIGH | Existing implementation, straightforward enhancements (region masking, multi-device) |
+| **PII Masking - DOM-based** | HIGH | Leverages existing Playwright selectors, testable, no external dependencies |
+| **PII Masking - OCR-based** | MEDIUM | Tesseract.js dependency, accuracy concerns, performance overhead |
+| **CI/CD Pipeline** | HIGH | Standard GitHub Actions patterns, well-documented, widely used |
+| **Security - Headers & Dependencies** | HIGH | Passive checks, existing data, npm audit is standard |
+| **Security - OWASP ZAP** | LOW | Complex setup, proxy configuration, false positives common |
+| **Performance - Custom Metrics** | HIGH | Browser APIs well-documented, lightweight, reliable |
+| **Performance - Lighthouse** | MEDIUM | Heavy dependency, slow execution, but widely used and reliable |
+| **Overall Architecture** | HIGH | Extends existing patterns cleanly, minimal breaking changes |
 
-**Overall Confidence: MEDIUM**
+---
 
-**Verification Notes:**
-- Playwright best practices verified from official documentation (2026)
-- Gemini agentic vision confirmed from Google Developer Blog (February 2026)
-- React Native New Architecture details from Expo official documentation
-- General autonomous testing patterns from multiple 2026 sources
-- Some details (exact Gemini API usage) would benefit from hands-on verification
+## Summary
 
-## Open Questions for Future Investigation
+The v1.1 architecture extends the existing pipeline orchestration pattern with five new dimensions of quality measurement:
 
-1. **Gemini API Rate Limits**: What are actual rate limits for Gemini 3 Flash vision API?
-2. **Screenshot Optimization**: What's optimal compression without losing analysis quality?
-3. **Baseline Management**: How to version baselines with app updates?
-4. **Flaky Test Detection**: What's the best threshold for flaky test alerts?
-5. **Cost Optimization**: What's the cost per test execution with Gemini API?
-6. **Multi-Environment**: How to handle staging vs production testing?
-7. **Native Testing**: If native apps needed, would we need a separate execution engine?
+1. **Visual Regression** — Enhanced with region masking, multi-device support, approval workflow
+2. **PII Masking** — Enhanced with DOM-based masking (primary), OCR fallback (optional)
+3. **CI/CD Pipeline** — New GitHub Actions workflow with artifact management, PR feedback
+4. **Security Testing** — New component with 4 checkers (headers, dependencies, auth, OWASP)
+5. **Performance Testing** — New component with Lighthouse + custom metrics
 
-## Sources
+**Key architectural decisions:**
+- **Parallel checkers:** Security and performance run alongside existing checks
+- **Threshold enforcement:** Orchestrator remains single source of truth for pass/fail
+- **Backward compatibility:** All features configurable, can be disabled individually
+- **Build order:** Foundation enhancements → CI/CD → Security → Performance → Advanced
 
-**Autonomous Testing Ecosystem:**
-- [What Is Autonomous Testing? Benefits, Tools & Best Practices](https://testgrid.io/blog/autonomous-testing/)
-- [10 Best Test Automation Trends to look out for in 2026](https://www.accelq.com/blog/key-test-automation-trends/)
-- [Software Testing Basics for 2026: What's Changed and Why it Matters](https://momentic.ai/blog/software-testing-basics)
-- [Automated Testing 2026: Scale Quality Without Slowing Speed](https://itidoltechnologies.com/blog/automated-testing-2026-scale-quality-without-slowing-speed/)
+**Estimated timeline:** 10 weeks for full v1.1 implementation (5 phases, 2 weeks each)
 
-**AI Testing Architecture:**
-- [The 2026 Guide to AI Agent Architecture Components](https://procreator.design/blog/guide-to-ai-agent-architecture-components/)
-- [Building a Future-Proof Test Automation Architecture](https://www.accelq.com/blog/test-automation-architecture/)
-- [How AI is Transforming Software Test Automation in 2026](https://breakingac.com/news/2026/jan/09/how-ai-is-transforming-software-test-automation-in-2026/)
-- [12 AI Test Automation Tools QA Teams Actually Use in 2026](https://testguild.com/7-innovative-ai-test-automation-tools-future-third-wave/)
-
-**Playwright Best Practices:**
-- [15 Best Practices for Playwright testing in 2026](https://www.browserstack.com/guide/playwright-best-practices)
-- [Best Practices | Playwright](https://playwright.dev/docs/best-practices)
-- [The Complete Guide to Automated Testing with Playwright Framework](https://testgrid.io/blog/playwright-testing/)
-- [Best Practices for Writing Scalable Playwright Test Scripts](https://www.frugaltesting.com/blog/best-practices-for-writing-scalable-playwright-test-scripts)
-
-**Gemini Vision & AI Analysis:**
-- [Introducing Agentic Vision in Gemini 3 Flash](https://blog.google/innovation-and-ai/technology/developers-tools/agentic-vision-gemini-3-flash/)
-- [Google Supercharges Gemini 3 Flash with Agentic Vision](https://www.infoq.com/news/2026/02/google-gemini-agentic-vision/)
-- [Gemini 3 Pro: the frontier of vision AI](https://blog.google/technology/developers/gemini-3-pro-vision/)
-- [14 Best AI Testing Tools & Platforms in 2026](https://www.virtuosoqa.com/post/best-ai-testing-tools)
-
-**Visual Testing:**
-- [Top 7 Visual Testing Tools for 2026](https://testrigor.com/blog/visual-testing-tools/)
-- [19 Best Visual Testing Tools for 2026](https://www.testmuai.com/blog/visual-testing-tools/)
-- [How AI in Visual Testing is transforming the Testing Landscape](https://www.browserstack.com/guide/how-ai-in-visual-testing-is-evolving)
-
-**Orchestration & Architecture Patterns:**
-- [Enterprise Agentic AI Architecture Guide 2026](https://www.kellton.com/kellton-tech-blog/enterprise-agentic-ai-architecture)
-- [Top 10+ Agentic Orchestration Frameworks & Tools in 2026](https://aimultiple.com/agentic-orchestration)
-- [Choosing Your AI Orchestration Stack for 2026](https://thenewstack.io/choosing-your-ai-orchestration-stack-for-2026/)
-
-**React Native/Expo:**
-- [React Native's New Architecture - Expo Documentation](https://docs.expo.dev/guides/new-architecture/)
-- [React Native in 2026: What's New and What to Expect](https://www.euroshub.com/blogs/react-native-2026-whats-new-and-what-to-expect)
-- [Unit testing with Jest - Expo Documentation](https://docs.expo.dev/develop/unit-testing/)
-- [What's New in Expo SDK 55](https://medium.com/@onix_react/whats-new-in-expo-sdk-55-6eac1553cee8)
-
-**Anti-Patterns:**
-- [Keep Your Automated Testing Simple and Avoid Anti-Patterns](https://www.mabl.com/blog/keep-your-automated-testing-simple)
-- [Avoiding Test Automation Pitfalls: 5 Common Anti-Patterns](https://www.testdevlab.com/blog/5-test-automation-anti-patterns-and-how-to-avoid-them)
-- [Top 10 Software Test Automation Anti-patterns - Ways To Avoid](https://blog.qasource.com/top-10-test-automation-anti-patterns-and-ways-to-avoid-them)
-- [Software Testing Anti-patterns](https://blog.codepipes.com/testing/software-testing-antipatterns.html)
+**Recommended starting point:** Phase 1 (PII masking + visual regression enhancements) — provides immediate value with minimal risk
