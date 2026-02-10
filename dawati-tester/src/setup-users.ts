@@ -7,11 +7,14 @@
  * - 2 email users
  * - Creates user records for "existing" users
  * - Creates vendor records for existing vendor
+ *
+ * Uses configuration from src/config.ts
  */
 
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { config } from './config';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -36,42 +39,42 @@ interface TestUserSetup {
 
 const TEST_USERS: TestUserSetup[] = [
   {
-    phone: '+966501111111',
+    phone: config.testUsers.phone.newCustomer,
     type: 'new_customer',
     needsUserRecord: false,
     needsVendorRecord: false,
     description: 'New Customer → Shows onboarding wizard',
   },
   {
-    phone: '+966502222222',
+    phone: config.testUsers.phone.existingCustomer,
     type: 'existing_customer',
     needsUserRecord: true,
     needsVendorRecord: false,
     description: 'Existing Customer → Skip wizard, go to dashboard',
   },
   {
-    phone: '+966503333333',
+    phone: config.testUsers.phone.newVendor,
     type: 'new_vendor',
     needsUserRecord: false,
     needsVendorRecord: false,
     description: 'New Vendor → Shows vendor registration wizard',
   },
   {
-    phone: '+966504444444',
+    phone: config.testUsers.phone.existingVendor,
     type: 'existing_vendor',
     needsUserRecord: true,
     needsVendorRecord: true,
     description: 'Existing Vendor → Skip wizard, go to vendor dashboard',
   },
   {
-    email: 'newuser@dawati.app',
+    email: config.testUsers.email.new,
     type: 'new_email',
     needsUserRecord: false,
     needsVendorRecord: false,
     description: 'New Email User → Shows onboarding wizard',
   },
   {
-    email: 'existing@dawati.app',
+    email: config.testUsers.email.existing,
     type: 'existing_email',
     needsUserRecord: true,
     needsVendorRecord: false,
@@ -79,7 +82,7 @@ const TEST_USERS: TestUserSetup[] = [
   },
 ];
 
-async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
+async function createAuthUser(user: TestUserSetup): Promise<string> {
   const { phone, email, type, description } = user;
 
   console.log(`\n📱 Creating auth user: ${phone || email}`);
@@ -118,7 +121,7 @@ async function createAuthUserSQL(user: TestUserSetup): Promise<string> {
     console.log(`   ✅ Auth user created (ID: ${data.user.id})`);
     return data.user.id;
   } catch (error: any) {
-    console.error(`   ❌ Error in createAuthUserSQL: ${error.message}`);
+    console.error(`   ❌ Error in createAuthUser: ${error.message}`);
     throw error;
   }
 }
@@ -164,14 +167,14 @@ async function createVendorRecord(userId: string, user: TestUserSetup): Promise<
     user_id: userId,
     business_name: 'Test Vendor Business',
     business_name_ar: 'أعمال بائع الاختبار',
-    category: 'catering', // Changed from business_type
+    category: 'catering',
     service_description: 'Test vendor for automated testing',
     service_description_ar: 'بائع اختبار للاختبار الآلي',
     city: 'Riyadh',
     location: 'Riyadh, Saudi Arabia',
     location_ar: 'الرياض، المملكة العربية السعودية',
     phone: phone,
-    status: 'active', // Changed from is_approved/is_active
+    status: 'active',
     verified: true,
     is_visible: true,
     rating: 4.5,
@@ -211,7 +214,7 @@ async function verifySetup(): Promise<void> {
   const { data: userRecords } = await supabase
     .from('users')
     .select('*')
-    .or(orFilter || 'id.neq.00000000-0000-0000-0000-000000000000'); // Fallback to a filter that returns nothing if both lists are empty
+    .or(orFilter || 'id.neq.00000000-0000-0000-0000-000000000000');
 
   const expectedUserRecords = TEST_USERS.filter(u => u.needsUserRecord).length;
   console.log(`✅ User records: ${userRecords?.length || 0}/${expectedUserRecords} (expected)`);
@@ -255,7 +258,7 @@ async function main() {
   for (const user of TEST_USERS) {
     try {
       // Step 1: Create auth user
-      const userId = await createAuthUserSQL(user);
+      const userId = await createAuthUser(user);
 
       // Step 2: Create user record (if needed)
       if (user.needsUserRecord) {
