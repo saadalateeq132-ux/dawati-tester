@@ -1,220 +1,261 @@
-# Roadmap: Dawati Autonomous Testing System
+# Roadmap: Dawati Autonomous Testing System - v1.1 Hardening & Full Coverage
 
-**Created:** 2026-02-08
-**Depth:** Comprehensive (9 phases)
-**Coverage:** 55/55 requirements mapped
+**Created:** 2026-02-10
+**Milestone:** v1.1 - Production Hardening & Full Coverage
+**Depth:** Comprehensive (11 phases)
+**Coverage:** 52/52 requirements mapped
 
 ---
 
 ## Overview
 
-This roadmap delivers a systematic, AI-powered autonomous testing system for the Dawati event planning app. The system executes structured test plans (not random exploration), captures screenshots at every step, uses Gemini AI for intelligent analysis, and generates comprehensive reports. The 9-phase structure follows natural delivery boundaries from foundational setup through advanced internationalization testing, ensuring complete coverage of all 55 v1 requirements.
+This roadmap transforms the working v1.0 system (63/63 phases PASS at 32% coverage) into a production-ready testing platform. The 11-phase structure prioritizes measurement before enforcement through shadow mode deployment, implements critical legal requirements (PII masking), adds visual regression testing, expands security and performance testing, and scales coverage from 32% to 75%+ across all major app features. The graduated enforcement approach preserves the current 63/63 PASS success rate while incrementally tightening quality thresholds.
 
 ---
 
-## Phase 1: Foundation & Setup
+## Phase 10: Shadow Mode & Measurement Infrastructure
 
-**Goal:** User can install and configure the testing system with minimal effort.
+**Goal:** Add measurement capabilities without enforcing new thresholds to establish baselines.
 
-**Dependencies:** None (foundational phase)
+**Dependencies:** v1.0 (Phases 1-9 completed)
 
 **Requirements:**
-- SETUP-01: System installs with one command (auto-setup.bat on Windows)
-- SETUP-02: User only provides Gemini API key and Dawati app URL
-- SETUP-03: Auto-installs Node.js if not present
-- SETUP-04: Auto-installs all npm dependencies
-- SETUP-05: Auto-installs Playwright browsers
-- SETUP-06: Creates .env file from user input
-- SETUP-07: Validates configuration before first run
+- SCORE-01: Shadow mode for new checks - measure without failing, collect baselines before enforcement
+- SCORE-02: Graduated threshold tightening - RTL, Color, Code Quality thresholds increase over time
+- DAT-01: Hardcoded English string detection - expand from ~30 to 150+ patterns
+- DAT-02: Hardcoded Arabic string detection - expand to 150+ patterns
+- DAT-14: Hardcoded colors & theme consistency - flag inline hex codes, check all primary buttons use same color
+- DAT-15: Dynamic content & script detection - JS-generated text not localized
 
 **Success Criteria:**
-1. User runs auto-setup.bat and system installs all dependencies without manual intervention
-2. User provides only Gemini API key and app URL, system generates working configuration
-3. Configuration validation catches missing or invalid settings before test execution
-4. First-time setup completes in under 5 minutes on clean machine
+1. System logs what WOULD fail under strict thresholds without actually failing tests
+2. Shadow mode metrics collected for all 63 existing phases showing potential failures
+3. Pattern library expands from ~30 to 300+ patterns (150 English, 150 Arabic) covering app-relevant terms
+4. All 63 phases maintain PASS status while shadow metrics identify quality issues
+5. Shadow mode dashboard shows category-by-category readiness for threshold enforcement
 
 ---
 
-## Phase 2: Authentication Testing
+## Phase 11: PII Masking & Legal Compliance
 
-**Goal:** System can test all authentication flows end-to-end with token management.
+**Goal:** Users can run tests with PII-masked screenshots that comply with data protection regulations.
 
-**Dependencies:** Phase 1 (requires configured environment)
+**Dependencies:** Phase 10 (requires measurement infrastructure)
 
 **Requirements:**
-- AUTH-01: Tests Phone OTP sign-in flow completely (enter phone → receive code → verify → logged in)
-- AUTH-02: Tests Email sign-in flow completely (enter email → receive code → verify → logged in)
-- AUTH-03: Tests logout flow from any screen
-- AUTH-04: Verifies auth state persists after page refresh
-- AUTH-05: Takes screenshot at each auth step
+- VIS-02: PII masking in screenshots before storage/AI analysis (emails, phone numbers, names, credit cards) using Playwright's mask option
+- DAT-06: Authentication component testing - email format validation, phone format, auto error messages
+- DAT-08: Name field validation - reject numeric input, invalid characters, max length enforcement
 
 **Success Criteria:**
-1. System successfully authenticates via Phone OTP flow and maintains session across screens
-2. System successfully authenticates via Email flow and maintains session across screens
-3. System verifies logout clears auth state and redirects appropriately
-4. System detects when auth tokens expire and handles refresh automatically
-5. Screenshots capture every authentication step for debugging
+1. Screenshots mask all PII (emails, phone numbers, names) using DOM-based selectors before AI analysis
+2. PII masking preserves context structure for AI validation (e.g., 0512XXXX34 not 05XXXXXXXX)
+3. Test data substitution uses realistic values instead of blanking for better validation
+4. Authentication components tested with format validation without exposing real user data
+5. Name field validation works correctly with masked test data
 
 ---
 
-## Phase 3: Core Navigation Testing
+## Phase 12: Visual Regression Testing
 
-**Goal:** System can navigate and verify all routes, tabs, and screens in the app.
+**Goal:** System detects visual regressions through pixel-level screenshot comparison with managed baselines.
 
-**Dependencies:** Phase 2 (requires authenticated session)
+**Dependencies:** Phase 11 (PII masking must happen before baseline creation)
 
 **Requirements:**
-- NAV-01: Tests all homepage tabs (Birthdays, Weddings, Corporate, Gatherings, etc.)
-- NAV-02: Tests all 15+ marketplace categories
-- NAV-03: Tests navigation to vendor profiles
-- NAV-04: Tests back navigation works correctly
-- NAV-05: Tests bottom navigation bar (all tabs)
-- NAV-06: Takes screenshot of each unique screen visited
+- VIS-01: Page-by-page screenshot comparison (baseline vs current) using pixelmatch with configurable threshold (default 1%)
+- VIS-03: Baseline management workflow (create, approve, reject, update baselines per screen)
+- VIS-04: Visual diff reports with annotated screenshots showing changed regions
+- VIS-06: RTL visual validation - force RTL, screenshot, verify mirroring, no overlaps, BiDi text support
+- VIS-09: Header uniformity check - all marketplace sections have identical top headers
 
 **Success Criteria:**
-1. System visits every homepage tab and verifies content loads
-2. System navigates through all 15+ marketplace categories without errors
-3. System can click into vendor profiles and navigate back successfully
-4. System verifies back button/navigation returns to expected previous screen
-5. Screenshots document every unique screen visited during navigation testing
+1. System compares current screenshots against baselines using pixelmatch with 1% threshold
+2. Baseline approval workflow requires 2+ reviewer approval before baselines become truth
+3. Visual diff reports highlight changed regions with pixel-level annotations
+4. RTL visual validation detects layout mirroring issues and BiDi text problems
+5. Header uniformity checker flags inconsistent branding/navigation across marketplace sections
 
 ---
 
-## Phase 4: Scrolling & State Coverage
+## Phase 13: Component Consistency & Advanced Visual Testing
 
-**Goal:** System can test all scrolling behaviors and capture all UI states.
+**Goal:** System validates visual consistency across pages and responsive behavior.
 
-**Dependencies:** Phase 3 (requires navigation capability)
+**Dependencies:** Phase 12 (requires baseline comparison infrastructure)
 
 **Requirements:**
-- SCROLL-01: Tests vertical scrolling on list pages
-- SCROLL-02: Tests horizontal scrolling (carousels, tabs)
-- SCROLL-03: Tests infinite scroll / load more functionality
-- SCROLL-04: Verifies smooth scrolling (no jank)
-- SCROLL-05: Takes screenshots during scroll to capture all content
-- STATE-01: Captures loading states (spinners, skeletons)
-- STATE-02: Captures error states (error messages, retry buttons)
-- STATE-03: Captures empty states (no data messages)
-- STATE-04: Captures success states (confirmations, checkmarks)
-- STATE-05: Verifies all states have appropriate visual feedback
+- VIS-05: Component consistency checker - verify back button, header, tab bar, primary buttons same position/size/color across pages
+- VIS-07: Portrait/landscape orientation testing for mobile responsiveness
+- VIS-08: Notification display testing - trigger notifications, screenshot states, verify visibility/clickability
 
 **Success Criteria:**
-1. System scrolls vertically through long lists and captures content at intervals
-2. System scrolls horizontally through carousels and tab bars
-3. System triggers and verifies infinite scroll/load more functionality
-4. System captures screenshots of loading, error, empty, and success states
-5. Screenshots document UI states that typically appear briefly or inconsistently
+1. Component consistency checker flags >5-10% positional variance in navigation elements across pages
+2. System tests portrait and landscape orientations automatically for mobile responsiveness
+3. Notification testing captures display states and verifies visibility/clickability
+4. Color consistency validation detects theme breaks and button color mismatches
+5. Positional variance reports show component drift across different screens
 
 ---
 
-## Phase 5: Screenshot Capture System
+## Phase 14: Data Validation & Form Testing
 
-**Goal:** System captures high-quality, organized screenshots for every test action.
+**Goal:** System validates all form inputs, data formats, and user flows comprehensively.
 
-**Dependencies:** Phase 3 (requires navigation for screenshot contexts)
+**Dependencies:** Phase 11 (requires authentication and masking infrastructure)
 
 **Requirements:**
-- SCREEN-01: Captures screenshot after every significant action
-- SCREEN-02: Saves screenshots with descriptive filenames (001_home.png, 002_login.png)
-- SCREEN-03: Organizes screenshots in timestamped folders
-- SCREEN-04: Supports full-page screenshots for long content
+- DAT-03: Number formatting detection - flag Arabic/Eastern numerals when Western expected
+- DAT-04: Currency formatting enforcement - SAR after number, flag text currency when SVG icon preferred
+- DAT-05: Date format validation - detect English MM/DD/YYYY in Arabic context, verify Hijri month names
+- DAT-07: User flow validation - existing users redirect to homepage, new users trigger onboarding wizard
+- DAT-09: Password field validation - complexity requirements, show/hide toggle, confirm match
+- DAT-10: Event creation wizard validation - required fields, image uploads, step progression, error handling
+- DAT-11: Date/time picker validation - backend-available slots, vendor availability calendars, time conflict detection
+- DAT-12: General form validation - max lengths, input types, autocomplete, real-time validation with visual indicators
+- DAT-13: Marketplace search deep testing - autocomplete, filters, results from backend, sort functionality
 
 **Success Criteria:**
-1. Every test action generates a screenshot with contextual filename
-2. Screenshots organize into timestamped run folders (e.g., 2026-02-08_14-30-45/)
-3. Long scrolling pages capture as full-page screenshots showing all content
-4. Screenshot filenames clearly indicate what action or screen was captured
+1. Number and currency format validation detects inconsistencies between Arabic and Western conventions
+2. Date format checker identifies mismatched formats in bilingual contexts and validates Hijri calendars
+3. User flow validation confirms routing behavior for new vs existing users
+4. Password validation verifies complexity requirements and UI interactions (show/hide, confirm match)
+5. Form validation testing covers all wizard flows with edge cases and error state verification
 
 ---
 
-## Phase 6: AI-Powered Analysis
+## Phase 15: Backend Integration & API Testing
 
-**Goal:** Gemini AI analyzes screenshots and identifies issues with actionable recommendations.
+**Goal:** System validates frontend-to-backend connectivity and data synchronization.
 
-**Dependencies:** Phase 5 (requires screenshot capture), Phase 4 (requires state coverage)
+**Dependencies:** Phase 14 (requires form testing infrastructure)
 
 **Requirements:**
-- AI-01: Sends each screenshot to Gemini for analysis
-- AI-02: Detects UI/UX issues (layout problems, missing elements)
-- AI-03: Detects functionality issues (broken buttons, failed actions)
-- AI-04: Detects performance issues (slow loading indicators)
-- AI-05: Provides actionable fix suggestions for each issue
-- AI-06: Rates issue severity (critical, high, medium, low)
+- API-01: Frontend-to-backend connectivity verification - all API calls return 200 OK, no 4xx/5xx errors
+- API-02: Data synchronization testing - submitted data persists, updates in real-time, graceful failure handling
+- API-03: Vendor dashboard data flow - event creation to vendor assignment, real-time booking updates
+- API-04: Navigation state management - no data loss on back navigation, sessions persist across screens
+- API-05: Real-time data updates - saved drafts, synced profiles, instant booking notifications
 
 **Success Criteria:**
-1. System sends all captured screenshots to Gemini API with appropriate prompts
-2. AI correctly identifies visual layout problems, missing UI elements, broken functionality
-3. AI provides specific, actionable fix suggestions (not generic recommendations)
-4. AI severity ratings align with actual impact (critical = app-breaking, low = cosmetic)
-5. System implements multi-layer verification to prevent AI hallucination false positives
+1. API monitoring verifies all endpoints return 200 OK with no unexpected 4xx/5xx errors
+2. Data persistence testing confirms submitted forms save correctly and updates propagate in real-time
+3. Vendor dashboard flow testing validates event-to-vendor assignment and booking update mechanisms
+4. Navigation state testing detects data loss on back button and verifies session persistence
+5. Real-time update testing confirms draft saves, profile syncs, and notification delivery
 
 ---
 
-## Phase 7: RTL & Internationalization
+## Phase 16: Security Testing
 
-**Goal:** System verifies Arabic RTL layout correctness and internationalization compliance.
+**Goal:** System validates security controls across authentication, input handling, and session management.
 
-**Dependencies:** Phase 6 (requires AI analysis capability)
+**Dependencies:** Phase 15 (requires backend integration testing)
 
 **Requirements:**
-- RTL-01: Verifies all text displays right-to-left correctly
-- RTL-02: Detects hardcoded English text (should be Arabic)
-- RTL-03: Checks icon/button alignment for RTL
-- RTL-04: Verifies numbers and dates format correctly
-- RTL-05: Flags any LTR-only styling issues
+- SEC-01: XSS payload injection testing across all user inputs (search, forms, reviews, chat)
+- SEC-02: SQL injection testing across all search/filter inputs
+- SEC-03: CSRF token validation on all mutation endpoints
+- SEC-04: Rate limiting verification (429 with retry-after)
+- SEC-05: Session timeout testing
+- SEC-06: Input sanitization checks on all text fields
+- SEC-07: File upload validation (size limits, type restrictions, error messages)
+- SEC-08: Auth bypass attempt testing
 
 **Success Criteria:**
-1. AI analysis detects text flowing left-to-right when it should be RTL
-2. System flags hardcoded English strings in Arabic-language context
-3. System verifies icons and buttons align correctly in RTL layout (right-aligned, mirrored when appropriate)
-4. System validates Arabic number formatting and date presentation
-5. Screenshots with RTL issues are clearly annotated with specific problems
+1. XSS payload testing injects malicious scripts across all input fields and verifies sanitization
+2. SQL injection testing attempts common attacks on search and filter endpoints
+3. CSRF validation confirms all mutation endpoints require valid tokens
+4. Rate limiting testing triggers 429 responses and verifies retry-after headers
+5. Security testing runs with customer, vendor, and admin roles to cover authenticated contexts
 
 ---
 
-## Phase 8: Reporting System
+## Phase 17: Performance Testing & Core Web Vitals
 
-**Goal:** System generates comprehensive, actionable HTML reports with all findings.
+**Goal:** System measures performance metrics and validates Core Web Vitals compliance.
 
-**Dependencies:** Phase 6 (requires AI analysis results)
+**Dependencies:** Phase 10 (can run in parallel with security after infrastructure ready)
 
 **Requirements:**
-- REPORT-01: Generates comprehensive HTML report
-- REPORT-02: Includes all screenshots in report
-- REPORT-03: Lists all issues with severity ratings
-- REPORT-04: Groups issues by category (UI, functionality, performance, RTL)
-- REPORT-05: Provides overall app health score (1-10)
-- REPORT-06: Includes fix suggestions for each issue
-- REPORT-07: Saves report with timestamp for history
+- PERF-01: First Contentful Paint measurement (<1.8s target)
+- PERF-02: Largest Contentful Paint measurement (<2.5s target)
+- PERF-03: Time to Interactive measurement (<3.8s target)
+- PERF-04: Cumulative Layout Shift measurement (<0.1 target)
+- PERF-05: First Input Delay / INP measurement (<100ms target)
+- PERF-06: Memory leak detection over navigation cycles
+- PERF-07: Bundle size tracking
 
 **Success Criteria:**
-1. HTML report displays all screenshots in organized gallery format
-2. Report categorizes issues into UI, functionality, performance, and RTL sections
-3. Each issue includes severity rating, screenshot reference, and actionable fix suggestion
-4. Report calculates overall app health score based on issue severity distribution
-5. Historical reports save with timestamps for trend analysis across test runs
+1. Core Web Vitals measured on all key pages (FCP, LCP, TTI, CLS, FID/INP)
+2. Performance metrics collected without failing builds (observation mode initially)
+3. Memory leak detection runs across 10+ navigation cycles to detect accumulation
+4. Performance reports show P95 measurements over 5 runs for consistency
+5. Bundle size tracking establishes baseline for future regression detection
 
 ---
 
-## Phase 9: Execution & Orchestration
+## Phase 18: Coverage Expansion - Vendor Dashboard & AI Consultant
 
-**Goal:** System runs on-demand, shows progress, handles errors gracefully, and completes reliably.
+**Goal:** Expand test coverage to major untested features: vendor dashboard and AI consultant.
 
-**Dependencies:** Phase 8 (requires reporting), Phase 2 (requires auth)
+**Dependencies:** Phase 15 (requires backend integration and auth infrastructure)
 
 **Requirements:**
-- RUN-01: Runs on-demand with single command (npm run test)
-- RUN-02: Completes full test and stops (not continuous)
-- RUN-03: Shows progress during execution
-- RUN-04: Handles errors gracefully (doesn't crash on failures)
-- RUN-05: Supports test plan configuration (what to test)
+- COV-01: Vendor Dashboard test suite - 28/33 features tested (calendar, bookings, earnings, messaging, profile, packages, reviews)
+- COV-02: AI Consultant test suite - 15/18 features tested (natural language, recommendations, budget, history)
+- COV-04: Guest Management expansion - 20/25 features tested (add/delete guests, invitations, RSVP, QR check-in)
+- COV-05: Event Test expansion - 28/35 features tested (create, edit, delete, visibility, cancel with notifications)
+- COV-06: Booking Test expansion - 27/30 features tested (complete flow, cancel/refund, payment, modification)
 
 **Success Criteria:**
-1. User runs npm run test and system executes complete test suite without manual intervention
-2. System displays real-time progress (current test, completion percentage)
-3. Errors during testing log clearly without halting entire test run
-4. System completes test run and generates report even when individual tests fail
-5. User can configure test plan (which flows to test, which screens to skip) via configuration file
+1. Vendor Dashboard testing covers 28/33 features including calendar management, bookings, and earnings
+2. AI Consultant testing validates 15/18 features including natural language processing and recommendations
+3. Guest Management expansion covers invitation flows, RSVP tracking, and QR check-in
+4. Event testing expanded to 28/35 features covering full lifecycle with edge cases
+5. Booking testing covers 27/30 features including cancellation, refund, and modification flows
+
+---
+
+## Phase 19: Coverage Expansion - Admin Panel & Click Validation
+
+**Goal:** Add admin panel testing and retrofit click validation across all existing suites.
+
+**Dependencies:** Phase 18 (requires coverage expansion patterns established)
+
+**Requirements:**
+- COV-03: Admin Panel test suite - 24/30 features tested (users, vendors, bookings, finance, disputes, security, settings)
+- COV-07: Add click validation (expectAfterClick) to all 15 existing test suites
+
+**Success Criteria:**
+1. Admin Panel testing covers 24/30 features including user management, vendor approval, and finance monitoring
+2. Click validation (expectAfterClick) retrofitted to all 15 existing test suites with phased rollout
+3. Click validation rollout phased over 3 weeks (5 suites per week) to prevent mass failures
+4. Admin testing validates role-based access controls and security boundaries
+5. Click validation soft assertions identify broken interactions before hard enforcement
+
+---
+
+## Phase 20: CI/CD Integration & Production Readiness
+
+**Goal:** Automate test execution in CI/CD pipeline with Docker consistency and reporting.
+
+**Dependencies:** Phase 17 (requires all testing features operational)
+
+**Requirements:**
+- CICD-01: GitHub Actions pipeline for automated test execution on push/PR
+- CICD-02: Docker containerization for consistent screenshot rendering across environments
+- CICD-03: Auto-setup script (setup.bat/setup.sh) for one-command installation
+- CICD-04: Test run comparison - compare two runs to show improvements/regressions
+- CICD-05: Allure reporting integration for historical tracking and trend analysis
+- SCORE-03: AI decision re-engagement - move from always-PASS to threshold-gated FAIL on high-confidence critical issues
+
+**Success Criteria:**
+1. GitHub Actions workflow runs smoke tests on every PR and full suite nightly
+2. Docker container provides consistent screenshot rendering eliminating CI flakiness
+3. Auto-setup script installs all dependencies and configures environment in one command
+4. Test run comparison shows improvements/regressions between consecutive runs
+5. Allure reporting tracks historical trends with flakiness detection and failure analysis
 
 ---
 
@@ -222,34 +263,94 @@ This roadmap delivers a systematic, AI-powered autonomous testing system for the
 
 | Phase | Requirements | Status | Completion |
 |-------|--------------|--------|------------|
-| 1 - Foundation & Setup | SETUP-01 to SETUP-07 (7) | Pending | 0% |
-| 2 - Authentication Testing | AUTH-01 to AUTH-05 (5) | Pending | 0% |
-| 3 - Core Navigation Testing | NAV-01 to NAV-06 (6) | Pending | 0% |
-| 4 - Scrolling & State Coverage | SCROLL-01 to SCROLL-05, STATE-01 to STATE-05 (10) | Pending | 0% |
-| 5 - Screenshot Capture System | SCREEN-01 to SCREEN-04 (4) | Pending | 0% |
-| 6 - AI-Powered Analysis | AI-01 to AI-06 (6) | Pending | 0% |
-| 7 - RTL & Internationalization | RTL-01 to RTL-05 (5) | Pending | 0% |
-| 8 - Reporting System | REPORT-01 to REPORT-07 (7) | Pending | 0% |
-| 9 - Execution & Orchestration | RUN-01 to RUN-05 (5) | Pending | 0% |
+| 10 - Shadow Mode & Measurement | SCORE-01, SCORE-02, DAT-01, DAT-02, DAT-14, DAT-15 (6) | Pending | 0% |
+| 11 - PII Masking & Legal Compliance | VIS-02, DAT-06, DAT-08 (3) | Pending | 0% |
+| 12 - Visual Regression Testing | VIS-01, VIS-03, VIS-04, VIS-06, VIS-09 (5) | Pending | 0% |
+| 13 - Component Consistency | VIS-05, VIS-07, VIS-08 (3) | Pending | 0% |
+| 14 - Data Validation & Forms | DAT-03, DAT-04, DAT-05, DAT-07, DAT-09, DAT-10, DAT-11, DAT-12, DAT-13 (9) | Pending | 0% |
+| 15 - Backend Integration | API-01, API-02, API-03, API-04, API-05 (5) | Pending | 0% |
+| 16 - Security Testing | SEC-01 to SEC-08 (8) | Pending | 0% |
+| 17 - Performance Testing | PERF-01 to PERF-07 (7) | Pending | 0% |
+| 18 - Coverage Expansion 1 | COV-01, COV-02, COV-04, COV-05, COV-06 (5) | Pending | 0% |
+| 19 - Coverage Expansion 2 | COV-03, COV-07 (2) | Pending | 0% |
+| 20 - CI/CD & Production | CICD-01 to CICD-05, SCORE-03 (6) | Pending | 0% |
 
-**Overall Progress:** 0/55 requirements completed (0%)
+**Overall Progress:** 0/52 requirements completed (0%)
+
+---
+
+## Phase Dependencies
+
+```
+Phase 10 (Shadow Mode)
+    |
+    v
+Phase 11 (PII Masking) ----+
+    |                      |
+    v                      |
+Phase 12 (Visual Regression)
+    |                      |
+    v                      |
+Phase 13 (Component Consistency)
+                           |
+                           v
+Phase 14 (Data Validation) <--- (parallel starts here)
+    |
+    v
+Phase 15 (Backend Integration)
+    |
+    +----> Phase 16 (Security) --+
+    |                             |
+    +----> Phase 17 (Performance) |
+    |                             |
+    v                             |
+Phase 18 (Coverage Expansion 1)   |
+    |                             |
+    v                             |
+Phase 19 (Coverage Expansion 2)   |
+    |                             |
+    +-----------------------------+
+    |
+    v
+Phase 20 (CI/CD & Production)
+```
 
 ---
 
 ## Notes
 
-**Coverage Validation:** All 55 v1 requirements mapped to phases. No orphaned requirements.
+**Coverage Validation:** All 52 v1.1 requirements mapped to phases. No orphaned requirements.
 
 **Research Flags:**
-- Phase 6 (AI-Powered Analysis): Complex Gemini integration patterns, hallucination mitigation strategies
-- Phase 7 (RTL & Internationalization): RTL layout detection patterns with AI
+- Phase 10: Shadow mode implementation pattern requires exemption mechanism design
+- Phase 12: Visual regression baseline approval workflow must prevent baseline pollution
+- Phase 16: Security testing requires customer, vendor, and admin test credentials
+- Phase 17: Performance budgets must be environment-specific (CI vs local vs production)
+- Phase 20: Docker screenshot consistency critical for CI reliability
 
 **Key Risks:**
-- Phase 2: OAuth token refresh must be implemented from start (Pitfall 3 from research)
-- Phase 6: AI hallucination prevention requires multi-layer verification (Pitfall 1 from research)
-- Phase 5/6: Screenshot consistency requires Docker standardization (Pitfall 4 from research)
-- All phases: Gemini API rate limits require exponential backoff strategy (Pitfall 2 from research)
+- Phase 10: Shadow mode must run for 4 weeks before Phase 20 enforcement to collect sufficient baselines
+- Phase 12: Baseline pollution (buggy screenshots become truth) mitigated by manual approval workflow
+- Phase 16/17: Security and performance can run in parallel after Phase 15 completes
+- Phase 19: Click validation expansion risks 40% test failure rate - phased rollout over 3 weeks mitigates
+- Phase 20: CI/CD timing assumptions may cause flakiness - 3x timeout multiplier for CI environment
+
+**Graduated Enforcement Timeline:**
+- Weeks 1-4: Shadow mode measurement (Phase 10) - NO threshold changes
+- Weeks 5-8: Graduated threshold rollout via Phase 20
+  - Week 5: RTL threshold 5.0 → 6.0
+  - Week 6: Color threshold 4.0 → 5.0
+  - Week 7: Code Quality threshold 4.0 → 5.0
+  - Week 8: Security threshold 0 → 7.0, Performance threshold 0 → 50
+
+**Success Metrics:**
+- Maintain 63/63 PASS rate during shadow mode (Phases 10-19)
+- CI flakiness <15% (Phase 20)
+- Coverage expansion: 32% → 75% (Phases 18-19)
+- No more than 10% pass rate regression per week during threshold tightening
 
 ---
 
-*Last updated: 2026-02-08*
+*Last updated: 2026-02-10*
+*Milestone: v1.1 Hardening & Full Coverage*
+*Phases: 10-20 (continues from v1.0's Phases 1-9)*

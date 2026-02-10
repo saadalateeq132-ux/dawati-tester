@@ -107,8 +107,71 @@
 
 ## Traceability
 
-(Populated by roadmap — maps REQ-IDs to phases)
+| Requirement | Phase | Status | Category |
+|-------------|-------|--------|----------|
+| SCORE-01 | Phase 10 | Pending | Scoring & Threshold Hardening |
+| SCORE-02 | Phase 10 | Pending | Scoring & Threshold Hardening |
+| DAT-01 | Phase 10 | Pending | Data Validation |
+| DAT-02 | Phase 10 | Pending | Data Validation |
+| DAT-14 | Phase 10 | Pending | Data Validation |
+| DAT-15 | Phase 10 | Pending | Data Validation |
+| VIS-02 | Phase 11 | Pending | Visual & UX Testing |
+| DAT-06 | Phase 11 | Pending | Data Validation |
+| DAT-08 | Phase 11 | Pending | Data Validation |
+| VIS-01 | Phase 12 | Pending | Visual & UX Testing |
+| VIS-03 | Phase 12 | Pending | Visual & UX Testing |
+| VIS-04 | Phase 12 | Pending | Visual & UX Testing |
+| VIS-06 | Phase 12 | Pending | Visual & UX Testing |
+| VIS-09 | Phase 12 | Pending | Visual & UX Testing |
+| VIS-05 | Phase 13 | Pending | Visual & UX Testing |
+| VIS-07 | Phase 13 | Pending | Visual & UX Testing |
+| VIS-08 | Phase 13 | Pending | Visual & UX Testing |
+| DAT-03 | Phase 14 | Pending | Data Validation |
+| DAT-04 | Phase 14 | Pending | Data Validation |
+| DAT-05 | Phase 14 | Pending | Data Validation |
+| DAT-07 | Phase 14 | Pending | Data Validation |
+| DAT-09 | Phase 14 | Pending | Data Validation |
+| DAT-10 | Phase 14 | Pending | Data Validation |
+| DAT-11 | Phase 14 | Pending | Data Validation |
+| DAT-12 | Phase 14 | Pending | Data Validation |
+| DAT-13 | Phase 14 | Pending | Data Validation |
+| API-01 | Phase 15 | Pending | Backend Integration |
+| API-02 | Phase 15 | Pending | Backend Integration |
+| API-03 | Phase 15 | Pending | Backend Integration |
+| API-04 | Phase 15 | Pending | Backend Integration |
+| API-05 | Phase 15 | Pending | Backend Integration |
+| SEC-01 | Phase 16 | Pending | Security Testing |
+| SEC-02 | Phase 16 | Pending | Security Testing |
+| SEC-03 | Phase 16 | Pending | Security Testing |
+| SEC-04 | Phase 16 | Pending | Security Testing |
+| SEC-05 | Phase 16 | Pending | Security Testing |
+| SEC-06 | Phase 16 | Pending | Security Testing |
+| SEC-07 | Phase 16 | Pending | Security Testing |
+| SEC-08 | Phase 16 | Pending | Security Testing |
+| PERF-01 | Phase 17 | Pending | Performance Testing |
+| PERF-02 | Phase 17 | Pending | Performance Testing |
+| PERF-03 | Phase 17 | Pending | Performance Testing |
+| PERF-04 | Phase 17 | Pending | Performance Testing |
+| PERF-05 | Phase 17 | Pending | Performance Testing |
+| PERF-06 | Phase 17 | Pending | Performance Testing |
+| PERF-07 | Phase 17 | Pending | Performance Testing |
+| COV-01 | Phase 18 | Pending | Coverage Expansion |
+| COV-02 | Phase 18 | Pending | Coverage Expansion |
+| COV-04 | Phase 18 | Pending | Coverage Expansion |
+| COV-05 | Phase 18 | Pending | Coverage Expansion |
+| COV-06 | Phase 18 | Pending | Coverage Expansion |
+| COV-03 | Phase 19 | Pending | Coverage Expansion |
+| COV-07 | Phase 19 | Pending | Coverage Expansion |
+| CICD-01 | Phase 20 | Pending | CI/CD & Production Readiness |
+| CICD-02 | Phase 20 | Pending | CI/CD & Production Readiness |
+| CICD-03 | Phase 20 | Pending | CI/CD & Production Readiness |
+| CICD-04 | Phase 20 | Pending | CI/CD & Production Readiness |
+| CICD-05 | Phase 20 | Pending | CI/CD & Production Readiness |
+| SCORE-03 | Phase 20 | Pending | Scoring & Threshold Hardening |
+
+**Coverage:** 52/52 requirements mapped (100%)
 
 ---
 *Generated: 2026-02-10*
 *Total: 52 requirements across 9 categories*
+*Milestone: v1.1 Hardening & Full Coverage*
