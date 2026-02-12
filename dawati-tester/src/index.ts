@@ -46,12 +46,12 @@ Usage:
 
 Options:
   --only=<type>    Run specific test type (auth|navigation|scrolling|rtl|auth+navigation|all)
-  --skip-ai        Skip AI analysis (faster, no Gemini API calls)
+  --skip-ai        Skip AI analysis (faster, no Gemini/Vertex API calls)
   --help, -h       Show this help message
 
 Environment Variables:
-  GEMINI_API_KEY   Your Gemini API key (required for AI analysis)
-  DAWATI_URL       URL of your Dawati app (required)
+  GEMINI_API_KEY   Gemini key (optional if using Vertex)
+  DAWATI_URL       URL of your Dawati app (or set BASE_URL)
   HEADLESS         Run browser in headless mode (default: true)
   LOG_LEVEL        Logging level (default: info)
 

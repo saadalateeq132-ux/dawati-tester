@@ -108,7 +108,7 @@ export function generateReport(
 
   const allIssues = aggregateIssues(analysisResults);
   const overallScore = calculateOverallScore(analysisResults);
-  const issuesSummary = getIssueSummary(allIssues);
+  const issuesSummary = getIssueSummary(allIssues) as any;
   const screenshots = getScreenshots();
 
   // Calculate visual changes count
@@ -189,9 +189,11 @@ export async function saveReport(report: TestReport): Promise<string> {
   // Prepare CSV content
   const csvHeader = 'ID,Severity,Category,Title,Description,Suggestion,Screenshot\n';
   const csvRows = report.allIssues
-    .map((issue) =>
-      `"${issue.id}","${issue.severity}","${issue.category}","${issue.title}","${issue.description}","${issue.suggestion}","${issue.screenshot}"`
-    )
+    .map((issue) => {
+      const analysisResult = report.analysisResults.find(r => r.issues.some(i => i.id === issue.id));
+      const screenshotFile = analysisResult ? analysisResult.screenshot.filename : 'N/A';
+      return `"${issue.id}","${issue.severity}","${issue.category}","${issue.title}","${issue.description}","${issue.suggestion}","${screenshotFile}"`
+    })
     .join('\n');
 
   const writePromises = [

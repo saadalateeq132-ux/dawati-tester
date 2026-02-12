@@ -240,9 +240,9 @@ export async function runPhoneScenario(
 
   try {
     const result = await phoneAuthFlow(
-      config.testUsers.phone.existingVendor,
+      phoneNumber,
       config.testOtp,
-      scenario,
+      scenarioName,
       steps
     );
 

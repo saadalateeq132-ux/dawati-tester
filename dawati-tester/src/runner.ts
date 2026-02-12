@@ -294,9 +294,9 @@ export async function runTests(options: RunnerOptions = {}): Promise<TestResults
   } else if (testPlan.aiAnalysis?.enabled === false) {
     aiEnabled = false;
     aiSkippedReason = 'Disabled by test plan (aiAnalysis.enabled=false)';
-  } else if (!config.geminiApiKey) {
+  } else if (!config.geminiApiKey && !(config.gcpProjectId && config.gcpLocation)) {
     aiEnabled = false;
-    aiSkippedReason = 'GEMINI_API_KEY missing (AI analysis skipped)';
+    aiSkippedReason = 'AI credentials missing (set GEMINI_API_KEY or GCP_PROJECT_ID + GCP_LOCATION)';
   }
 
   printBanner();

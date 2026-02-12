@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock config to avoid environment variable validation errors
 vi.mock('./config', () => ({
@@ -32,19 +32,29 @@ vi.mock('./config', () => ({
 
 import { getIssueSummary, Issue } from './ai-analyzer';
 
-// Helper to create simple Issue objects
-const createIssue = (severity: Issue['severity'], title = 'Test Issue'): Issue => ({
-  id: 'test-id',
-  severity,
-  category: 'ui',
-  title,
-  description: 'Test Description',
-  suggestion: 'Test Suggestion',
-  screenshot: 'test-screenshot.png',
-  location: 'Test Location'
-});
+let issueCounter = 0;
+
+// Helper to create a complete Issue object for tests
+function createIssue(overrides: Partial<Issue> = {}): Issue {
+  const id = `ISS-${String(++issueCounter).padStart(4, '0')}`;
+  return {
+    id,
+    severity: 'medium',
+    category: 'ui',
+    title: 'Test Issue',
+    description: 'Test Description',
+    suggestion: 'Test Suggestion',
+    isBug: true,
+    location: 'Test Location',
+    ...overrides,
+  };
+}
 
 describe('getIssueSummary', () => {
+  beforeEach(() => {
+    issueCounter = 0;
+  });
+
   it('should return 0 counts and 0 total for an empty array', () => {
     const issues: Issue[] = [];
     const summary = getIssueSummary(issues);
@@ -59,7 +69,7 @@ describe('getIssueSummary', () => {
   });
 
   it('should count a single issue correctly', () => {
-    const issues = [createIssue('high')];
+    const issues = [createIssue({ severity: 'high' })];
     const summary = getIssueSummary(issues);
 
     expect(summary).toEqual({
@@ -73,9 +83,9 @@ describe('getIssueSummary', () => {
 
   it('should count multiple issues of the same severity correctly', () => {
     const issues = [
-      createIssue('medium'),
-      createIssue('medium'),
-      createIssue('medium')
+      createIssue({ severity: 'medium' }),
+      createIssue({ severity: 'medium' }),
+      createIssue({ severity: 'medium' })
     ];
     const summary = getIssueSummary(issues);
 
@@ -90,13 +100,13 @@ describe('getIssueSummary', () => {
 
   it('should count issues of mixed severities correctly', () => {
     const issues = [
-      createIssue('critical'),
-      createIssue('critical'),
-      createIssue('high'),
-      createIssue('medium'),
-      createIssue('medium'),
-      createIssue('medium'),
-      createIssue('low')
+      createIssue({ severity: 'critical' }),
+      createIssue({ severity: 'critical' }),
+      createIssue({ severity: 'high' }),
+      createIssue({ severity: 'medium' }),
+      createIssue({ severity: 'medium' }),
+      createIssue({ severity: 'medium' }),
+      createIssue({ severity: 'low' })
     ];
     const summary = getIssueSummary(issues);
 

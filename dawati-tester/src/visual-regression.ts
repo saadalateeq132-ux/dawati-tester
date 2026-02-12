@@ -30,7 +30,7 @@ export function compareWithBaseline(
   screenshotPath: string,
   outputDir: string
 ): Promise<VisualDiff> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const filename = path.basename(screenshotPath);
     const baselinePath = getBaselinePath(filename);
 
@@ -43,50 +43,60 @@ export function compareWithBaseline(
     }
 
     if (!fs.existsSync(workerPath)) {
-      throw new Error(`Worker file not found at ${workerPath}. Please run 'npm run build' to generate it.`);
+      const errorDiff: VisualDiff = {
+        filename,
+        baselineExists: false,
+        diffPercentage: -1,
+        hasSignificantChange: false,
+      };
+      visualDiffs.push(errorDiff);
+      resolve(errorDiff);
+      return;
     }
 
     const worker = new Worker(workerPath);
+    let settled = false;
 
-    worker.on('message', (diff: VisualDiff) => {
+    const finalize = (diff: VisualDiff): void => {
+      if (settled) return;
+      settled = true;
       visualDiffs.push(diff);
       resolve(diff);
-      worker.terminate();
+      worker.terminate().catch(() => {});
+    };
+
+    worker.on('message', (diff: VisualDiff) => {
+      finalize(diff);
     });
 
     worker.on('error', (err) => {
       log.error({ filename, error: err }, 'Worker error');
-      const errorDiff: VisualDiff = {
+      finalize({
         filename,
-        baselineExists: true, // Optimistic assumption or irrelevant
+        baselineExists: true,
         diffPercentage: -1,
-        hasSignificantChange: false
-      };
-      visualDiffs.push(errorDiff);
-      resolve(errorDiff);
-      worker.terminate();
+        hasSignificantChange: false,
+      });
     });
 
     worker.on('exit', (code) => {
+      if (settled) return;
       if (code !== 0) {
         log.error({ filename, code }, 'Worker exited with non-zero code');
-        // Resolve with error state if not already resolved
-        const errorDiff: VisualDiff = {
-          filename,
-          baselineExists: true,
-          diffPercentage: -1,
-          hasSignificantChange: false
-        };
-        visualDiffs.push(errorDiff);
-        resolve(errorDiff);
       }
+      finalize({
+        filename,
+        baselineExists: true,
+        diffPercentage: -1,
+        hasSignificantChange: false,
+      });
     });
 
     worker.postMessage({
       baselinePath,
       screenshotPath,
       outputDir,
-      threshold: diffThreshold
+      threshold: diffThreshold,
     });
   });
 }

@@ -51,8 +51,8 @@ describe('generateReport', () => {
     },
     issues: [],
     summary: 'Test Summary',
-    score: 8,
-    rtlIssues: [],
+    scores: { overall: 8, rtl: 10, color: 10, clarity: 10 },
+    confidence: 0.9,
     hardcodedText: [],
     imageText: [],
     missingStates: [],
@@ -66,7 +66,7 @@ describe('generateReport', () => {
     title: 'Test Issue',
     description: 'Test Description',
     suggestion: 'Fix it',
-    screenshot: 'test.png',
+    isBug: true,
   });
 
   it('should generate a basic report with correct structure', () => {
@@ -77,7 +77,7 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue(mockIssues);
     vi.mocked(calculateOverallScore).mockReturnValue(8.5);
-    vi.mocked(getIssueSummary).mockReturnValue(mockIssueSummary);
+    vi.mocked(getIssueSummary).mockReturnValue(mockIssueSummary as any);
 
     const startTime = new Date(Date.now() - 5000); // 5 seconds ago
     const result = generateReport(
@@ -109,7 +109,7 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue([]);
     vi.mocked(calculateOverallScore).mockReturnValue(0);
-    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
+    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 } as any);
 
     const result = generateReport(
       'http://localhost:3000',
@@ -133,7 +133,7 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue([]);
     vi.mocked(calculateOverallScore).mockReturnValue(0);
-    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
+    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 } as any);
 
     const visualDiffs: VisualDiff[] = [
       { filename: '1.png', baselineExists: true, diffPercentage: 0, hasSignificantChange: false },
@@ -156,7 +156,7 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue([]);
     vi.mocked(calculateOverallScore).mockReturnValue(0);
-    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
+    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 } as any);
 
     const accessibilityResults: AccessibilityResult[] = [
       {
@@ -203,7 +203,7 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue([]);
     vi.mocked(calculateOverallScore).mockReturnValue(0);
-    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
+    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 } as any);
 
     const performanceMetrics: PerformanceMetric[] = [
       { name: 'home', device: 'mobile', pageLoadTimeMs: 1000, timestamp: new Date() },
@@ -232,14 +232,18 @@ describe('generateReport', () => {
     vi.mocked(getScreenshots).mockReturnValue([]);
     vi.mocked(aggregateIssues).mockReturnValue([]);
     vi.mocked(calculateOverallScore).mockReturnValue(0);
-    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
+    vi.mocked(getIssueSummary).mockReturnValue({ critical: 0, high: 0, medium: 0, low: 0, total: 0 } as any);
 
     const checklistScore: ChecklistScore = {
+      totalItems: 10,
+      requiredItems: 5,
+      testedItems: 9,
+      passingItems: 8,
+      failingItems: 1,
+      missingItems: 1,
       overallScore: 90,
       requiredScore: 100,
-      passingItems: 9,
-      totalItems: 10,
-      categories: {}
+      categories: new Map()
     };
 
     const aiStatus = {
