@@ -239,10 +239,10 @@ export async function runPhoneScenario(
   const steps: AuthStep[] = [];
 
   try {
-    const result = await phoneAuthFlow(
-      config.testUsers.phone.existingVendor,
+    const result = await _authFlow(
+      phoneNumber,
       config.testOtp,
-      scenario,
+      scenarioName,
       steps
     );
 
