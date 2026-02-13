@@ -56,7 +56,11 @@ export class ChecklistValidator {
   };
 
   constructor(checklist?: ChecklistItem[]) {
-    this.checklistPath = path.join(__dirname, '../../.planning/MASTER-TEST-CHECKLIST.md');
+    const candidatePaths = [
+      path.join(__dirname, '../../.planning/MASTER-TEST-CHECKLIST.md'),
+      path.join(__dirname, '../../../.planning/MASTER-TEST-CHECKLIST.md'),
+    ];
+    this.checklistPath = candidatePaths.find((candidate) => fs.existsSync(candidate)) || candidatePaths[0];
     if (checklist) {
       this.checklist = checklist;
     }

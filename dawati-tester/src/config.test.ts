@@ -46,6 +46,7 @@ describe('validateConfig', () => {
 
   it('should throw if DAWATI_URL is missing', () => {
     process.env.DAWATI_URL = '';
+    delete process.env.VITEST;
 
     expect(() => validateConfig()).toThrow('DAWATI_URL is required');
   });
